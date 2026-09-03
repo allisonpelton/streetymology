@@ -1,0 +1,55 @@
+"""Normalize Ada County street names to a 'core' name for etymology analysis.
+
+Ada County code: predirectionals and post-types are not part of the name proper
+and do not count toward the 13-character limit. The core name is therefore both
+the correct join key across sources and the correct unit of etymology.
+"""
+import re
+
+DIRECTIONALS = {
+    "n","s","e","w","ne","nw","se","sw",
+    "north","south","east","west","northeast","northwest","southeast","southwest",
+}
+
+# USPS-style post-types, abbreviated and expanded.
+SUFFIXES = {
+    "st","street","rd","road","ln","lane","dr","drive","ave","avenue","av",
+    "ct","court","pl","place","blvd","boulevard","cir","circle","way","wy",
+    "pkwy","parkway","ter","terrace","trl","trail","loop","hwy","highway",
+    "bnd","bend","cv","cove","xing","crossing","run","pt","point","pass",
+    "sq","square","expy","expressway","aly","alley","row","walk","plz","plaza",
+    "mnr","manor","grn","green","gln","glen","vw","view","rdg","ridge",
+    "hts","heights","est","estates","cres","crescent","spur","cutoff","connector",
+}
+
+_WS = re.compile(r"\s+")
+_TOK = re.compile(r"[^a-z0-9]")
+
+
+def _bare(tok: str) -> str:
+    """Lowercase a token and drop punctuation (assessor marks names with '*')."""
+    return _TOK.sub("", tok.lower())
+
+
+def normalize(name: str) -> str:
+    """Return the core street name: directional and post-type stripped."""
+    if not name:
+        return ""
+    toks = _WS.sub(" ", name.strip()).split(" ")
+    # strip leading directional, but never leave nothing behind
+    if len(toks) > 1 and _bare(toks[0]) in DIRECTIONALS:
+        toks = toks[1:]
+    # strip trailing post-type, but never leave nothing behind
+    if len(toks) > 1 and _bare(toks[-1]) in SUFFIXES:
+        toks = toks[:-1]
+    return " ".join(toks)
+
+
+def is_reserved(name: str) -> bool:
+    """Assessor marks approved-but-unbuilt street names with a trailing asterisk."""
+    return "*" in name
+
+
+def key(name: str) -> str:
+    """Case/punctuation-insensitive comparison key for the core name."""
+    return re.sub(r"[^a-z0-9 ]", "", normalize(name).lower()).strip()
