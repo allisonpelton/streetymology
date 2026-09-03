@@ -1,0 +1,8 @@
+requests>=2.32
+pandas>=2.2
+geopandas>=1.0
+shapely>=2.0
+pyarrow>=17.0
+python-dotenv>=1.0
+tqdm>=4.66
+pytest>=8.0

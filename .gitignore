@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+data/
+*.gpkg
+*.osm.pbf
+*.parquet
+.ipynb_checkpoints/
+.pytest_cache/
