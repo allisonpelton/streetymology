@@ -25,7 +25,7 @@ West Kingston Drive,fish,Q2236628,Kingston,20,,2,-,n,"definitely not fish, but n
 East Borzoi Court,dog_breed,Q37866,Borzoi,43,,1,-,y,,1
 North Hunter Creek Avenue,us_river,Q27986956,Hunter Creek,2,541,7,-,q,"common name, reranking does not help. There is a Hunter Creek in Idaho, but it seems unnotable",2
 South Triumph Place,idaho_place,Q7844478,Triumph,4,162,1,grape_variety,q,nearby streets are no help,2
-South Stibnite Avenue,idaho_place,Q122565131,Stibnite,0,176,1,-,n,mineral name based on nearby streets,2
+South Stibnite Avenue,idaho_place,Q122565131,Stibnite,0,176,1,-,y,"mineral name based on nearby streets | CORRECTED by AP: mining TOWN is right. Jumped to a conclusion from Cuprum. Cluster contains Bayhorse, Placerville, Oakley, Cuprum, Stibnite - all Idaho mining towns.",2
 North James Street,grape_variety,Q112256118,James,1,,1,-,n,very common ,1
 North Porgy Way,fish,Q143503,Porgy,39,,14,-,y,,1
 West Clinton Lane,us_president,Q1124,Bill Clinton,223,,1,grape_variety,n,dates back to 1950s or earlier. Actual namesake probably not in wikidata,1
