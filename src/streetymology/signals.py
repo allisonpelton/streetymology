@@ -8,6 +8,11 @@ they catch different failure modes:
   commonness  - 'Rainbow', 'Buffalo': the string collided with a common word
   notability  - 'Blake Run', 'Valentino': a real item nobody names a street for
   nameness    - 'Blake', 'Baker': matched a feature named for a DIFFERENT person
+
+REMOVED 2026-09-04 after re-measuring on the audited label set:
+  specificity - AUC 0.421, actively inverted
+  collision   - AUC 0.530, a coin flip
+Neither ever fed the combined score. Do not reinstate without new evidence.
 """
 import math
 from wordfreq import zipf_frequency
@@ -63,17 +68,6 @@ def nameness(is_surname: bool, is_given_name: bool) -> float:
     return 1.0
 
 
-def specificity(matched_text: str) -> float:
-    """Longer matched spans are far less likely to be coincidental."""
-    n = len([t for t in matched_text.split() if t])
-    return {0: 0.0, 1: 0.4, 2: 0.85}.get(n, 1.0)
-
-
-def collision(domain_count: int) -> float:
-    """1.0 = matched exactly one domain, falling off as it matches more."""
-    if domain_count <= 1:
-        return 1.0
-    return max(0.0, 1.0 - (domain_count - 1) * 0.3)
 
 
 def haversine_km(a: tuple[float, float], b: tuple[float, float]) -> float:

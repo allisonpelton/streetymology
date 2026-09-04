@@ -26,14 +26,11 @@ def load():
         label = r["wikidata_label"]
         nm = names.get(label, {})
         km = S.distance_to_ada(coords.get(r["qid"]))
-        others = 1 if r.get("other_domains", "-") == "-" else 1 + r["other_domains"].count(",") + 1
         rows.append({
             "row": r, "y": 1 if v == "y" else 0,
             "commonness": S.commonness(label),
             "notability": S.notability(int(r["sitelinks"] or 0)),
             "nameness": S.nameness(nm.get("surname", False), nm.get("given", False)),
-            "specificity": S.specificity(label),
-            "collision": S.collision(others),
             "proximity": S.proximity(km),
         })
     return rows
@@ -55,7 +52,7 @@ if __name__ == "__main__":
           f"n={sum(1 for r in rows if not r['y'])})")
     print(f"baseline precision: {sum(r['y'] for r in rows)/len(rows)*100:.1f}%\n")
     print(f"{'signal':14} {'AUC':>6} {'n_pos':>6} {'n_neg':>6}   interpretation")
-    for sig in ["commonness", "notability", "nameness", "specificity", "collision", "proximity"]:
+    for sig in ["commonness", "notability", "nameness", "proximity"]:
         a, npos, nneg = auc(rows, sig)
         if a is None:
             print(f"  {sig:14} {'n/a':>6}"); continue

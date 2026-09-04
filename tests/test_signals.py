@@ -1,6 +1,6 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
-from streetymology.signals import commonness, notability, nameness, specificity, collision
+from streetymology.signals import commonness, notability, nameness
 
 
 def test_distinctive_words_score_high():
@@ -27,12 +27,6 @@ def test_personal_names_penalised():
     assert nameness(True, True) == 0.0
 
 
-def test_longer_spans_more_specific():
-    assert specificity("Golden Eagle") > specificity("Eagle")
-
-
-def test_collision_penalises_multi_domain():
-    assert collision(1) == 1.0 and collision(3) < collision(2)
 
 
 def test_proximity_prefers_local_features():
