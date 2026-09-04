@@ -185,7 +185,7 @@ West Hidden Valley Drive,ski_resort,Q5751994,Hidden Valley,"former ski resort in
 West Colton Lane,us_president,Q5531983,General Joseph Colton,"original ""G.I. Joe""",3,,1,-,surname,https://www.wikidata.org/wiki/Q5531983,q,try proximity
 North Big River Place,us_river,Q4906196,Big River,"river in Mendocino County, California (USA), south of Mendocino Village",7,766,8,-,full,https://www.wikidata.org/wiki/Q4906196,n,"ambiguous, possibly invented"
 West Camas Lane,plant,Q4992158,camas,species of plant,14,,1,-,full,https://www.wikidata.org/wiki/Q4992158,y,should have also come up as Idaho county
-North Nemea Avenue,greek_deity,Q1977078,Nemea,"naiad, mythical daughter of Asopus or Zeus",9,,1,-,full,https://www.wikidata.org/wiki/Q1977078,y,
+North Nemea Avenue,greek_deity,Q1977078,Nemea,"naiad, mythical daughter of Asopus or Zeus",9,,1,-,full,https://www.wikidata.org/wiki/Q1977078,n,"CORRECTED by AP after LLM review: snap judgement. Subdivision is Greek PLACES (Naxos, Mikonos, Delphi, Kalamata, Pindus); Nemea is the town in Corinthia, not the deity. Flagged independently by Opus and Sonnet."
 East Woodvine Court,plant,Q7396081,woodvine,genus of plants,11,,1,-,full,https://www.wikidata.org/wiki/Q7396081,y,
 North Booth Avenue,us_president,Q7241241,President Robert L. Booth,,1,,1,-,surname,https://www.wikidata.org/wiki/Q7241241,n,this is a fictional president in Judge Dredd. Either code or Wikidata needs fix
 North Cedar Avenue,idaho_place,Q117025266,Cedar,"unincorporated community in Twin Falls, Idaho, United States",0,157,1,plant,full,https://www.wikidata.org/wiki/Q117025266,n,should be the tree

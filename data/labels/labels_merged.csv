@@ -185,7 +185,7 @@ West Hidden Valley Drive,ski_resort,Q5751994,Hidden Valley,1,,2,-,n,"common, amb
 West Colton Lane,us_president,Q5531983,General Joseph Colton,3,,1,-,q,try proximity,1
 North Big River Place,us_river,Q4906196,Big River,7,766,8,-,n,"ambiguous, possibly invented",1
 West Camas Lane,plant,Q4992158,camas,14,,1,-,y,should have also come up as Idaho county,1
-North Nemea Avenue,greek_deity,Q1977078,Nemea,9,,1,-,y,,1
+North Nemea Avenue,greek_deity,Q1977078,Nemea,9,,1,-,n,"CORRECTED by AP after LLM review: snap judgement. Subdivision is Greek PLACES (Naxos, Mikonos, Delphi, Kalamata, Pindus); Nemea is the town in Corinthia, not the deity. Flagged independently by Opus and Sonnet.",1
 East Woodvine Court,plant,Q7396081,woodvine,11,,1,-,y,,1
 North Booth Avenue,us_president,Q7241241,President Robert L. Booth,1,,1,-,n,this is a fictional president in Judge Dredd. Either code or Wikidata needs fix,1
 North Cedar Avenue,idaho_place,Q117025266,Cedar,0,157,1,plant,n,should be the tree,1
