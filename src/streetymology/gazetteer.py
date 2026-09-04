@@ -6,14 +6,30 @@ never run these concurrently.
 """
 import hashlib
 import json
+import time
 from dataclasses import dataclass
 from .config import DATA_DIR
 from .wikidata import query, qid
 from .normalize import entity_key
 
 # Taxa MUST match on P1843 (taxon common name); rdfs:label yields Latin binomials.
+# skos:altLabel adds ~3x more names (Acer saccharinum: "river maple", "soft maple",
+# "white maple" alongside "silver maple") but aliases are noisier, so provenance is
+# tracked and match.py scores them lower.
+# Aliases are NOT fetched here. Adding a skos:altLabel UNION inside the P171*
+# traversal made every taxon query exceed the WDQS deadline. They are fetched in
+# a separate pass keyed by QID (scripts/fetch_aliases.py), which is cheap and
+# reliable, and merged at index time.
 TAXON = """SELECT DISTINCT ?s ?n WHERE {{
   ?s wdt:P171* wd:{root} ; wdt:P1843 ?n . FILTER(lang(?n)="en") }}"""
+
+# Deep P171* traversal from a kingdom root can exceed the WDQS deadline and, worse,
+# return PARTIAL results without erroring. Plants hit this: Q756 (Plantae) yielded
+# 22466 taxa while angiosperms ALONE hold 34201, and silver/red/sugar maple were all
+# missing. Large kingdoms are therefore split into clades that each complete.
+TAXON_CLADES = {
+    "plant": ["Q25314", "Q133712", "Q373615", "Q25347"],   # angiosperms, gymnosperms, ferns, bryophytes
+}
 
 INSTANCE = """SELECT DISTINCT ?s ?n WHERE {{
   ?s wdt:P31/wdt:P279* wd:{root} ; rdfs:label ?n . FILTER(lang(?n)="en") }}"""
@@ -25,7 +41,7 @@ IN_US = """SELECT DISTINCT ?s ?n WHERE {{
 
 @dataclass(frozen=True)
 class Root:
-    sparql: str
+    sparql: str | tuple
     tier: str = "concept"   # concept | name | person
     paged: bool = False
     precision: str = "high"  # high | low - see artifacts/gazetteer_precision.md
@@ -35,7 +51,7 @@ class Root:
 ROOTS: dict[str, Root] = {
     # --- living things -------------------------------------------------
     "bird":        Root(TAXON.format(root="Q5113")),
-    "plant":       Root(TAXON.format(root="Q756"), paged=True),
+    "plant":       Root(tuple(TAXON.format(root=r) for r in TAXON_CLADES["plant"])),
     "mammal":      Root(TAXON.format(root="Q7377")),
     "fish":        Root(TAXON.format(root="Q127282"), precision="low"),  # generic common names
     "insect":      Root(TAXON.format(root="Q1390"), paged=True),
@@ -105,13 +121,21 @@ class GazetteerTooSmall(RuntimeError):
 
 
 def root_hash(domain: str) -> str:
-    return hashlib.sha256(ROOTS[domain].sparql.encode()).hexdigest()[:12]
+    sp = ROOTS[domain].sparql
+    blob = "".join(sp) if isinstance(sp, tuple) else sp
+    return hashlib.sha256(blob.encode()).hexdigest()[:12]
 
 
 def build(domain: str) -> int:
     root = ROOTS[domain]
     recs, seen = [], set()
-    if not root.paged:
+    if isinstance(root.sparql, tuple):
+        rows = []
+        for i, sub in enumerate(root.sparql, 1):
+            rows += query(sub, timeout=70)
+            print(f"      clade {i}/{len(root.sparql)}: {len(rows)} rows so far", flush=True)
+            time.sleep(2)
+    elif not root.paged:
         rows = query(root.sparql, timeout=70)
     else:
         rows, offset = [], 0
@@ -159,12 +183,28 @@ def available(tier: str | None = None) -> list[str]:
                   if path(d).exists() and (tier is None or r.tier == tier))
 
 
-def index(domain: str) -> dict[str, list[dict]]:
-    """Map comparison-key -> entries. Person domains also indexed by surname."""
+ALIAS_FILE = "gaz_aliases.json"
+
+
+def load_aliases() -> dict[str, list[str]]:
+    p = DATA_DIR / ALIAS_FILE
+    return json.loads(p.read_text()) if p.exists() else {}
+
+
+def index(domain: str, aliases: dict | None = None) -> dict[str, list[dict]]:
+    """Map comparison-key -> entries. Person domains also indexed by surname.
+
+    Aliases are merged if available and tagged src="alias" so match.py can score
+    them below primary common names.
+    """
     idx: dict[str, list[dict]] = {}
     person = domain in PERSON_DOMAINS
+    aliases = load_aliases() if aliases is None else aliases
     for r in load(domain):
-        e = {"qid": r["qid"], "name": r["name"], "via": "full"}
+        e = {"qid": r["qid"], "name": r["name"], "via": "full", "src": "p1843"}
+        for alt in aliases.get(r["qid"], ()):
+            idx.setdefault(entity_key(alt), []).append(
+                {"qid": r["qid"], "name": r["name"], "via": "full", "src": "alias"})
         idx.setdefault(entity_key(r["name"]), []).append(e)
         if person:
             parts = r["name"].split()
