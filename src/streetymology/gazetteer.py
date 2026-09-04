@@ -185,6 +185,14 @@ def available(tier: str | None = None) -> list[str]:
 
 ALIAS_FILE = "gaz_aliases.json"
 
+# Aliases are merged only for domains whose vocabulary is distinctive. Adding
+# them to the GNIS geography domains would multiply names on gazetteers that are
+# already the main source of false positives.
+ALIAS_DOMAINS = {"plant", "bird", "mammal", "fish", "amphibian", "insect",
+                 "dog_breed", "horse_breed", "gemstone", "mineral",
+                 "constellation", "greek_deity", "roman_deity", "norse_deity",
+                 "us_ethnic_group", "grape_variety"}
+
 
 def load_aliases() -> dict[str, list[str]]:
     p = DATA_DIR / ALIAS_FILE
@@ -199,7 +207,8 @@ def index(domain: str, aliases: dict | None = None) -> dict[str, list[dict]]:
     """
     idx: dict[str, list[dict]] = {}
     person = domain in PERSON_DOMAINS
-    aliases = load_aliases() if aliases is None else aliases
+    aliases = (load_aliases() if aliases is None else aliases) \
+        if domain in ALIAS_DOMAINS else {}
     for r in load(domain):
         e = {"qid": r["qid"], "name": r["name"], "via": "full", "src": "p1843"}
         for alt in aliases.get(r["qid"], ()):
