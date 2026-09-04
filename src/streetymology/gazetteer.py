@@ -9,7 +9,7 @@ import json
 from dataclasses import dataclass
 from .config import DATA_DIR
 from .wikidata import query, qid
-from .normalize import key
+from .normalize import entity_key
 
 # Taxa MUST match on P1843 (taxon common name); rdfs:label yields Latin binomials.
 TAXON = """SELECT DISTINCT ?s ?n WHERE {{
@@ -165,9 +165,9 @@ def index(domain: str) -> dict[str, list[dict]]:
     person = domain in PERSON_DOMAINS
     for r in load(domain):
         e = {"qid": r["qid"], "name": r["name"], "via": "full"}
-        idx.setdefault(key(r["name"]), []).append(e)
+        idx.setdefault(entity_key(r["name"]), []).append(e)
         if person:
             parts = r["name"].split()
             if len(parts) > 1:
-                idx.setdefault(key(parts[-1]), []).append({**e, "via": "surname"})
+                idx.setdefault(entity_key(parts[-1]), []).append({**e, "via": "surname"})
     return idx

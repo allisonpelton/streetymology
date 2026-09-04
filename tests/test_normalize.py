@@ -25,3 +25,19 @@ def test_asterisk_marks_reserved():
 def test_never_empties_the_name():
     for n in ["N Hwy 55", "W State St", "Broadway Ramp"]:
         assert normalize(n)
+
+
+def test_entity_key_preserves_directionals_and_post_types():
+    # Wikidata labels are proper names, not addresses. Stripping words from
+    # them produced spurious matches (AP found North Bluff Place -> North Bluff, WI).
+    from streetymology.normalize import entity_key
+    assert entity_key("North Bluff") == "north bluff"
+    assert entity_key("Blake Run") == "blake run"
+    assert entity_key("North Korea") == "north korea"
+    assert entity_key("Charlotte Pass") == "charlotte pass"
+
+
+def test_street_key_and_entity_key_differ():
+    from streetymology.normalize import entity_key
+    assert key("North Bluff Place") == "bluff"
+    assert entity_key("North Bluff") != key("North Bluff Place")

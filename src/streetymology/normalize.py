@@ -50,6 +50,23 @@ def is_reserved(name: str) -> bool:
     return "*" in name
 
 
+def _compare(text: str) -> str:
+    """Lowercase, drop punctuation, collapse whitespace. No word removal."""
+    t = re.sub(r"\s*&\s*", " and ", text)
+    return _WS.sub(" ", re.sub(r"[^a-z0-9 ]", "", t.lower())).strip()
+
+
 def key(name: str) -> str:
-    """Case/punctuation-insensitive comparison key for the core name."""
-    return re.sub(r"[^a-z0-9 ]", "", normalize(name).lower()).strip()
+    """Comparison key for a STREET name: directional and post-type removed."""
+    return _compare(normalize(name))
+
+
+def entity_key(name: str) -> str:
+    """Comparison key for a WIKIDATA entity label.
+
+    Entity labels are proper names, not addresses. Stripping a leading
+    directional or a trailing post-type from them destroys the name:
+    'North Korea' -> 'korea', 'Blake Run' -> 'blake', 'Charlotte Pass' ->
+    'charlotte'. Those produced spurious matches against unrelated streets.
+    """
+    return _compare(name)
