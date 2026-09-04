@@ -16,14 +16,14 @@ def load():
     coords = json.loads((DATA_DIR / "meta_coords.json").read_text())
     names = json.loads((DATA_DIR / "meta_nameness.json").read_text())
     rows = []
-    for r in csv.DictReader((ARTIFACTS / "review_sample.csv").open()):
-        v = (r["verdict__y_n_w_q"] or "").strip().lower()
+    for r in csv.DictReader((ARTIFACTS / "labels_merged.csv").open()):
+        v = (r["verdict"] or "").strip().lower()
         if v not in {"y", "n", "w"}:
             continue
         label = r["wikidata_label"]
         nm = names.get(label, {})
         km = S.distance_to_ada(coords.get(r["qid"]))
-        others = 1 if r["other_domains"] == "-" else 1 + r["other_domains"].count(",") + 1
+        others = 1 if r.get("other_domains", "-") == "-" else 1 + r["other_domains"].count(",") + 1
         rows.append({
             "row": r, "y": 1 if v == "y" else 0,
             "commonness": S.commonness(label),
