@@ -8,7 +8,7 @@ time per 60s per client:
 Pass 2 is the correct use of the name data we rejected as a gazetteer: asking
 "is 'Blake' a surname?" is a useful penalty; asking "which surname?" is tautology.
 """
-import json, sys, time
+import json, re, sys, time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from streetymology.config import DATA_DIR
@@ -59,6 +59,36 @@ def fetch_candidates(qids):
     return meta
 
 
+def fetch_coords(qids):
+    """P625 coordinates, for the proximity signal.
+
+    A place candidate 15 miles from Boise is plausible however obscure it is;
+    an identically-named one in Alabama is not. Sitelink count cannot express
+    that, because locally important features are often poorly documented.
+    """
+    out = DATA_DIR / "meta_coords.json"
+    coords = json.loads(out.read_text()) if out.exists() else {}
+    todo = [q for q in qids if q not in coords]
+    print(f"  {len(todo)} candidates still need coordinates", flush=True)
+    for i, batch in enumerate(chunks(todo, CHUNK), 1):
+        q = "SELECT ?s ?coord WHERE { VALUES ?s {%s} ?s wdt:P625 ?coord }" % (
+            " ".join("wd:" + x for x in batch))
+        found = set()
+        for r in query(q, timeout=70):
+            qid_ = r["s"].rsplit("/", 1)[-1]
+            m = re.match(r"Point\(([-0-9.]+) ([-0-9.]+)\)", r["coord"])
+            if m:
+                coords[qid_] = [float(m.group(2)), float(m.group(1))]  # lat, lon
+                found.add(qid_)
+        for x in batch:
+            coords.setdefault(x, None)      # remember "no coordinate"
+        out.write_text(json.dumps(coords))
+        if i % 10 == 0:
+            print(f"  coords chunk {i}: {sum(1 for v in coords.values() if v)} located", flush=True)
+        time.sleep(1)
+    return coords
+
+
 def fetch_nameness(strings):
     names = {}
     for i, batch in enumerate(chunks(strings, 250), 1):
@@ -83,6 +113,9 @@ if __name__ == "__main__":
     print(f"{len(ms)} matches | {len(qids)} distinct QIDs | {len(strings)} distinct strings")
     cand = fetch_candidates(qids)
     (DATA_DIR / "meta_candidates.json").write_text(json.dumps(cand))
+    co = fetch_coords(qids)
     nm = fetch_nameness(strings)
     (DATA_DIR / "meta_nameness.json").write_text(json.dumps(nm))
-    print(f"\nwrote meta_candidates.json ({len(cand)}) and meta_nameness.json ({len(nm)})")
+    located = sum(1 for v in co.values() if v)
+    print(f"\nwrote meta_candidates.json ({len(cand)}), meta_coords.json "
+          f"({located} located of {len(co)}), meta_nameness.json ({len(nm)})")

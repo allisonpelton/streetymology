@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from streetymology.config import DATA_DIR
 from streetymology import gazetteer as g, match
 from streetymology.streets import osm_cores
+from streetymology.signals import proximity, distance_to_ada, notability
 
 N = 200
 SEED = 20260904
@@ -26,6 +27,7 @@ def collect():
     judged blind to its alternatives.
     """
     meta = json.loads((DATA_DIR / "meta_candidates.json").read_text())
+    coords = json.loads((DATA_DIR / "meta_coords.json").read_text())
     cores = osm_cores()
     idx = match.build_indexes(g.available(), g.index)
     rows = []
@@ -42,13 +44,24 @@ def collect():
             by_domain[c.domain].append(c)
         others = sorted(by_domain)
         for dom, group in by_domain.items():
-            # show the best-documented item in this domain, not an arbitrary one
-            best = max(group, key=lambda c: meta.get(c.qid, {}).get("sitelinks", 0))
+            # Rank within domain: nearest first where coordinates exist, then
+            # best-documented. Picks Idaho's Salmon River over Connecticut's.
+            def rank(c):
+                # A place is plausible if it is NEARBY or FAMOUS -- not both.
+                # Obscure-but-local (Lucky Peak) and distant-but-famous
+                # (Denmark, Turnberry) are each valid; obscure-and-distant
+                # (Chimney Peak, Alabama) is not. So combine as max, not product.
+                sl = meta.get(c.qid, {}).get("sitelinks", 0)
+                pr = proximity(distance_to_ada(coords.get(c.qid)))
+                return (max(pr or 0.0, notability(sl)), sl)
+            best = max(group, key=rank)
             m = meta.get(best.qid, {})
+            dist = distance_to_ada(coords.get(best.qid))
             rows.append({
                 "street": orig, "domain": dom, "qid": best.qid,
                 "wikidata_label": best.name, "description": m.get("description", ""),
                 "sitelinks": m.get("sitelinks", 0),
+                "km_from_ada_county": "" if dist is None else round(dist),
                 "same_name_items_in_domain": len(group),
                 "other_domains": ", ".join(d for d in others if d != dom) or "-",
                 "via": best.via,
