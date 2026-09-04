@@ -20,9 +20,9 @@ def osm_cores():
     return cores
 
 
-def run(allow_surname: bool):
+def run(allow_surname: bool, domains=None):
     cores = osm_cores()
-    idx = match.build_indexes(gazetteer.available(), gazetteer.index)
+    idx = match.build_indexes(domains or gazetteer.available(), gazetteer.index)
     hits, amb = collections.defaultdict(list), []
     for k, orig in cores.items():
         c = match.match(orig, idx, allow_surname=allow_surname)
@@ -34,14 +34,17 @@ def run(allow_surname: bool):
 
 
 if __name__ == "__main__":
-    for surname in (False, True):
-        cores, hits, amb, total = run(surname)
-        label = "full-name only" if not surname else "full-name + surname"
+    high = [d for d in gazetteer.available() if d in gazetteer.HIGH_PRECISION]
+    alld = gazetteer.available()
+    for label, doms in (("HIGH-PRECISION domains (headline)", high),
+                        ("all domains incl. GNIS geography", alld)):
+        cores, hits, amb, total = run(True, doms)
         print(f"\n=== {label} ===")
         for d, v in sorted(hits.items(), key=lambda x: -len(x[1])):
             print(f"  {d:14} {len(v):>5}")
         print(f"  {'AMBIGUOUS':14} {len(amb):>5}")
         print(f"  TOTAL {total} / {len(cores)} = {total/len(cores)*100:.1f}%")
+    cores, hits, amb, total = run(True, high)
     rows = [{"street": s, "domain": c.domain, "qid": c.qid,
              "wikidata_name": c.name, "via": c.via, "confidence": c.confidence}
             for v in hits.values() for s, c in v]
