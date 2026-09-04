@@ -3,10 +3,9 @@
 Working out where Ada County, Idaho's street names come from — and publishing
 the answers as a map and as verified contributions to OpenStreetMap.
 
-Boise's streets are named after birds, gemstones, Basque families, racehorses,
-Greek gods, and a subdivision's worth of Game of Thrones characters. Most,
-though, are named after nothing at all. This project tries to tell those apart
-honestly.
+Many of Boise's streets are named after birds, gemstones, racehorses,
+Greek gods, and even Game of Thrones characters. Many more are named after nothing at all.
+How many can we determine heuristically?
 
 ## Status
 
@@ -16,91 +15,50 @@ Data pipeline and evaluation complete for the deterministic (non-LLM) stage.
 |---|---|
 | Unique street names (OSM, Ada County) | 8,368 |
 | Matched to a Wikidata entity | 648 (7.7%) |
-| Hand-labelled for evaluation | 199 rows |
-| Classifier AUC | 0.860 |
-| Precision @ 89% recall | 85% |
-
-## The interesting problem
-
-Most street names have no etymology. A developer filling out a plat in 1978
-picked "Meadowlark Lane" because it sounded pleasant, not to honour
-*Sturnella neglecta*. So the hard part is not finding referents — it is
-**refusing to invent them**.
-
-Three failure modes drive the design:
-
-**Coincidence.** "Rainbow", "Buffalo" and "Highland" match something in almost
-any reference list. Scored down by word frequency.
-
-**Wrong-person transfer.** The USGS has 100,000+ US streams in Wikidata, nearly
-all named after somebody's surname. Boise's Blake Drive and Pennsylvania's
-Blake Run are named after two different Blakes, independently. A string match
-carries no etymology across.
-
-**Invention.** "Lake Creek", "Trail Creek", "Long Lake" are descriptive names
-that exist in every state. Matching one to a real creek 3,000 miles away is
-confidently wrong. These need an `invented` class, not a better guess.
+| Hand-labelled for evaluation | 199 rows, 176 decided |
+| Classifier AUC | 0.869 |
+| Precision @ 68% recall | 93% |
 
 ## How it works
 
-1. **Acquire** — street centrelines from OpenStreetMap via Overpass; the Ada
-   County Assessor's name list as a cross-check.
-2. **Normalise** — reduce "East 31st Street" and "E 31st St" to a shared core
-   name. Street names lose directionals and post-types; Wikidata labels never do.
-3. **Gazetteers** — bulk-download 26 categories from Wikidata SPARQL. Free, and
-   matching happens locally, so 8,368 names cost zero API requests.
-4. **Score** — five plausibility signals, each catching a different failure mode.
-5. **Evaluate** — against hand-labelled ground truth, with calibrated confidence.
-6. **Review** — every proposal checked by a human in JOSM before it touches OSM.
+Street names are pulled from OpenStreetMap and normalized to remove directionals and suffixes. A selection of Wikidata categories are used to create gazetteers. Then, the names are checked against the gazetteer.
 
 ## Signals
 
-| signal | AUC | catches |
-|---|---|---|
-| notability | 0.782 | bulk-import stubs nobody names a street after |
-| commonness | 0.664 | coincidental collisions with everyday words |
-| nameness | 0.649 | matches to features named after a different person |
-| collision | 0.569 | strings matching many categories at once |
-| **combined** | **0.860** | |
+From a subset of 176 street names with hand-labeled etymologies:
 
-A place earns a street name by being **nearby or famous** — never both. Denmark
-is 7,864 km away and obviously right; Cabarton, Idaho has zero Wikipedia
-articles and is also right. Only obscure *and* distant fails.
+| signal | AUC | catches | mechanism |
+|---|---|---|---|
+| notability | 0.782 | obscure subjects unlikely to inspire a Boise street name | Wikidata sitelink count, capped at 20
+| commonness | 0.664 | words too common to refer to a particular concept | Normalized wordfreq Zipf frequency, using the most common word for compounds |
+| nameness | 0.649 | words that could be names, and are unlikely to refer to a singular individual | Wikidata string is instance of surname or given name |
+| collision | 0.569 | words with multiple meanings of similar prominence, regardless of frequency | Count of matched domains in etymology list |
+| subdivision grouping | 0.643 | streets in the same subdivision sharing a theme | High-quality categories matching multiple streets |
+| **combined** | **0.869** | | |
+
+`max(proximity, notability)` is also used for etymological candidates with a geographic location to select candidates that are nearby or notable.
+
+For subdivision grouping, street midpoints are identified inside or adjacent to landuse polygons representing subdivisions.
+The Wikidata domain matches for the subdivision's streets are compared against random chance based on
+the frequency of names in the whole county matching the domain.
 
 ## Quickstart
 
-```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env          # set STREETYMOLOGY_DATA_DIR
-python scripts/build_gazetteer.py     # bulk Wikidata download (slow, serial)
-python scripts/report_yield.py        # match rate
-python scripts/fetch_metadata.py      # sitelinks, coordinates, name membership
-python scripts/sample_for_review.py   # emit a labelling CSV
-python scripts/merge_labels.py        # combine labelling passes
-python scripts/evaluate_signals.py    # AUC and calibration
-pytest tests/ -q
-```
+Not yet. This is currently a series of scripts that were used to arrive at the current results. Refactoring will follow.
 
-Downloaded data lives outside the repo. Hand-authored labels live in
-`data/labels/` and are version-controlled — they cannot be regenerated.
+## Current caveats
 
-## Honesty notes
-
-- The 85% precision figure is **in-sample**. Weights were hand-set and evaluated
+- The 93% precision figure is **in-sample**. Weights were hand-set and evaluated
   on the same rows that informed them. It needs a held-out set before it means
   much.
-- The remaining ~92% of streets are mostly thematic fill. That is a finding
-  about how American suburbs are named, not a failure of the method.
-- Nothing is uploaded to OpenStreetMap without human review, per the
-  [Automated Edits code of conduct](https://wiki.openstreetmap.org/wiki/Automated_Edits_code_of_conduct).
+- The remaining ~92% of streets aren't a match for any of the domains. They're likely generic, and a heuristic is unlikely to identify themes between them.
 
 ## Next
 
-Neighbouring-street clustering — the single most requested feature during
-labelling. Themed subdivisions disambiguate their own members: Saturn Way is a
-planet because Jupiter Street is round the corner. The same clustering should
-identify invented names, which appear in blocks rather than alone.
+Subdivision clustering allows identification of thematic naming. Griffon is a mythological creature and a dog breed.
+Griffon Street intersects Doberman Drive. Any other street in the subdivision whose name matches a dog breed probably is named for the dog breed.
+This can also be used to identify invented names and avoid overconfidence: a subdivision likely has many themed names or none at all. 
 
-## Licence
+## License
 
 Code MIT. OpenStreetMap data ODbL. Wikidata CC0.
