@@ -1,8 +1,11 @@
 """Score a fresh-Claude experiment run against the known controls.
 
-Paste the returned markdown table into
-  $STREETYMOLOGY_DATA_DIR/artifacts/llm_experiment_RESULT.md
-then run this.
+Paste each run's returned markdown table into
+  $STREETYMOLOGY_DATA_DIR/artifacts/llm_experiment_RESULT_<model>.md
+then run:  python scripts/score_llm_experiment.py [model ...]
+
+With no arguments it scores every RESULT file it finds, so several models can be
+compared side by side.
 """
 import csv, re, sys, collections
 from pathlib import Path
@@ -27,11 +30,13 @@ def parse(path: Path):
     return out
 
 
-if __name__ == "__main__":
-    res = parse(A / "llm_experiment_RESULT.md")
-    key = {int(r["n"]): r for r in csv.DictReader((A / "llm_experiment_KEY.csv").open())}
+def score(path: Path, key: dict):
+    res = parse(path)
     ctrl = [(n, key[n], res[n]) for n in key if key[n]["is_control"] == "yes" and n in res]
+    print(f"\n{'='*62}\n{path.stem.replace('llm_experiment_RESULT_','')}\n{'='*62}")
     print(f"parsed {len(res)} responses; {len(ctrl)} controls matched\n")
+    if not ctrl:
+        print("  no controls matched -- check the table parsed correctly"); return
     hit = sum(1 for _, k, r in ctrl if r["verdict"] == k["true_verdict"])
     print(f"exact agreement on controls: {hit}/{len(ctrl)} ({hit/len(ctrl)*100:.0f}%)")
     cm = collections.Counter((k["true_verdict"], r["verdict"]) for _, k, r in ctrl)
@@ -57,3 +62,17 @@ if __name__ == "__main__":
     print("\naccuracy by stated confidence:")
     for c, (h, t) in sorted(byconf.items()):
         print(f"   {c or '(blank)':8} {h}/{t}")
+
+
+if __name__ == "__main__":
+    key = {int(r["n"]): r for r in csv.DictReader((A / "llm_experiment_KEY.csv").open())}
+    wanted = sys.argv[1:]
+    paths = ([A / f"llm_experiment_RESULT_{m}.md" for m in wanted] if wanted
+             else sorted(A.glob("llm_experiment_RESULT*.md")))
+    found = [p for p in paths if p.exists()]
+    if not found:
+        print("No RESULT files found in", A)
+        print("Expected e.g. llm_experiment_RESULT_opus.md")
+        sys.exit(1)
+    for p in found:
+        score(p, key)
