@@ -18,25 +18,41 @@ ARTIFACTS = DATA_DIR / "artifacts"; ARTIFACTS.mkdir(exist_ok=True)
 
 
 def collect():
+    """One row per (street, domain) -- not per QID.
+
+    Same-domain duplicates (four orchid species for one street) are collapsed:
+    the labeller judges the CATEGORY, and marks 'w' if the category is right but
+    the specific item is wrong. Competing domains are listed inline so no row is
+    judged blind to its alternatives.
+    """
     meta = json.loads((DATA_DIR / "meta_candidates.json").read_text())
     cores = osm_cores()
     idx = match.build_indexes(g.available(), g.index)
-    rows, seen = [], set()
+    rows = []
     for k, orig in cores.items():
         cands = match.match(orig, idx)
-        ndom = len({c.domain for c in cands})
-        for c in cands:
-            if (orig, c.qid, c.domain) in seen:
-                continue
-            seen.add((orig, c.qid, c.domain))
-            m = meta.get(c.qid, {})
-            if c.domain in GNIS and not m.get("enwiki"):
-                continue                      # author's rule: GNIS needs an article
+        if not cands:
+            continue
+        eligible = [c for c in cands
+                    if not (c.domain in GNIS and not meta.get(c.qid, {}).get("enwiki"))]
+        if not eligible:
+            continue
+        by_domain = collections.defaultdict(list)
+        for c in eligible:
+            by_domain[c.domain].append(c)
+        others = sorted(by_domain)
+        for dom, group in by_domain.items():
+            # show the best-documented item in this domain, not an arbitrary one
+            best = max(group, key=lambda c: meta.get(c.qid, {}).get("sitelinks", 0))
+            m = meta.get(best.qid, {})
             rows.append({
-                "street": orig, "domain": c.domain, "qid": c.qid,
-                "wikidata_label": c.name, "description": m.get("description", ""),
-                "via": c.via, "domains_matched": ndom,
-                "url": f"https://www.wikidata.org/wiki/{c.qid}",
+                "street": orig, "domain": dom, "qid": best.qid,
+                "wikidata_label": best.name, "description": m.get("description", ""),
+                "sitelinks": m.get("sitelinks", 0),
+                "same_name_items_in_domain": len(group),
+                "other_domains": ", ".join(d for d in others if d != dom) or "-",
+                "via": best.via,
+                "url": f"https://www.wikidata.org/wiki/{best.qid}",
                 "verdict__y_n_w_q": "",
                 "notes": "",
             })
