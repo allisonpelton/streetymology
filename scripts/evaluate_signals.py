@@ -9,6 +9,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from streetymology.config import DATA_DIR, LABELS_DIR
 from streetymology import signals as S
 
+import os
+LABEL_FILE = os.environ.get("STREETYMOLOGY_LABELS", "labels_corrected.csv")
+
 ARTIFACTS = DATA_DIR / "artifacts"
 
 
@@ -16,7 +19,7 @@ def load():
     coords = json.loads((DATA_DIR / "meta_coords.json").read_text())
     names = json.loads((DATA_DIR / "meta_nameness.json").read_text())
     rows = []
-    for r in csv.DictReader((LABELS_DIR / "labels_merged.csv").open()):
+    for r in csv.DictReader((LABELS_DIR / LABEL_FILE).open()):
         v = (r["verdict"] or "").strip().lower()
         if v not in {"y", "n", "w"}:
             continue
