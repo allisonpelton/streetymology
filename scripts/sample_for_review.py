@@ -32,7 +32,7 @@ def collect():
     idx = match.build_indexes(g.available(), g.index)
     rows = []
     for k, orig in cores.items():
-        cands = match.match(orig, idx)
+        cands = match.match(orig, idx, fallback_domains=g.FALLBACK_DOMAINS)
         if not cands:
             continue
         eligible = [c for c in cands

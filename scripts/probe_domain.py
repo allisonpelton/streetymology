@@ -29,6 +29,14 @@ CANDIDATES = {
         [] schema:about ?s ; schema:isPartOf <https://en.wikipedia.org/> . }""",
     "element": """SELECT DISTINCT ?s ?n WHERE {
         ?s wdt:P31/wdt:P279* wd:Q11344 ; rdfs:label ?n . FILTER(lang(?n)="en") }""",
+    # ruby/emerald/amethyst are P31 Q429795 "mineral variety" -- covered by
+    # neither the old gemstone root (P31/P279* Q83437, which returned individual
+    # famous stones like the Agra Diamond) nor the mineral root.
+    "gem": """SELECT DISTINCT ?s ?n WHERE {
+        { ?s wdt:P31/wdt:P279* wd:Q429795 } UNION { ?s wdt:P279* wd:Q83437 }
+          UNION { ?s wdt:P31/wdt:P279* wd:Q7946 }
+        ?s rdfs:label ?n . FILTER(lang(?n)="en")
+        [] schema:about ?s ; schema:isPartOf <https://en.wikipedia.org/> . }""",
     "university": """SELECT DISTINCT ?s ?n WHERE {
         ?s wdt:P31/wdt:P279* wd:Q3918 ; wdt:P17 wd:Q30 ; rdfs:label ?n .
         FILTER(lang(?n)="en") }""",

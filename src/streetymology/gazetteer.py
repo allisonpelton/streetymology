@@ -46,6 +46,7 @@ class Root:
     paged: bool = False
     precision: str = "high"  # high | low - see artifacts/gazetteer_precision.md
     min_rows: int = 20      # sanity floor; see build() for why
+    fallback: bool = False  # only offered when no other domain matches
 
 
 ROOTS: dict[str, Root] = {
@@ -55,10 +56,16 @@ ROOTS: dict[str, Root] = {
     "mammal":      Root(TAXON.format(root="Q7377")),
     "fish":        Root(TAXON.format(root="Q127282"), precision="low"),  # generic common names
     "insect":      Root(TAXON.format(root="Q1390"), paged=True),
-    "amphibian":   Root(TAXON.format(root="Q10908")),
     # --- earth ---------------------------------------------------------
-    "mineral":     Root(INSTANCE.format(root="Q7946")),
-    "gemstone":    Root(INSTANCE.format(root="Q83437")),
+    # ruby, emerald and amethyst are P31 Q429795 "mineral variety". The old
+    # roots missed them: P31/P279* Q83437 returned individual famous stones
+    # (Agra Diamond, Abernethy Pearl), and Q7946 returned almost nothing.
+    # Restricted to items with an English Wikipedia article.
+    "gem":         Root("""SELECT DISTINCT ?s ?n WHERE {
+        { ?s wdt:P31/wdt:P279* wd:Q429795 } UNION { ?s wdt:P279* wd:Q83437 }
+          UNION { ?s wdt:P31/wdt:P279* wd:Q7946 }
+        ?s rdfs:label ?n . FILTER(lang(?n)="en")
+        [] schema:about ?s ; schema:isPartOf <https://en.wikipedia.org/> . }"""),
     "constellation": Root(INSTANCE.format(root="Q8928")),
     # --- places --------------------------------------------------------
     "us_state":    Root("""SELECT DISTINCT ?s ?n WHERE {
@@ -67,8 +74,6 @@ ROOTS: dict[str, Root] = {
     "us_mountain": Root(IN_US.format(root="Q8502"), paged=True, precision="low"),
     "us_river":    Root(IN_US.format(root="Q4022"), paged=True, precision="low"),
     "us_lake":     Root(IN_US.format(root="Q23397"), paged=True, precision="low"),
-    "national_park": Root(IN_US.format(root="Q46169")),
-    "ski_resort":  Root(INSTANCE.format(root="Q130003")),
     "golf_course": Root(INSTANCE.format(root="Q1048525"), paged=True),
     "idaho_place": Root("""SELECT DISTINCT ?s ?n WHERE {
       {
@@ -86,15 +91,22 @@ ROOTS: dict[str, Root] = {
                           rdfs:label ?n . FILTER(lang(?n)="en") }"""),
     "greek_deity": Root(INSTANCE.format(root="Q22989102")),
     "norse_deity": Root(INSTANCE.format(root="Q16513881")),
-    "roman_deity": Root(INSTANCE.format(root="Q11688446")),
+    # Content is correct (Mars, Luna, Moneta) but streets named Saturn, Neptune
+    # and Venus are almost always the PLANET. 20% precision on 5 labels. Kept
+    # because it is the only source for genuine cases (Pomona), demoted so it
+    # cannot inflate the headline.
+    "roman_deity": Root(INSTANCE.format(root="Q11688446"), precision="low"),
     "dog_breed":   Root(INSTANCE.format(root="Q39367")),
     "horse_breed": Root(INSTANCE.format(root="Q1160573")),
-    "grape_variety": Root(INSTANCE.format(root="Q958314"), precision="low"),
     # --- added 2026-09-04 after probing yield with scripts/probe_domain.py.
     # UNVALIDATED: no hand-labelled rows cover these four, so their precision
     # marking is provisional. Label before quoting a precision figure for them.
     "element":    Root(INSTANCE.format(root="Q11344")),          # 9 new matches
-    "colour":     Root(INSTANCE.format(root="Q1075")),           # 55 new matches
+    # Colour overlaps heavily with gem, plant and element: Amethyst, Ruby,
+    # Emerald, Rose, Olive and Copper are all colours AND something more
+    # specific. Marked fallback so it is only offered when nothing else matches;
+    # "named after the colour amethyst" is a weaker claim than "the gemstone".
+    "colour":     Root(INSTANCE.format(root="Q1075"), fallback=True),
     # P279* only: P31/P279* sweeps in individual named instruments and software.
     "instrument": Root("""SELECT DISTINCT ?s ?n WHERE {
         ?s wdt:P279* wd:Q34379 ; rdfs:label ?n . FILTER(lang(?n)="en") }"""),
@@ -111,6 +123,7 @@ ROOTS: dict[str, Root] = {
 
 PERSON_DOMAINS = {d for d, r in ROOTS.items() if r.tier == "person"}
 HIGH_PRECISION = {d for d, r in ROOTS.items() if r.precision == "high"}
+FALLBACK_DOMAINS = {d for d, r in ROOTS.items() if r.fallback}
 PAGE = 50_000
 
 
@@ -202,7 +215,7 @@ ALIAS_FILE = "gaz_aliases.json"
 # them to the GNIS geography domains would multiply names on gazetteers that are
 # already the main source of false positives.
 ALIAS_DOMAINS = {"plant", "bird", "mammal", "fish", "amphibian", "insect",
-                 "dog_breed", "horse_breed", "gemstone", "mineral",
+                 "dog_breed", "horse_breed", "gem",
                  "constellation", "greek_deity", "roman_deity", "norse_deity",
                  "us_ethnic_group", "grape_variety"}
 

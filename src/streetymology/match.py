@@ -26,8 +26,15 @@ def build_indexes(domains, index_fn) -> dict[str, dict]:
     return {d: index_fn(d) for d in domains}
 
 
-def match(street_name: str, indexes: dict[str, dict], allow_surname=True) -> list[Candidate]:
-    """Return candidates for one street name, best-confidence first."""
+def match(street_name: str, indexes: dict[str, dict], allow_surname=True,
+          fallback_domains: set[str] | None = None) -> list[Candidate]:
+    """Return candidates for one street name, best-confidence first.
+
+    Fallback domains (currently `colour`) are suppressed whenever a concrete
+    domain also matches: "named after the colour amethyst" is a weaker claim
+    than "named after the gemstone", and colour overlaps gem, plant and element
+    heavily.
+    """
     k = key(street_name)
     if not k:
         return []
@@ -38,6 +45,10 @@ def match(street_name: str, indexes: dict[str, dict], allow_surname=True) -> lis
                 continue
             out.append(Candidate(domain, e["qid"], e["name"], e["via"],
                                  VIA_CONFIDENCE[e["via"]]))
+    if fallback_domains:
+        concrete = [c for c in out if c.domain not in fallback_domains]
+        if concrete:
+            out = concrete
     return sorted(out, key=lambda c: -c.confidence)
 
 

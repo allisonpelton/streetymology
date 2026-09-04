@@ -35,7 +35,7 @@ def build_items(limit=None) -> list[llm.Item]:
 
     items, n = [], 0
     for k, orig in sorted(osm_cores().items()):
-        cands = match.match(orig, idx)
+        cands = match.match(orig, idx, fallback_domains=g.FALLBACK_DOMAINS)
         if not cands:
             continue                       # nothing proposed; nothing to judge
         best = cands[0]

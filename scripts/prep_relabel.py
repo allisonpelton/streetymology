@@ -60,7 +60,7 @@ if __name__ == "__main__":
     for r in rows:
         if r["verdict__y_n_w_q"].strip().lower() != "q":
             continue
-        cands = [c for c in match.match(r["street"], idx) if c.domain == r["domain"]]
+        cands = [c for c in match.match(r["street"], idx, fallback_domains=g.FALLBACK_DOMAINS) if c.domain == r["domain"]]
         if not cands:
             continue
         ranked = sorted(cands, key=rank, reverse=True)

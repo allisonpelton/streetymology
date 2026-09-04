@@ -25,7 +25,7 @@ def run(allow_surname: bool, domains=None):
     idx = match.build_indexes(domains or gazetteer.available(), gazetteer.index)
     hits, amb = collections.defaultdict(list), []
     for k, orig in cores.items():
-        c = match.match(orig, idx, allow_surname=allow_surname)
+        c = match.match(orig, idx, allow_surname=allow_surname, fallback_domains=gazetteer.FALLBACK_DOMAINS)
         if not c:
             continue
         (amb if match.is_ambiguous(c) else hits[c[0].domain]).append((orig, c[0]))
