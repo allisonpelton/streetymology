@@ -5,6 +5,9 @@ __pycache__/
 .env.*
 !.env.example
 data/
+!data/labels/
+!data/labels/*.csv
+!data/labels/*.md
 *.gpkg
 *.osm.pbf
 *.parquet

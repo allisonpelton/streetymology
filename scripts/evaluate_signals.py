@@ -6,7 +6,7 @@ nor incorrect, and folding them either way would bias the thresholds.
 import csv, json, sys, collections
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+from streetymology.config import DATA_DIR, LABELS_DIR
 from streetymology import signals as S
 
 ARTIFACTS = DATA_DIR / "artifacts"
@@ -16,7 +16,7 @@ def load():
     coords = json.loads((DATA_DIR / "meta_coords.json").read_text())
     names = json.loads((DATA_DIR / "meta_nameness.json").read_text())
     rows = []
-    for r in csv.DictReader((ARTIFACTS / "labels_merged.csv").open()):
+    for r in csv.DictReader((LABELS_DIR / "labels_merged.csv").open()):
         v = (r["verdict"] or "").strip().lower()
         if v not in {"y", "n", "w"}:
             continue

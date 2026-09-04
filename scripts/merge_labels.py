@@ -6,7 +6,7 @@ with a different (better-ranked) candidate.
 import csv, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+from streetymology.config import DATA_DIR, LABELS_DIR
 
 ARTIFACTS = DATA_DIR / "artifacts"
 FIELDS = ["street", "domain", "qid", "wikidata_label", "sitelinks",
@@ -16,7 +16,7 @@ FIELDS = ["street", "domain", "qid", "wikidata_label", "sitelinks",
 
 def merge():
     base = {}
-    for r in csv.DictReader((ARTIFACTS / "review_sample.csv").open()):
+    for r in csv.DictReader((LABELS_DIR / "pass1_review.csv").open()):
         base[(r["street"], r["domain"])] = {
             "street": r["street"], "domain": r["domain"], "qid": r["qid"],
             "wikidata_label": r["wikidata_label"], "sitelinks": r["sitelinks"],
@@ -27,7 +27,7 @@ def merge():
             "notes": r["notes"], "pass": "1",
         }
     n_over = 0
-    for r in csv.DictReader((ARTIFACTS / "relabel_sample.csv").open()):
+    for r in csv.DictReader((LABELS_DIR / "pass2_relabel.csv").open()):
         v = r["verdict__y_n_w_q"].strip().lower()
         if not v:
             continue                       # left blank; keep the pass-1 'q'
@@ -46,7 +46,7 @@ def merge():
 
 if __name__ == "__main__":
     rows, n_over = merge()
-    out = ARTIFACTS / "labels_merged.csv"
+    out = LABELS_DIR / "labels_merged.csv"
     with out.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=FIELDS)
         w.writeheader(); w.writerows(rows)

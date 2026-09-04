@@ -1,0 +1,200 @@
+street,domain,qid,wikidata_label,description,sitelinks,km_from_ada_county,same_name_items_in_domain,other_domains,via,url,verdict__y_n_w_q,notes
+South Carina Way,constellation,Q10470,Carina,constellation in the southern celestial hemisphere,86,,1,-,full,https://www.wikidata.org/wiki/Q10470,y,"Not 100% confident. Never heard of, would want proximity"
+North Iris Avenue,greek_deity,Q184570,Iris,the personification of the rainbow in ancient Greek religion and mythology,60,,1,plant,full,https://www.wikidata.org/wiki/Q184570,q,nearby streets give confident answer
+North Tumbler Drive,dog_breed,Q11316517,tumbler,dog breed,2,,1,-,full,https://www.wikidata.org/wiki/Q11316517,q,need proximity
+West Garganey Drive,bird,Q28106902,Garganey,species of bird,87,,3,-,full,https://www.wikidata.org/wiki/Q28106902,y,
+North Mink Creek Avenue,us_river,Q30628716,Mink Creek,"river in Otsego County, New York, United States",2,3312,1,idaho_place,full,https://www.wikidata.org/wiki/Q30628716,q,could be Idaho place or coincidental invented name. Never heard of Idaho place before as a local
+South Daisy Place,plant,Q745253,Daisy,Genus of plants in family Asteraceae,45,,2,-,full,https://www.wikidata.org/wiki/Q745253,y,
+South Blue Hill Lane,us_mountain,Q34805740,Blue Hill,"mountain in Sullivan County, New York, United States of America",2,3371,1,-,full,https://www.wikidata.org/wiki/Q34805740,q,"likely coincidental. Can we invent heuristic that matches intuition for things like this? I think this reveals sitelinks don’t confer notability for all things. No matter what, human review would be needed here, so best thing we could output would be low confidence"
+North Wilson Street,us_president,Q34296,Woodrow Wilson,28th President of the United States (1913–1921),190,,1,idaho_place,surname,https://www.wikidata.org/wiki/Q34296,y,"could be idaho place, but very unlikely"
+North Lake Placid Avenue,us_lake,Q1801051,Lake Placid,lake in the United States of America,13,3349,3,-,full,https://www.wikidata.org/wiki/Q1801051,y,
+South Acheron Avenue,greek_deity,Q12626619,Acheron,"god of river of underworld, Greek mythology",2,,1,-,full,https://www.wikidata.org/wiki/Q12626619,y,
+South Pebble Lane,idaho_place,Q133430798,Pebble,"unincorporated community in Caribou County, Idaho, United States",0,353,1,-,full,https://www.wikidata.org/wiki/Q133430798,n,very common word
+West Harvard Street,idaho_place,Q5676233,Harvard,"unincorporated community in Latah County, Idaho, United States",4,387,1,-,full,https://www.wikidata.org/wiki/Q5676233,n,should obviously be the university
+East Jamaica Court,country,Q766,Jamaica,island state in the Caribbean Sea,281,4587,1,-,full,https://www.wikidata.org/wiki/Q766,y,
+South Weimaraner Way,dog_breed,Q38965,Weimaraner,dog breed,35,,1,-,full,https://www.wikidata.org/wiki/Q38965,y,
+South Sockeye Way,fish,Q2616519,Sockeye,species of fish,15,,1,-,full,https://www.wikidata.org/wiki/Q2616519,y,
+North Cabarton Lane,idaho_place,Q122563638,Cabarton,"locality in Valley County, Idaho, United States",0,111,1,-,full,https://www.wikidata.org/wiki/Q122563638,y,
+West Castle Drive,constellation,Q57654740,Castle,gamma-ray constellation,0,,1,-,full,https://www.wikidata.org/wiki/Q57654740,n,Gamma-ray constellation seems too obscure to be etymology picked by developer. Year of construction would rule this out if considered
+North Lusitano Avenue,horse_breed,Q937595,Lusitano,horse breed,22,,1,-,full,https://www.wikidata.org/wiki/Q937595,y,
+West Delaware Street,us_state,Q1393,Delaware,state of the United States of America,220,3408,1,grape_variety,full,https://www.wikidata.org/wiki/Q1393,y,
+West Nabesna Street,us_ethnic_group,Q12637941,Nabesna,tribe of the Athabasques,1,,1,-,full,https://www.wikidata.org/wiki/Q12637941,y,
+North Mountain Lake Avenue,us_lake,Q1950851,Mountain Lake,lake in the United States of America,6,3073,4,-,full,https://www.wikidata.org/wiki/Q1950851,n,very common name
+North Coneflower Avenue,plant,Q5304671,coneflower,genus of plants,1,,1,-,full,https://www.wikidata.org/wiki/Q5304671,y,
+West Kingston Drive,fish,Q2236628,Kingston,species of fish,20,,2,-,full,https://www.wikidata.org/wiki/Q2236628,q,use nearby streets
+East Borzoi Court,dog_breed,Q37866,Borzoi,dog breed,43,,1,-,full,https://www.wikidata.org/wiki/Q37866,y,
+North Hunter Creek Avenue,us_river,Q27986956,Hunter Creek,"river in Stevens County, Washington, United States of America",2,541,3,-,full,https://www.wikidata.org/wiki/Q27986956,q,likely coincidental invented
+South Triumph Place,idaho_place,Q7844478,Triumph,"human settlement in Idaho, United States of America",4,162,1,grape_variety,full,https://www.wikidata.org/wiki/Q7844478,q,use nearby streets
+South Stibnite Avenue,idaho_place,Q122565131,Stibnite,"locality in Valley County, Idaho, United States",0,176,1,-,full,https://www.wikidata.org/wiki/Q122565131,q,use nearby streets. Could be mineral name (which was not included as other domain)
+North James Street,grape_variety,Q112256118,James,grape variety,1,,1,-,full,https://www.wikidata.org/wiki/Q112256118,n,very common 
+North Porgy Way,fish,Q143503,Porgy,species of fish,39,,14,-,full,https://www.wikidata.org/wiki/Q143503,y,
+West Clinton Lane,us_president,Q1124,Bill Clinton,42nd President of the United States (1993–2001),223,,1,grape_variety,surname,https://www.wikidata.org/wiki/Q1124,n,dates back to 1950s or earlier. Actual namesake probably not in wikidata
+North Bamboo Avenue,plant,Q311331,bamboo,genus of clumping bamboo species,41,,2,-,full,https://www.wikidata.org/wiki/Q311331,q,could be a same name item
+East Clear Creek Drive,us_river,Q5130667,Clear Creek,"tributary of the South Platte River in north central Colorado, United States",6,1020,27,-,full,https://www.wikidata.org/wiki/Q5130667,y,
+North Columbine Avenue,plant,Q147641,columbine,genus of plants,64,,2,-,full,https://www.wikidata.org/wiki/Q147641,y,
+West Mountain Creek Street,ski_resort,Q6924907,Mountain Creek,"ski resort in New Jersey, United States",2,3404,1,us_river,full,https://www.wikidata.org/wiki/Q6924907,n,invented
+East Lost Creek Drive,us_river,Q20712312,Lost Creek,river in United States of America,2,474,11,-,full,https://www.wikidata.org/wiki/Q20712312,q,where in the us is the river? Summary does not mention state
+South Canvasback Way,bird,Q378533,Canvasback,species of bird,40,,1,-,full,https://www.wikidata.org/wiki/Q378533,y,
+West Athens Court,grape_variety,Q139187092,Athens,hybrid grape cultivar,0,,1,-,full,https://www.wikidata.org/wiki/Q139187092,n,"definitely a city, but nearby streets needed to figure out which"
+West Cayuse Lane,horse_breed,Q5055481,Cayuse,term for a small horse,6,,1,-,full,https://www.wikidata.org/wiki/Q5055481,y,
+East Echo Court,greek_deity,Q207368,Echo,mountain nymph of Greek mythology,46,,1,-,full,https://www.wikidata.org/wiki/Q207368,q,need proximity
+West Daphne Street,greek_deity,Q194015,Daphne,Greek mythological figure,53,,1,plant,full,https://www.wikidata.org/wiki/Q194015,y,
+East Washington Avenue,us_state,Q1223,Washington,state of the United States of America,223,559,1,us_president,full,https://www.wikidata.org/wiki/Q1223,y,proximity would not solve this. No other state names or presidents nearby. President probably the default
+West Wall Drive,constellation,Q1145933,Wall,one of the Twenty-eight mansions of the Chinese constellations,11,,1,-,full,https://www.wikidata.org/wiki/Q1145933,n,common word
+North Alpha Lane,grape_variety,Q25395428,Alpha,grape variety,1,,1,-,full,https://www.wikidata.org/wiki/Q25395428,n,definitely not grape variety. Probably the greek letter
+South White Pine Lane,plant,Q1981615,White Pine,species of plant,24,,2,-,full,https://www.wikidata.org/wiki/Q1981615,q,how is it different from same name item?
+South Tartarus Way,greek_deity,Q101322,Tartarus,"deep abyss, place of punishment, in ancient Greek mythology",72,,1,-,full,https://www.wikidata.org/wiki/Q101322,y,
+West Duck Lake Drive,us_lake,Q30609823,Duck Lake,"lake in Cayuga County, New York, USA",3,3170,6,-,full,https://www.wikidata.org/wiki/Q30609823,q,seems invented
+West Garfield Street,idaho_place,Q48852078,Garfield,"human settlement in Bonner County, Idaho, United States",3,527,1,us_president,full,https://www.wikidata.org/wiki/Q48852078,n,should be the president
+West Oxford Circle,idaho_place,Q1510107,Oxford,"city in Franklin County, Idaho, United States of America",36,369,1,-,full,https://www.wikidata.org/wiki/Q1510107,n,should be the university
+West Rochester Street,grape_variety,Q112305518,Rochester,grape variety,1,,1,-,full,https://www.wikidata.org/wiki/Q112305518,n,"genuinely ambiguous, should have multiple low-confidence suggestions. Grape variety spurious though"
+South Victoria Drive,roman_deity,Q308902,Victoria,Roman goddess of victory,48,,1,grape_variety,full,https://www.wikidata.org/wiki/Q308902,n,"genuinely ambiguous, should have multiple low-confidence suggestions. Grape variety spurious though"
+North Merlot Place,grape_variety,Q213338,Merlot,Italian grape variety,46,,1,-,full,https://www.wikidata.org/wiki/Q213338,y,
+West Cardinal Drive,grape_variety,Q858435,Cardinal,table grape cultivar,10,,1,-,full,https://www.wikidata.org/wiki/Q858435,n,probably the bird
+South Blue Mountain Lane,ski_resort,Q4929499,Blue Mountain,"alpine ski resort in Ontario, Canada",7,2854,2,us_mountain,full,https://www.wikidata.org/wiki/Q4929499,n,invented
+West Crooked River Drive,us_river,Q535450,Crooked River,tributary of the Deschutes River in the U.S. state of Oregon,9,421,8,-,full,https://www.wikidata.org/wiki/Q535450,y,
+West Chipmunk Court,mammal,Q22364,Chipmunk,genus of mammals,54,,1,-,full,https://www.wikidata.org/wiki/Q22364,y,
+North Rock Creek Lane,us_river,Q2352739,Rock Creek,"tributary of the Potomac River in Montgomery County, Maryland and Washington, D.C., in the United States",7,3287,16,idaho_place,full,https://www.wikidata.org/wiki/Q2352739,q,"ambiguous, nearby streets are little help (water-related)"
+South Bench Way,idaho_place,Q48851903,Bench,human settlement in United States of America,3,386,1,-,full,https://www.wikidata.org/wiki/Q48851903,y,
+West Apollo Street,roman_deity,Q37340,Apollo,god in Greek and later Roman mythology,125,,2,greek_deity,full,https://www.wikidata.org/wiki/Q37340,y,
+South Denmark Street,country,Q35,Denmark,country in Northern Europe,369,7864,1,-,full,https://www.wikidata.org/wiki/Q35,y,
+East Aruba Court,country,Q21203,Aruba,Caribbean island constituent country of the Kingdom of the Netherlands,200,5591,1,-,full,https://www.wikidata.org/wiki/Q21203,y,
+North Brumby Lane,horse_breed,Q850232,Brumby,free-roaming feral horse in Australia,22,,1,-,full,https://www.wikidata.org/wiki/Q850232,y,
+South Cabot Cliffs Lane,golf_course,Q78137834,Cabot Cliffs,"golf course in Nova Scotia, Canada",0,4256,1,-,full,https://www.wikidata.org/wiki/Q78137834,y,
+West Tana Street,us_mountain,Q1601043,Tana,"volcano in Aleutians West Census Area, Alaska",5,4005,1,-,full,https://www.wikidata.org/wiki/Q1601043,q,"probably invented, nearby streets seem unrelated"
+South Ivy Street,plant,Q26771,ivy,"ivy, evergreen climbing plant",74,,1,-,full,https://www.wikidata.org/wiki/Q26771,y,
+East Ronald Reagan Drive,us_president,Q9960,Ronald Reagan,president of the United States from 1981 to 1989 and actor (1911–2004),304,,1,-,full,https://www.wikidata.org/wiki/Q9960,y,
+North Techne Lane,greek_deity,Q126913652,Techne,"personification, demon (Daimon)",0,,1,-,full,https://www.wikidata.org/wiki/Q126913652,y,
+West Sooty Grouse Court,bird,Q1265902,Sooty Grouse,species of bird,25,,1,-,full,https://www.wikidata.org/wiki/Q1265902,y,
+South Shawnee Way,us_ethnic_group,Q253436,Shawnee,"federally recognized Native American Nation in Oklahoma, USA",44,,1,-,full,https://www.wikidata.org/wiki/Q253436,y,
+West Prickly Pear Drive,plant,Q292801,Prickly pear,species of plant,11,,3,-,full,https://www.wikidata.org/wiki/Q292801,y,
+North Mount Hood Avenue,us_mountain,Q275662,Mount Hood,"stratovolcano in the Cascade Volcanic Arc in Oregon, United States",43,483,2,-,full,https://www.wikidata.org/wiki/Q275662,y,
+West Rifleman Court,bird,Q646366,Rifleman,species of bird,38,,2,-,full,https://www.wikidata.org/wiki/Q646366,y,
+North Sable Lane,mammal,Q26423,Sable,species of marten,86,,1,-,full,https://www.wikidata.org/wiki/Q26423,y,
+West Madison Avenue,us_president,Q11813,James Madison,President of the United States from 1809 to 1817 (1751–1836),176,,1,-,surname,https://www.wikidata.org/wiki/Q11813,y,
+East Carnation Court,plant,Q158984,carnation,species of plant,78,,1,-,full,https://www.wikidata.org/wiki/Q158984,y,
+West Snowcap Drive,bird,Q524681,Snowcap,species of bird,24,,1,-,full,https://www.wikidata.org/wiki/Q524681,y,
+West Norway Street,country,Q20,Norway,country in Northern Europe,393,7547,1,-,full,https://www.wikidata.org/wiki/Q20,y,
+East Jack Creek Street,us_river,Q6111879,Jack Creek,river in the United States of America,2,1683,3,-,full,https://www.wikidata.org/wiki/Q6111879,q,doesn’t say what state the river is in
+West Bellevue Street,idaho_place,Q1516909,Bellevue,"city in Blaine County, Idaho, United States",40,160,1,-,full,https://www.wikidata.org/wiki/Q1516909,y,
+East Geranium Street,plant,Q146118,Geranium,genus of plants,64,,1,-,full,https://www.wikidata.org/wiki/Q146118,y,
+West Montana Avenue,us_state,Q1212,Montana,state of the United States of America,216,628,1,-,full,https://www.wikidata.org/wiki/Q1212,y,
+West Cobalt Lake Drive,us_lake,Q5138715,Cobalt Lake,lake in United States of America,1,595,1,-,full,https://www.wikidata.org/wiki/Q5138715,q,which state is the lake in?
+West Poppy Street,plant,Q146391,poppy,genus of plants,79,,1,-,full,https://www.wikidata.org/wiki/Q146391,y,
+West Muirfield Drive,golf_course,Q1951987,Muirfield,"golf club in Gullane, East Lothian, Scotland, UK",10,7321,1,-,full,https://www.wikidata.org/wiki/Q1951987,y,
+East Cutgrass Lane,plant,Q158961,cutgrass,genus of plants,32,,4,-,full,https://www.wikidata.org/wiki/Q158961,y,
+South Saturn Way,roman_deity,Q134388,Saturn,god in ancient Roman mythology,87,,1,-,full,https://www.wikidata.org/wiki/Q134388,n,"planet, revealed by nearby street Jupiter"
+South Blue Jay Place,bird,Q199758,Blue Jay,species of bird,74,,1,-,full,https://www.wikidata.org/wiki/Q199758,y,
+South Lynx Avenue,constellation,Q10443,Lynx,constellation in the northern celestial hemisphere,84,,1,-,full,https://www.wikidata.org/wiki/Q10443,q,could be the animal
+East Lake Creek Drive,us_river,Q22954077,Lake Creek,"river in Oregon, United States",3,610,6,-,full,https://www.wikidata.org/wiki/Q22954077,q,"plausible, proximity does not disambiguate location"
+West Grand Teton Court,us_mountain,Q2078034,Grand Teton,"mountain in Wyoming, United States",25,439,1,-,full,https://www.wikidata.org/wiki/Q2078034,y,
+West Atlas Lane,greek_deity,Q130818,Atlas,deity in Greek mythology,86,,1,-,full,https://www.wikidata.org/wiki/Q130818,y,
+South Coyote Place,mammal,Q44299,coyote,species of canine,108,,2,-,full,https://www.wikidata.org/wiki/Q44299,y,
+West Wild Sheep Lane,mammal,Q186267,Wild Sheep,species of mammal,71,,1,-,full,https://www.wikidata.org/wiki/Q186267,y,
+West Turtle Creek Drive,us_river,Q7856388,Turtle Creek,"tributary of the Monongahela River in Allegheny and Westmoreland counties, Pennsylvania",4,3026,8,-,full,https://www.wikidata.org/wiki/Q7856388,n,invented
+West Thor Drive,norse_deity,Q42952,Thor,"hammer-wielding Norse god associated with thunder, lightning, storms, oaks, strength, and fertility",105,,1,us_president,full,https://www.wikidata.org/wiki/Q42952,y,
+North Trail Creek Lane,us_river,Q7832719,Trail Creek,river in the United States of America,2,2396,1,-,full,https://www.wikidata.org/wiki/Q7832719,q,which state is the river in?
+West Red Deer Court,mammal,Q79794,red deer,species of mammal,109,,1,-,full,https://www.wikidata.org/wiki/Q79794,y,
+South Umatilla Avenue,us_ethnic_group,Q491747,Umatilla,ethnic group,14,,1,-,full,https://www.wikidata.org/wiki/Q491747,y,
+West Stephanie Court,grape_variety,Q112255264,Stephanie,grape variety,1,,1,-,full,https://www.wikidata.org/wiki/Q112255264,n,nearby streets are given names
+West Crater Lake Court,us_lake,Q329266,Crater Lake,caldera lake in south-central Oregon and main feature of Crater Lake National Park,52,479,3,-,full,https://www.wikidata.org/wiki/Q329266,y,
+South Island Fox Avenue,mammal,Q722180,Island fox,species of mammal,49,,1,-,full,https://www.wikidata.org/wiki/Q722180,y,
+West Cory Court,fish,Q147894,Cory,genus of fishes in the Armored catfish family (Callichthyidae),38,,1,-,full,https://www.wikidata.org/wiki/Q147894,n,probably a name
+West Murphy Road,idaho_place,Q961918,Murphy,"census-designated place in and county seat of Owyhee County, Idaho, United States",23,36,1,-,full,https://www.wikidata.org/wiki/Q961918,q,"unclear. Could be derived from place, or from person the place came from, or someone else entirely. Should emit low confidence"
+North Trumpet Place,fish,Q1861277,Trumpet,species of fish,19,,1,plant,full,https://www.wikidata.org/wiki/Q1861277,n,nearby street suggests instrument
+North Bogus Basin Road,ski_resort,Q4937866,Bogus Basin,recreation area,5,37,1,idaho_place,full,https://www.wikidata.org/wiki/Q4937866,y,
+West Tiger Perch Court,fish,Q2655115,Tiger perch,species of fish,26,,1,-,full,https://www.wikidata.org/wiki/Q2655115,y,
+West Indus Street,constellation,Q10450,Indus,constellation in the southern celestial hemisphere,82,,1,-,full,https://www.wikidata.org/wiki/Q10450,q,"probably not constellation, but nearby streets are no help"
+South Appaloosa Drive,horse_breed,Q620656,Appaloosa,horse breed,42,,1,-,full,https://www.wikidata.org/wiki/Q620656,y,
+South Redhead Avenue,bird,Q692192,Redhead,species of bird,40,,1,-,full,https://www.wikidata.org/wiki/Q692192,y,
+East Ocelot Court,mammal,Q33261,Ocelot,species of wild cat,91,,1,-,full,https://www.wikidata.org/wiki/Q33261,y,
+West Bufflehead Street,bird,Q576762,Bufflehead,species of bird,45,,1,-,full,https://www.wikidata.org/wiki/Q576762,y,
+West Suttle Lake Drive,us_lake,Q117764,Suttle Lake,"lake in Oregon, United States of America",5,453,1,-,full,https://www.wikidata.org/wiki/Q117764,y,
+North Skipper Avenue,fish,Q1886478,skipper,species of fish,22,,2,-,full,https://www.wikidata.org/wiki/Q1886478,q,very ambiguous even with nearby streets
+North Long Lake Way,us_lake,Q1739408,Long Lake,"lake in the towns of Naples, Bridgton, and Harrison, Maine",4,3615,19,-,full,https://www.wikidata.org/wiki/Q1739408,q,"could be any of many Long Lakes, or an invented name"
+West Silver City Court,idaho_place,Q7515893,Silver City,"ghost town in Owyhee County, Idaho, United States",6,63,1,-,full,https://www.wikidata.org/wiki/Q7515893,y,
+East Carter Street,us_president,Q23685,Jimmy Carter,president of the United States from 1977 to 1981 (1924–2024),200,,1,grape_variety,surname,https://www.wikidata.org/wiki/Q23685,q,year is plausible for president. Grape variety not plausible. Suggested: confidence is greater for older presidents
+West Gloxinia Street,plant,Q5239844,gloxinia,genus of plants,21,,1,-,full,https://www.wikidata.org/wiki/Q5239844,y,
+South Ringtail Avenue,fish,Q1094327,Ringtail,species of fish,17,,1,mammal,full,https://www.wikidata.org/wiki/Q1094327,n,"Definitely bird related due to Circinae nearby, but that may be ambiguous"
+West Summer Hill Drive,us_mountain,Q49079897,Summer Hill,"mountain in Massachusetts, United States of America",2,3602,1,-,full,https://www.wikidata.org/wiki/Q49079897,n,"probably invented, used as subdivision name. Other street names invented. Idea: invented confidence goes up for multiple invented streets"
+North Dawn Street,mineral,Q133867079,Dawn,unique Russian diamond,3,,1,gemstone,full,https://www.wikidata.org/wiki/Q133867079,n,probably a name
+North Chestnut Hill Way,us_mountain,Q25203991,Chestnut Hill,low mountain in Pennsylvania,2,3366,1,-,full,https://www.wikidata.org/wiki/Q25203991,q,could be invented
+North Rhine Avenue,roman_deity,Q130343611,Rhine,Roman personification of the Rhine River,0,,1,-,full,https://www.wikidata.org/wiki/Q130343611,n,personification of the river implausible over the river itself
+East Roaring Creek Street,us_river,Q25208930,Roaring Creek,river in the United States of America,2,3053,1,-,full,https://www.wikidata.org/wiki/Q25208930,q,which state is the river in?
+South Bolinas Avenue,us_ethnic_group,Q12628100,Bolinas,Native American tribe,1,,1,-,full,https://www.wikidata.org/wiki/Q12628100,y,
+East Griffon Street,dog_breed,Q1028186,griffon,dog type,10,,1,-,full,https://www.wikidata.org/wiki/Q1028186,y,
+West Avon Street,idaho_place,Q19865161,Avon,"unincorporated community in Latah County, Idaho, United States",3,377,1,-,full,https://www.wikidata.org/wiki/Q19865161,n,"probably refers to a river, but generically. Unclear how we would handle this"
+West Bloomington Drive,idaho_place,Q1513388,Bloomington,city in Idaho,41,419,1,-,full,https://www.wikidata.org/wiki/Q1513388,n,"proximity reveals Bloomington, Illinois as correct choice"
+West Bobwhite Court,bird,Q142651,Bobwhite,species of bird,35,,1,-,full,https://www.wikidata.org/wiki/Q142651,y,
+West King Way,plant,Q1042895,King,genus of plants,23,,1,-,full,https://www.wikidata.org/wiki/Q1042895,n,"plant genus is implausible, but totally ambiguous from nearby streets"
+North Bunchberry Way,plant,Q157677,Bunchberry,species of plant,30,,1,-,full,https://www.wikidata.org/wiki/Q157677,y,
+North June Grass Avenue,plant,Q159962,June grass,species of plant,23,,1,-,full,https://www.wikidata.org/wiki/Q159962,y,
+West Arizona Lane,us_state,Q816,Arizona,state of the United States of America,245,1093,1,-,full,https://www.wikidata.org/wiki/Q816,y,
+South Palomino Drive,grape_variety,Q657693,Palomino,wine grape,17,,1,-,full,https://www.wikidata.org/wiki/Q657693,n,Should be the horse color
+South Alaska Avenue,us_state,Q797,Alaska,state of the United States of America,262,3117,1,-,full,https://www.wikidata.org/wiki/Q797,y,
+South Bonefish Drive,fish,Q2014405,Bonefish,species of fish,28,,1,-,full,https://www.wikidata.org/wiki/Q2014405,y,
+East Wild Horse Lane,mammal,Q27742,Wild Horse,species of mammal,65,,1,-,full,https://www.wikidata.org/wiki/Q27742,y,
+South Vermont Avenue,us_state,Q16551,Vermont,state of the United States of America,219,3458,1,-,full,https://www.wikidata.org/wiki/Q16551,y,
+West Custer Drive,idaho_place,Q3085818,Custer,"ghost town in Custer County, Idaho, United States",7,162,1,-,full,https://www.wikidata.org/wiki/Q3085818,n,should be the general based on proximity
+East Cottage Street,grape_variety,Q112246257,Cottage,grape variety,1,,1,-,full,https://www.wikidata.org/wiki/Q112246257,n,"subdivision name is Merlin Cottages, so probably based on that"
+North Sundial Way,us_mountain,Q97162726,Sundial,"mountain in Washington (state), United States",1,729,1,-,full,https://www.wikidata.org/wiki/Q97162726,n,should be the timekeeping device based on proximity
+North Hosta Avenue,plant,Q113815810,hosta,cultivar of Hosta,0,,1,-,full,https://www.wikidata.org/wiki/Q113815810,q,why is hosta a cultivar of Hosta?
+West Vega Lane,grape_variety,Q17119339,Vega,Italian grape variety,1,,1,-,full,https://www.wikidata.org/wiki/Q17119339,n,almost certainly the star
+South Willow Lake Place,us_lake,Q7375031,Willow Lake,lake in Idaho,1,152,3,-,full,https://www.wikidata.org/wiki/Q7375031,y,
+South Arctic Fox Avenue,mammal,Q82738,Arctic Fox,species of mammal,105,,1,-,full,https://www.wikidata.org/wiki/Q82738,y,
+South Stargazer Place,fish,Q744000,Stargazer,species of fish,30,,1,-,full,https://www.wikidata.org/wiki/Q744000,q,"ambiguous, nearby streets are no help"
+East Princess Drive,grape_variety,Q136438026,Princess,grape variety,0,,1,-,full,https://www.wikidata.org/wiki/Q136438026,n,you previously called this out as garbage. Proximity is no help
+West Dover Lane,idaho_place,Q733687,Dover,"city in Bonner County, Idaho, United States",40,535,1,-,full,https://www.wikidata.org/wiki/Q733687,q,probably the capital of Delaware
+West Snake River Drive,us_river,Q272074,Snake River,major tributary of the Columbia River in the northwestern United States,60,489,7,-,full,https://www.wikidata.org/wiki/Q272074,y,
+West San Marino Drive,country,Q238,San Marino,"sovereign state in southern Europe, enclaved within Italy",314,9047,1,-,full,https://www.wikidata.org/wiki/Q238,y,
+North Venus Place,roman_deity,Q47652,Venus,"Roman goddess of love, sexuality, procreation and pleasure",111,,1,grape_variety,full,https://www.wikidata.org/wiki/Q47652,q,proximity is no help
+West Camellia Lane,plant,Q212815,camellia,genus of plants,68,,2,-,full,https://www.wikidata.org/wiki/Q212815,y,
+West Delaware Street,grape_variety,Q730314,Delaware,grape variety,9,,1,us_state,full,https://www.wikidata.org/wiki/Q730314,n,should be the state
+West Black Rock Drive,us_mountain,Q25205694,Black Rock,"mountain in Mineral County, West Virginia, United States of America",3,3104,1,-,full,https://www.wikidata.org/wiki/Q25205694,q,"probably, but not sure"
+North Wales Avenue,country,Q25,Wales,"constituent nation of the sovereign country of the United Kingdom, in north-west Europe",257,7565,1,-,full,https://www.wikidata.org/wiki/Q25,y,
+North Crested Butte Avenue,us_mountain,Q5184573,Crested Butte,mountain in United States of America,8,928,1,-,full,https://www.wikidata.org/wiki/Q5184573,q,common name. possibly invented. Try proximity
+North Amber Street,fish,Q533533,Amber,species of fish,22,,1,-,full,https://www.wikidata.org/wiki/Q533533,n,"ambiguous, but almost certainly not the fish"
+North Bluegrass Avenue,plant,Q157656,bluegrass,genus of plants,51,,1,-,full,https://www.wikidata.org/wiki/Q157656,y,technically ambiguous but almost certainly plant-related
+North Dawn Street,gemstone,Q133867079,Dawn,unique Russian diamond,3,,1,mineral,full,https://www.wikidata.org/wiki/Q133867079,n,still a dubious choice
+West Redwood Creek Drive,us_river,Q3422988,Redwood Creek,"river in northern Humboldt County, California, United States",10,688,4,-,full,https://www.wikidata.org/wiki/Q3422988,y,
+West Malta Drive,idaho_place,Q993877,Malta,"city in Cassia County, Idaho, United States",40,266,1,country,full,https://www.wikidata.org/wiki/Q993877,n,should be the country based on proximity
+South Spring Lake Way,us_lake,Q124448842,Spring Lake,"lake in King County, Washington, United States of America",3,636,8,-,full,https://www.wikidata.org/wiki/Q124448842,q,plausible based on proximity
+North Taurus Way,constellation,Q10570,Taurus,zodiac constellation straddling the celestial equator,109,,1,-,full,https://www.wikidata.org/wiki/Q10570,y,
+West Panama Street,country,Q804,Panama,sovereign state in Central America,301,5203,1,-,full,https://www.wikidata.org/wiki/Q804,y,
+East Powder River Drive,us_river,Q2096785,Powder River,river in Montana and Wyoming,19,923,2,-,full,https://www.wikidata.org/wiki/Q2096785,y,
+North Turnberry Way,golf_course,Q2096062,Turnberry,"golf resort on the Firth of Clyde in South Ayrshire, southwest Scotland",11,7283,1,-,full,https://www.wikidata.org/wiki/Q2096062,y,
+East Kiwi Court,plant,Q163522,kiwi,species of plant,33,,1,-,full,https://www.wikidata.org/wiki/Q163522,y,
+West Garfield Street,us_president,Q34597,James A. Garfield,president of the United States in 1881,147,,1,idaho_place,surname,https://www.wikidata.org/wiki/Q34597,y,
+West Pine Creek Court,idaho_place,Q7195093,Pine Creek,"human settlement in Idaho, United States",1,456,1,us_river,full,https://www.wikidata.org/wiki/Q7195093,y,
+South Jordan Creek Way,us_river,Q6276469,Jordan Creek,"river Owyhee County, Idaho and Malheur County, Oregon in the United States",2,131,7,-,full,https://www.wikidata.org/wiki/Q6276469,y,
+North Stanley Creek Avenue,us_river,Q28109105,Stanley Creek,river in the United States of America,2,2314,1,-,full,https://www.wikidata.org/wiki/Q28109105,q,which state is the river in?
+South Larkspur Court,plant,Q160107,larkspur,genus of plants,62,,3,-,full,https://www.wikidata.org/wiki/Q160107,y,
+East Whitney Court,fish,Q1985001,Whitney,species of fish,11,,1,idaho_place,full,https://www.wikidata.org/wiki/Q1985001,q,ambiguous
+North Snowbell Road,plant,Q525062,snowbell,genus of plants,31,,2,-,full,https://www.wikidata.org/wiki/Q525062,y,
+South Aurora Drive,roman_deity,Q178831,Aurora,goddess of dawn in Roman mythology,56,,1,-,full,https://www.wikidata.org/wiki/Q178831,q,ambiguous
+West Talbot Street,dog_breed,Q39390,Talbot,extinct dog type,11,,1,-,full,https://www.wikidata.org/wiki/Q39390,y,
+South Pegasus Way,constellation,Q8864,Pegasus,constellation in the northern celestial hemisphere,91,,1,-,full,https://www.wikidata.org/wiki/Q8864,q,"ambiguous, use proximity"
+North Cherry Creek Place,us_river,Q2962773,Cherry Creek,tributary of the South Platte River,5,1019,2,idaho_place,full,https://www.wikidata.org/wiki/Q2962773,q,"ambiguous, use proximity"
+North Grey Hawk Avenue,bird,Q10741794,Grey Hawk,species of bird,18,,1,-,full,https://www.wikidata.org/wiki/Q10741794,y,
+South Stanley Street,idaho_place,Q1513555,Stanley,"city in Custer County, Idaho, United States",40,135,1,-,full,https://www.wikidata.org/wiki/Q1513555,y,
+West Summit Peak Drive,us_mountain,Q7637850,Summit Peak,mountain in United States of America,5,1054,1,-,full,https://www.wikidata.org/wiki/Q7637850,q,probably invented
+South Diana Lane,grape_variety,Q112246379,Diana,American rouge grape variety,1,,1,roman_deity,full,https://www.wikidata.org/wiki/Q112246379,n,ambiguous
+West Crescent Court,idaho_place,Q19879194,Crescent,"human settlement in Idaho, United States",3,355,1,-,full,https://www.wikidata.org/wiki/Q19879194,n,ambiguous
+West Seneca Drive,us_ethnic_group,Q213422,Seneca,indigenous people of North America,37,,1,grape_variety,full,https://www.wikidata.org/wiki/Q213422,y,
+West Hidden Valley Drive,ski_resort,Q5751994,Hidden Valley,"former ski resort in Colorado, USA",1,,2,-,full,https://www.wikidata.org/wiki/Q5751994,n,"common, ambiguous"
+West Colton Lane,us_president,Q5531983,General Joseph Colton,"original ""G.I. Joe""",3,,1,-,surname,https://www.wikidata.org/wiki/Q5531983,q,try proximity
+North Big River Place,us_river,Q4906196,Big River,"river in Mendocino County, California (USA), south of Mendocino Village",7,766,8,-,full,https://www.wikidata.org/wiki/Q4906196,n,"ambiguous, possibly invented"
+West Camas Lane,plant,Q4992158,camas,species of plant,14,,1,-,full,https://www.wikidata.org/wiki/Q4992158,y,should have also come up as Idaho county
+North Nemea Avenue,greek_deity,Q1977078,Nemea,"naiad, mythical daughter of Asopus or Zeus",9,,1,-,full,https://www.wikidata.org/wiki/Q1977078,y,
+East Woodvine Court,plant,Q7396081,woodvine,genus of plants,11,,1,-,full,https://www.wikidata.org/wiki/Q7396081,y,
+North Booth Avenue,us_president,Q7241241,President Robert L. Booth,,1,,1,-,surname,https://www.wikidata.org/wiki/Q7241241,n,this is a fictional president in Judge Dredd. Either code or Wikidata needs fix
+North Cedar Avenue,idaho_place,Q117025266,Cedar,"unincorporated community in Twin Falls, Idaho, United States",0,157,1,plant,full,https://www.wikidata.org/wiki/Q117025266,n,should be the tree
+West President Drive,us_president,Q24043569,The President,National Treasure: Book of Secrets character,0,,1,-,surname,https://www.wikidata.org/wiki/Q24043569,n,seems to refer to the office itself. This fictional president definitely shouldn’t show up
+South Alyeska Lane,ski_resort,Q9147336,Alyeska,"ski resort in Alaska, USA",6,2913,1,-,full,https://www.wikidata.org/wiki/Q9147336,n,should refer to the Aleut word for Alaska
+South Neptune Place,roman_deity,Q3954,Neptune,"Roman god of water, particularly the sea, considered equivalent to the Greek Poseidon",92,,1,-,full,https://www.wikidata.org/wiki/Q3954,n,"should be the planet, use proximity"
+West Gidran Court,horse_breed,Q285445,Gidran,horse breed,11,,1,-,full,https://www.wikidata.org/wiki/Q285445,y,
+South Henry Street,idaho_place,Q114186102,Henry,"unincorporated community in Caribou County, Idaho, United States",0,387,1,-,full,https://www.wikidata.org/wiki/Q114186102,n,common name
+South Golden Eagle Lane,bird,Q41181,Golden Eagle,species of bird of prey,110,,1,-,full,https://www.wikidata.org/wiki/Q41181,y,
+South Hydra Avenue,constellation,Q10578,Hydra,constellation straddling the celestial equator,89,,1,-,full,https://www.wikidata.org/wiki/Q10578,y,
+South Barracuda Avenue,fish,Q193921,barracuda,"genus of fishes, the Barracudas",52,,7,-,full,https://www.wikidata.org/wiki/Q193921,y,
+West Taft Street,us_president,Q35648,William Howard Taft,27th President of the United States from 1909 to 1913 (1857–1930),147,,1,-,surname,https://www.wikidata.org/wiki/Q35648,y,

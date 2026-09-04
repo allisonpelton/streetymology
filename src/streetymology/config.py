@@ -13,4 +13,9 @@ OVERPASS_ENDPOINTS = [
 ] or ["https://overpass-api.de/api/interpreter"]
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 
+# Human-authored ground truth lives IN the repo: it cannot be regenerated,
+# unlike everything in DATA_DIR, which re-downloads.
+LABELS_DIR = ROOT / "data" / "labels"
+
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+LABELS_DIR.mkdir(parents=True, exist_ok=True)

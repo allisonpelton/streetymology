@@ -7,7 +7,7 @@ point is to test the signals against a judgement formed independently of them.
 import csv, json, random, sys, collections
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+from streetymology.config import DATA_DIR, LABELS_DIR
 from streetymology import gazetteer as g, match
 from streetymology.streets import osm_cores
 from streetymology.signals import proximity, distance_to_ada, notability
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     print(f"{'domain':18} {'pool':>6} {'sampled':>8}")
     for d, c in by.most_common():
         print(f"  {d:18} {c:>6} {got.get(d,0):>8}")
-    out = ARTIFACTS / "review_sample.csv"
+    out = LABELS_DIR / "pass1_review.csv"
     with out.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(sample[0].keys()))
         w.writeheader(); w.writerows(sample)

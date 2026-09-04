@@ -1,0 +1,200 @@
+street,domain,qid,wikidata_label,sitelinks,km_from_ada_county,same_name_items,other_domains,verdict,notes,pass
+South Carina Way,constellation,Q10470,Carina,86,,1,-,y,"Not 100% confident. Never heard of, would want proximity",1
+North Iris Avenue,greek_deity,Q184570,Iris,60,,1,plant,q,nearby streets give confident answer,1
+North Tumbler Drive,dog_breed,Q11316517,tumbler,2,,1,-,q,need proximity,1
+West Garganey Drive,bird,Q28106902,Garganey,87,,3,-,y,,1
+North Mink Creek Avenue,us_river,Q30628716,Mink Creek,2,3312,3,idaho_place,n,all in new york so none plausible. Must be invented,2
+South Daisy Place,plant,Q745253,Daisy,45,,2,-,y,,1
+South Blue Hill Lane,us_mountain,Q49014348,Blue Hill,1,244,30,-,n,Idaho place makes invented name unlikely | CORRECTED by AP: should not have accepted this.,2
+North Wilson Street,us_president,Q34296,Woodrow Wilson,190,,1,idaho_place,y,"could be idaho place, but very unlikely",1
+North Lake Placid Avenue,us_lake,Q1801051,Lake Placid,13,3349,3,-,y,,1
+South Acheron Avenue,greek_deity,Q12626619,Acheron,2,,1,-,y,,1
+South Pebble Lane,idaho_place,Q133430798,Pebble,0,353,1,-,n,very common word,1
+West Harvard Street,idaho_place,Q5676233,Harvard,4,387,1,-,n,should obviously be the university,1
+East Jamaica Court,country,Q766,Jamaica,281,4587,1,-,y,,1
+South Weimaraner Way,dog_breed,Q38965,Weimaraner,35,,1,-,y,,1
+South Sockeye Way,fish,Q2616519,Sockeye,15,,1,-,y,,1
+North Cabarton Lane,idaho_place,Q122563638,Cabarton,0,111,1,-,y,,1
+West Castle Drive,constellation,Q57654740,Castle,0,,1,-,n,Gamma-ray constellation seems too obscure to be etymology picked by developer. Year of construction would rule this out if considered,1
+North Lusitano Avenue,horse_breed,Q937595,Lusitano,22,,1,-,y,,1
+West Delaware Street,us_state,Q1393,Delaware,220,3408,1,grape_variety,y,,1
+West Nabesna Street,us_ethnic_group,Q12637941,Nabesna,1,,1,-,y,,1
+North Mountain Lake Avenue,us_lake,Q1950851,Mountain Lake,6,3073,4,-,n,very common name,1
+North Coneflower Avenue,plant,Q5304671,coneflower,1,,1,-,y,,1
+West Kingston Drive,fish,Q2236628,Kingston,20,,2,-,n,"definitely not fish, but nothing supports capital",2
+East Borzoi Court,dog_breed,Q37866,Borzoi,43,,1,-,y,,1
+North Hunter Creek Avenue,us_river,Q27986956,Hunter Creek,2,541,7,-,q,"common name, reranking does not help. There is a Hunter Creek in Idaho, but it seems unnotable",2
+South Triumph Place,idaho_place,Q7844478,Triumph,4,162,1,grape_variety,q,nearby streets are no help,2
+South Stibnite Avenue,idaho_place,Q122565131,Stibnite,0,176,1,-,n,mineral name based on nearby streets,2
+North James Street,grape_variety,Q112256118,James,1,,1,-,n,very common ,1
+North Porgy Way,fish,Q143503,Porgy,39,,14,-,y,,1
+West Clinton Lane,us_president,Q1124,Bill Clinton,223,,1,grape_variety,n,dates back to 1950s or earlier. Actual namesake probably not in wikidata,1
+North Bamboo Avenue,plant,Q311331,bamboo,41,,2,-,q,I have no idea which Wikidata item is correct to use here,2
+East Clear Creek Drive,us_river,Q5130667,Clear Creek,6,1020,27,-,y,,1
+North Columbine Avenue,plant,Q147641,columbine,64,,2,-,y,,1
+West Mountain Creek Street,ski_resort,Q6924907,Mountain Creek,2,3404,1,us_river,n,invented,1
+East Lost Creek Drive,us_river,Q49951774,Lost Creek,1,338,14,-,y,must be the one in Idaho,2
+South Canvasback Way,bird,Q378533,Canvasback,40,,1,-,y,,1
+West Athens Court,grape_variety,Q139187092,Athens,0,,1,-,n,"definitely a city, but nearby streets needed to figure out which",1
+West Cayuse Lane,horse_breed,Q5055481,Cayuse,6,,1,-,y,,1
+East Echo Court,greek_deity,Q207368,Echo,46,,1,-,q,need proximity,1
+West Daphne Street,greek_deity,Q194015,Daphne,53,,1,plant,y,,1
+East Washington Avenue,us_state,Q1223,Washington,223,559,1,us_president,y,proximity would not solve this. No other state names or presidents nearby. President probably the default,1
+West Wall Drive,constellation,Q1145933,Wall,11,,1,-,n,common word,1
+North Alpha Lane,grape_variety,Q25395428,Alpha,1,,1,-,n,definitely not grape variety. Probably the greek letter,1
+South White Pine Lane,plant,Q1981615,White Pine,24,,2,-,w,"I had to check since the summaries were identical. Q118442493, western white pine, is the correct one, but I could only determine this from one of its alternate names, Idaho white pine",2
+South Tartarus Way,greek_deity,Q101322,Tartarus,72,,1,-,y,,1
+West Duck Lake Drive,us_lake,Q49301948,Duck Lake,1,181,80,-,y,must be the one in Idaho,2
+West Garfield Street,idaho_place,Q48852078,Garfield,3,527,1,us_president,n,should be the president,1
+West Oxford Circle,idaho_place,Q1510107,Oxford,36,369,1,-,n,should be the university,1
+West Rochester Street,grape_variety,Q112305518,Rochester,1,,1,-,n,"genuinely ambiguous, should have multiple low-confidence suggestions. Grape variety spurious though",1
+South Victoria Drive,roman_deity,Q308902,Victoria,48,,1,grape_variety,n,"genuinely ambiguous, should have multiple low-confidence suggestions. Grape variety spurious though",1
+North Merlot Place,grape_variety,Q213338,Merlot,46,,1,-,y,,1
+West Cardinal Drive,grape_variety,Q858435,Cardinal,10,,1,-,n,probably the bird,1
+South Blue Mountain Lane,ski_resort,Q4929499,Blue Mountain,7,2854,2,us_mountain,n,invented,1
+West Crooked River Drive,us_river,Q535450,Crooked River,9,421,8,-,y,,1
+West Chipmunk Court,mammal,Q22364,Chipmunk,54,,1,-,y,,1
+North Rock Creek Lane,us_river,Q2352739,Rock Creek,7,3287,20,idaho_place,q,I think only the namer’s intent could clear this one up.,2
+South Bench Way,idaho_place,Q48851903,Bench,3,386,1,-,y,,1
+West Apollo Street,roman_deity,Q37340,Apollo,125,,2,greek_deity,y,,1
+South Denmark Street,country,Q35,Denmark,369,7864,1,-,y,,1
+East Aruba Court,country,Q21203,Aruba,200,5591,1,-,y,,1
+North Brumby Lane,horse_breed,Q850232,Brumby,22,,1,-,y,,1
+South Cabot Cliffs Lane,golf_course,Q78137834,Cabot Cliffs,0,4256,1,-,y,,1
+West Tana Street,us_mountain,Q1601043,Tana,5,4005,1,-,q,"Candidate is very obscure, seems plausible as wholly invented name.",2
+South Ivy Street,plant,Q26771,ivy,74,,1,-,y,,1
+East Ronald Reagan Drive,us_president,Q9960,Ronald Reagan,304,,1,-,y,,1
+North Techne Lane,greek_deity,Q126913652,Techne,0,,1,-,y,,1
+West Sooty Grouse Court,bird,Q1265902,Sooty Grouse,25,,1,-,y,,1
+South Shawnee Way,us_ethnic_group,Q253436,Shawnee,44,,1,-,y,,1
+West Prickly Pear Drive,plant,Q292801,Prickly pear,11,,3,-,y,,1
+North Mount Hood Avenue,us_mountain,Q275662,Mount Hood,43,483,2,-,y,,1
+West Rifleman Court,bird,Q646366,Rifleman,38,,2,-,y,,1
+North Sable Lane,mammal,Q26423,Sable,86,,1,-,y,,1
+West Madison Avenue,us_president,Q11813,James Madison,176,,1,-,y,,1
+East Carnation Court,plant,Q158984,carnation,78,,1,-,y,,1
+West Snowcap Drive,bird,Q524681,Snowcap,24,,1,-,y,,1
+West Norway Street,country,Q20,Norway,393,7547,1,-,y,,1
+East Jack Creek Street,us_river,Q6111879,Jack Creek,2,1683,4,-,n,Probably invented. There is a Jack Creek in Idaho but it’s unnotable,2
+West Bellevue Street,idaho_place,Q1516909,Bellevue,40,160,1,-,y,,1
+East Geranium Street,plant,Q146118,Geranium,64,,1,-,y,,1
+West Montana Avenue,us_state,Q1212,Montana,216,628,1,-,y,,1
+West Cobalt Lake Drive,us_lake,Q5138715,Cobalt Lake,1,595,2,-,y,Glacier Lake is notable. Semi-obscure pick but seems totally valid,2
+West Poppy Street,plant,Q146391,poppy,79,,1,-,y,,1
+West Muirfield Drive,golf_course,Q1951987,Muirfield,10,7321,1,-,y,,1
+East Cutgrass Lane,plant,Q158961,cutgrass,32,,4,-,y,,1
+South Saturn Way,roman_deity,Q134388,Saturn,87,,1,-,n,"planet, revealed by nearby street Jupiter",1
+South Blue Jay Place,bird,Q199758,Blue Jay,74,,1,-,y,,1
+South Lynx Avenue,constellation,Q10443,Lynx,84,,1,-,q,could be the animal,1
+East Lake Creek Drive,us_river,Q22954077,Lake Creek,3,610,9,-,n,Almost certainly invented,2
+West Grand Teton Court,us_mountain,Q2078034,Grand Teton,25,439,1,-,y,,1
+West Atlas Lane,greek_deity,Q130818,Atlas,86,,1,-,y,,1
+South Coyote Place,mammal,Q44299,coyote,108,,2,-,y,,1
+West Wild Sheep Lane,mammal,Q186267,Wild Sheep,71,,1,-,y,,1
+West Turtle Creek Drive,us_river,Q7856388,Turtle Creek,4,3026,8,-,n,invented,1
+West Thor Drive,norse_deity,Q42952,Thor,105,,1,us_president,y,,1
+North Trail Creek Lane,us_river,Q7832719,Trail Creek,2,2396,2,-,n,Almost certainly invented,2
+West Red Deer Court,mammal,Q79794,red deer,109,,1,-,y,,1
+South Umatilla Avenue,us_ethnic_group,Q491747,Umatilla,14,,1,-,y,,1
+West Stephanie Court,grape_variety,Q112255264,Stephanie,1,,1,-,n,nearby streets are given names,1
+West Crater Lake Court,us_lake,Q329266,Crater Lake,52,479,3,-,y,,1
+South Island Fox Avenue,mammal,Q722180,Island fox,49,,1,-,y,,1
+West Cory Court,fish,Q147894,Cory,38,,1,-,n,probably a name,1
+West Murphy Road,idaho_place,Q961918,Murphy,23,36,1,-,q,Still ambiguous,2
+North Trumpet Place,fish,Q1861277,Trumpet,19,,1,plant,n,nearby street suggests instrument,1
+North Bogus Basin Road,ski_resort,Q4937866,Bogus Basin,5,37,1,idaho_place,y,,1
+West Tiger Perch Court,fish,Q2655115,Tiger perch,26,,1,-,y,,1
+West Indus Street,constellation,Q10450,Indus,82,,1,-,q,"probably not constellation, but nearby streets are no help",1
+South Appaloosa Drive,horse_breed,Q620656,Appaloosa,42,,1,-,y,,1
+South Redhead Avenue,bird,Q692192,Redhead,40,,1,-,y,,1
+East Ocelot Court,mammal,Q33261,Ocelot,91,,1,-,y,,1
+West Bufflehead Street,bird,Q576762,Bufflehead,45,,1,-,y,,1
+West Suttle Lake Drive,us_lake,Q117764,Suttle Lake,5,453,1,-,y,,1
+North Skipper Avenue,fish,Q1886478,skipper,22,,2,-,n,"Fish doesn’t seem very plausible, but still no idea",2
+North Long Lake Way,us_lake,Q49304601,Long Lake,1,136,244,-,n,"too generic of a name, must be invented",2
+West Silver City Court,idaho_place,Q7515893,Silver City,6,63,1,-,y,,1
+East Carter Street,us_president,Q23685,Jimmy Carter,200,,1,grape_variety,q,year is plausible for president. Grape variety not plausible. Suggested: confidence is greater for older presidents,1
+West Gloxinia Street,plant,Q5239844,gloxinia,21,,1,-,y,,1
+South Ringtail Avenue,fish,Q1094327,Ringtail,17,,1,mammal,n,"Definitely bird related due to Circinae nearby, but that may be ambiguous",1
+West Summer Hill Drive,us_mountain,Q49079897,Summer Hill,2,3602,1,-,n,"probably invented, used as subdivision name. Other street names invented. Idea: invented confidence goes up for multiple invented streets",1
+North Dawn Street,mineral,Q133867079,Dawn,3,,1,gemstone,n,probably a name,1
+North Chestnut Hill Way,us_mountain,Q25203991,Chestnut Hill,2,3366,41,-,n,"too generic of a name, must be invented",2
+North Rhine Avenue,roman_deity,Q130343611,Rhine,0,,1,-,n,personification of the river implausible over the river itself,1
+East Roaring Creek Street,us_river,Q25208930,Roaring Creek,2,3053,1,-,n,coincidental invented name,2
+South Bolinas Avenue,us_ethnic_group,Q12628100,Bolinas,1,,1,-,y,,1
+East Griffon Street,dog_breed,Q1028186,griffon,10,,1,-,y,,1
+West Avon Street,idaho_place,Q19865161,Avon,3,377,1,-,n,"probably refers to a river, but generically. Unclear how we would handle this",1
+West Bloomington Drive,idaho_place,Q1513388,Bloomington,41,419,1,-,n,"proximity reveals Bloomington, Illinois as correct choice",1
+West Bobwhite Court,bird,Q142651,Bobwhite,35,,1,-,y,,1
+West King Way,plant,Q1042895,King,23,,1,-,n,"plant genus is implausible, but totally ambiguous from nearby streets",1
+North Bunchberry Way,plant,Q157677,Bunchberry,30,,1,-,y,,1
+North June Grass Avenue,plant,Q159962,June grass,23,,1,-,y,,1
+West Arizona Lane,us_state,Q816,Arizona,245,1093,1,-,y,,1
+South Palomino Drive,grape_variety,Q657693,Palomino,17,,1,-,n,Should be the horse color,1
+South Alaska Avenue,us_state,Q797,Alaska,262,3117,1,-,y,,1
+South Bonefish Drive,fish,Q2014405,Bonefish,28,,1,-,y,,1
+East Wild Horse Lane,mammal,Q27742,Wild Horse,65,,1,-,y,,1
+South Vermont Avenue,us_state,Q16551,Vermont,219,3458,1,-,y,,1
+West Custer Drive,idaho_place,Q3085818,Custer,7,162,1,-,n,should be the general based on proximity,1
+East Cottage Street,grape_variety,Q112246257,Cottage,1,,1,-,n,"subdivision name is Merlin Cottages, so probably based on that",1
+North Sundial Way,us_mountain,Q97162726,Sundial,1,729,1,-,n,should be the timekeeping device based on proximity,1
+North Hosta Avenue,plant,Q113815810,hosta,0,,1,-,q,why is hosta a cultivar of Hosta?,1
+West Vega Lane,grape_variety,Q17119339,Vega,1,,1,-,n,almost certainly the star,1
+South Willow Lake Place,us_lake,Q7375031,Willow Lake,1,152,3,-,y,,1
+South Arctic Fox Avenue,mammal,Q82738,Arctic Fox,105,,1,-,y,,1
+South Stargazer Place,fish,Q744000,Stargazer,30,,1,-,q,"ambiguous, nearby streets are no help",1
+East Princess Drive,grape_variety,Q136438026,Princess,0,,1,-,n,you previously called this out as garbage. Proximity is no help,1
+West Dover Lane,idaho_place,Q733687,Dover,40,535,1,-,q,"Not enough supporting evidence, though almost certainly not the Idaho place",2
+West Snake River Drive,us_river,Q272074,Snake River,60,489,7,-,y,,1
+West San Marino Drive,country,Q238,San Marino,314,9047,1,-,y,,1
+North Venus Place,roman_deity,Q47652,Venus,111,,1,grape_variety,q,proximity is no help,1
+West Camellia Lane,plant,Q212815,camellia,68,,2,-,y,,1
+West Delaware Street,grape_variety,Q730314,Delaware,9,,1,us_state,n,should be the state,1
+West Black Rock Drive,us_mountain,Q49013968,Black Rock,1,158,26,-,n,"too generic of a name, must be invented",2
+North Wales Avenue,country,Q25,Wales,257,7565,1,-,y,,1
+North Crested Butte Avenue,us_mountain,Q5184573,Crested Butte,8,928,1,-,y,nearby streets indicate Colorado mountain,2
+North Amber Street,fish,Q533533,Amber,22,,1,-,n,"ambiguous, but almost certainly not the fish",1
+North Bluegrass Avenue,plant,Q157656,bluegrass,51,,1,-,y,technically ambiguous but almost certainly plant-related,1
+North Dawn Street,gemstone,Q133867079,Dawn,3,,1,mineral,n,still a dubious choice,1
+West Redwood Creek Drive,us_river,Q3422988,Redwood Creek,10,688,4,-,y,,1
+West Malta Drive,idaho_place,Q993877,Malta,40,266,1,country,n,should be the country based on proximity,1
+South Spring Lake Way,us_lake,Q112993248,Spring Lake,0,340,116,-,n,"too generic of a name, must be invented",2
+North Taurus Way,constellation,Q10570,Taurus,109,,1,-,y,,1
+West Panama Street,country,Q804,Panama,301,5203,1,-,y,,1
+East Powder River Drive,us_river,Q2096785,Powder River,19,923,2,-,y,,1
+North Turnberry Way,golf_course,Q2096062,Turnberry,11,7283,1,-,y,,1
+East Kiwi Court,plant,Q163522,kiwi,33,,1,-,y,,1
+West Garfield Street,us_president,Q34597,James A. Garfield,147,,1,idaho_place,y,,1
+West Pine Creek Court,idaho_place,Q7195093,Pine Creek,1,456,1,us_river,y,,1
+South Jordan Creek Way,us_river,Q6276469,Jordan Creek,2,131,7,-,y,,1
+North Stanley Creek Avenue,us_river,Q28109105,Stanley Creek,2,2314,1,-,q,which state is the river in?,1
+South Larkspur Court,plant,Q160107,larkspur,62,,3,-,y,,1
+East Whitney Court,fish,Q1985001,Whitney,11,,1,idaho_place,q,ambiguous,1
+North Snowbell Road,plant,Q525062,snowbell,31,,2,-,y,,1
+South Aurora Drive,roman_deity,Q178831,Aurora,56,,1,-,q,ambiguous,1
+West Talbot Street,dog_breed,Q39390,Talbot,11,,1,-,y,,1
+South Pegasus Way,constellation,Q8864,Pegasus,91,,1,-,q,"ambiguous, use proximity",1
+North Cherry Creek Place,us_river,Q2962773,Cherry Creek,5,1019,2,idaho_place,q,"ambiguous, use proximity",1
+North Grey Hawk Avenue,bird,Q10741794,Grey Hawk,18,,1,-,y,,1
+South Stanley Street,idaho_place,Q1513555,Stanley,40,135,1,-,y,,1
+West Summit Peak Drive,us_mountain,Q7637850,Summit Peak,5,1054,1,-,q,probably invented,1
+South Diana Lane,grape_variety,Q112246379,Diana,1,,1,roman_deity,n,ambiguous,1
+West Crescent Court,idaho_place,Q19879194,Crescent,3,355,1,-,n,ambiguous,1
+West Seneca Drive,us_ethnic_group,Q213422,Seneca,37,,1,grape_variety,y,,1
+West Hidden Valley Drive,ski_resort,Q5751994,Hidden Valley,1,,2,-,n,"common, ambiguous",1
+West Colton Lane,us_president,Q5531983,General Joseph Colton,3,,1,-,q,try proximity,1
+North Big River Place,us_river,Q4906196,Big River,7,766,8,-,n,"ambiguous, possibly invented",1
+West Camas Lane,plant,Q4992158,camas,14,,1,-,y,should have also come up as Idaho county,1
+North Nemea Avenue,greek_deity,Q1977078,Nemea,9,,1,-,y,,1
+East Woodvine Court,plant,Q7396081,woodvine,11,,1,-,y,,1
+North Booth Avenue,us_president,Q7241241,President Robert L. Booth,1,,1,-,n,this is a fictional president in Judge Dredd. Either code or Wikidata needs fix,1
+North Cedar Avenue,idaho_place,Q117025266,Cedar,0,157,1,plant,n,should be the tree,1
+West President Drive,us_president,Q24043569,The President,0,,1,-,n,seems to refer to the office itself. This fictional president definitely shouldn’t show up,1
+South Alyeska Lane,ski_resort,Q9147336,Alyeska,6,2913,1,-,n,should refer to the Aleut word for Alaska,1
+South Neptune Place,roman_deity,Q3954,Neptune,92,,1,-,n,"should be the planet, use proximity",1
+West Gidran Court,horse_breed,Q285445,Gidran,11,,1,-,y,,1
+South Henry Street,idaho_place,Q114186102,Henry,0,387,1,-,n,common name,1
+South Golden Eagle Lane,bird,Q41181,Golden Eagle,110,,1,-,y,,1
+South Hydra Avenue,constellation,Q10578,Hydra,89,,1,-,y,,1
+South Barracuda Avenue,fish,Q193921,barracuda,52,,7,-,y,,1
+West Taft Street,us_president,Q35648,William Howard Taft,147,,1,-,y,,1

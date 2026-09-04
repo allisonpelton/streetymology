@@ -11,7 +11,7 @@ feature does not exist yet, so re-asking would waste the author's time.
 import csv, json, sys, time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+from streetymology.config import DATA_DIR, LABELS_DIR
 from streetymology.wikidata import query
 from streetymology import gazetteer as g, match
 from streetymology.signals import distance_to_ada, proximity, notability
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     coords = json.loads((DATA_DIR / "meta_coords.json").read_text())
     meta = json.loads((DATA_DIR / "meta_candidates.json").read_text())
     idx = match.build_indexes(g.available(), g.index)
-    rows = list(csv.DictReader((ARTIFACTS / "review_sample.csv").open()))
+    rows = list(csv.DictReader((LABELS_DIR / "pass1_review.csv").open()))
 
     def rank(c):
         sl = meta.get(c.qid, {}).get("sitelinks", 0)
@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
     need = {b.qid for _, b, _, _, _ in targets} | {a.qid for _, _, _, _, al in targets for a in al}
     locs = fetch_locations(sorted(need))
-    out = ARTIFACTS / "relabel_sample.csv"
+    out = LABELS_DIR / "pass2_relabel.csv"
     with out.open("w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["street", "domain", "wikidata_label", "qid", "description",
