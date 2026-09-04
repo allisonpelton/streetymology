@@ -90,6 +90,19 @@ ROOTS: dict[str, Root] = {
     "dog_breed":   Root(INSTANCE.format(root="Q39367")),
     "horse_breed": Root(INSTANCE.format(root="Q1160573")),
     "grape_variety": Root(INSTANCE.format(root="Q958314"), precision="low"),
+    # --- added 2026-09-04 after probing yield with scripts/probe_domain.py.
+    # UNVALIDATED: no hand-labelled rows cover these four, so their precision
+    # marking is provisional. Label before quoting a precision figure for them.
+    "element":    Root(INSTANCE.format(root="Q11344")),          # 9 new matches
+    "colour":     Root(INSTANCE.format(root="Q1075")),           # 55 new matches
+    # P279* only: P31/P279* sweeps in individual named instruments and software.
+    "instrument": Root("""SELECT DISTINCT ?s ?n WHERE {
+        ?s wdt:P279* wd:Q34379 ; rdfs:label ?n . FILTER(lang(?n)="en") }"""),
+    # Restricted to stars with an English Wikipedia article; the unrestricted
+    # set is mostly catalogue designations.
+    "star":       Root("""SELECT DISTINCT ?s ?n WHERE {
+        ?s wdt:P31/wdt:P279* wd:Q523 ; rdfs:label ?n . FILTER(lang(?n)="en")
+        [] schema:about ?s ; schema:isPartOf <https://en.wikipedia.org/> . }"""),
     # --- people ---------------------------------------------------------
     "us_president": Root("""SELECT DISTINCT ?s ?n WHERE {
                        ?s wdt:P39 wd:Q11696 ; rdfs:label ?n . FILTER(lang(?n)="en") }""",
