@@ -12,7 +12,7 @@ context, and no way to tell Wikidata near-duplicates apart. This set gives her:
 The same file goes to a model afterwards, so the comparison is like-for-like.
 Streets are drawn from those never previously labelled.
 """
-import csv, json, random, sys, time
+import argparse, csv, json, random, sys, time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from streetymology.config import DATA_DIR, LABELS_DIR
@@ -29,7 +29,23 @@ LETTERS = "ABCDE"
 
 
 def main():
-    rng = random.Random(SEED)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-n", type=int, default=N, help="number of streets")
+    ap.add_argument("--seed", type=int, default=SEED)
+    ap.add_argument("--suffix", default="", help="e.g. _2 -> equal_ground_2.md")
+    args = ap.parse_args()
+    rng = random.Random(args.seed)
+
+    sfx = args.suffix
+    sheet = DATA_DIR / "deliverables" / f"equal_ground{sfx}_labels.csv"
+    # Completed label sheets are hand-made and unregenerable.
+    if sheet.exists():
+        with sheet.open(newline="") as fh:
+            filled = [r for r in csv.DictReader(fh) if r.get("choice", "").strip()]
+        if filled:
+            raise SystemExit(f"{sheet} already holds {len(filled)} answers. "
+                             f"Use --suffix to write a new round.")
+
     assign = themes.load()
     idx = match.build_indexes(g.available(), g.index)
     m = {k: {c.domain for c in match.match(v["name"], idx,
@@ -39,6 +55,10 @@ def main():
     search = json.loads((DATA_DIR / "search_unmatched.json").read_text())
     meta = json.loads((DATA_DIR / "meta_candidates.json").read_text())
     already = {key(r["street"]) for r in csv.DictReader((LABELS_DIR / "labels_corrected.csv").open())}
+    # Every previously issued labelling set, or the same streets come back.
+    for prev in sorted((DATA_DIR / "deliverables").glob("equal_ground*_labels.csv")):
+        with prev.open(newline="") as fh:
+            already |= {key(r["street"]) for r in csv.DictReader(fh) if r.get("street")}
     cores = osm_cores()
 
     pool = []
@@ -55,9 +75,15 @@ def main():
                 continue
             if h["qid"] not in {x["qid"] for x in cands}:
                 cands.append(h)
-        if 2 <= len(cands):
-            pool.append((k, orig, cands[:MAX_CAND]))
-    picked = rng.sample(pool, min(N, len(pool)))
+        seen, uniq = set(), []
+        for c in cands:
+            if c["qid"] not in seen:
+                seen.add(c["qid"])
+                uniq.append(c)
+        if 2 <= len(uniq):
+            pool.append((k, orig, uniq[:MAX_CAND]))
+    picked = rng.sample(pool, min(args.n, len(pool)))
+    print(f"pool {len(pool)} unlabelled streets with >=2 candidates; picked {len(picked)}")
 
     qids = sorted({c["qid"] for _, _, cs in picked for c in cs})
     alias = {}
@@ -74,15 +100,6 @@ def main():
 
     body, keyrows = [], []
     for n, (k, orig, cands) in enumerate(picked, 1):
-        # Dedupe by QID. The same entity reached the pool under more than one
-        # letter twice in the 40-item set, so two of the five options were not
-        # a choice at all.
-        seen, uniq = set(), []
-        for c in cands:
-            if c["qid"] not in seen:
-                seen.add(c["qid"])
-                uniq.append(c)
-        cands = uniq
         rng.shuffle(cands)
         sub, nb = neighbours.context(k, assign, tm, ni, limit=22)
         descs = [c.get("description", "") for c in cands]
@@ -141,7 +158,7 @@ Candidate order is randomised.
 
 ## How to record answers
 
-Fill in `equal_ground_labels.csv` — columns `choice` (A-E, NONE or NOETYM),
+Fill in the companion `_labels.csv` — columns `choice` (A-E, NONE or NOETYM),
 `confidence` (high/medium/low), and `notes`.
 
 Afterwards, paste this same file into a fresh chat to get the model's answers for
@@ -152,19 +169,21 @@ comparison.
 ## Items ({len(picked)})
 
 """
-    out = DATA_DIR / "deliverables" / "equal_ground.md"
+    out = DATA_DIR / "deliverables" / f"equal_ground{sfx}.md"
     out.write_text(hdr + "\n".join(body))
-    kp = DATA_DIR / "artifacts" / "equal_ground_KEY.csv"
+    kp = DATA_DIR / "artifacts" / f"equal_ground{sfx}_KEY.csv"
     with kp.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(keyrows[0].keys()))
         w.writeheader(); w.writerows(keyrows)
-    sheet = DATA_DIR / "deliverables" / "equal_ground_labels.csv"
     with sheet.open("w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["n", "street", "choice", "confidence", "notes"])
         for r in keyrows:
             w.writerow([r["n"], r["street"], "", "", ""])
+    for f in (out, sheet):
+        f.chmod(0o664)
     print(f"{len(picked)} items -> {out}  ({out.stat().st_size/1000:.1f} KB)")
+    print(f"answer sheet -> {sheet}")
     print(f"answer sheet -> {sheet}")
     print(f"candidate map -> {kp}")
     dupes = sum(1 for b in body if "share a description" in b)
