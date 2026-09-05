@@ -74,6 +74,15 @@ def main():
 
     body, keyrows = [], []
     for n, (k, orig, cands) in enumerate(picked, 1):
+        # Dedupe by QID. The same entity reached the pool under more than one
+        # letter twice in the 40-item set, so two of the five options were not
+        # a choice at all.
+        seen, uniq = set(), []
+        for c in cands:
+            if c["qid"] not in seen:
+                seen.add(c["qid"])
+                uniq.append(c)
+        cands = uniq
         rng.shuffle(cands)
         sub, nb = neighbours.context(k, assign, tm, ni, limit=22)
         descs = [c.get("description", "") for c in cands]
@@ -87,7 +96,11 @@ def main():
             al = f"  _also known as: {', '.join(sorted(set(al))[:4])}_" if al else ""
             lines.append(f"    - **{L}.** {c['label']} — "
                          f"{c.get('description') or '(no description)'}{al}")
-        lines.append("    - **NONE.** No candidate above is the referent.")
+        lines.append("    - **NONE.** A referent may exist, but no candidate "
+                     "above is it.")
+        lines.append("    - **NOETYM.** The name has no etymology worth "
+                     "publishing: invented, purely descriptive, or a bare "
+                     "surname or given name used as filler.")
         if dupe:
             lines.append("    _(note: two candidates share a description; the "
                          "aliases are the only way to tell them apart)_")
@@ -105,7 +118,18 @@ descriptions, and aliases. Streets never labelled before.
 Most American suburban street names have **no etymology at all** — a developer
 picked a word because it sounded pleasant. Wikidata contains something for almost
 any string. A candidate existing is not evidence the street refers to it.
-**NONE is expected to be a common answer.**
+**NONE and NOETYM are expected to be common answers.**
+
+Two different abstentions, and the difference matters:
+
+- **NONE** — a real referent may well exist, but it is not among the candidates.
+- **NOETYM** — the name has no etymology worth publishing at all. Invented,
+  purely descriptive ("Westview"), or a bare surname or given name that only
+  matches because Wikidata has an item for the surname. Choosing the surname
+  item would be technically correct and editorially useless.
+
+NOETYM rows are excluded from the human/model comparison, because they turn on
+an editorial judgement about what belongs in OSM rather than on evidence.
 
 Subdivisions are usually themed. Nearby streets are the strongest evidence.
 Themes can be mixed, and many subdivisions have no theme at all.
@@ -117,7 +141,7 @@ Candidate order is randomised.
 
 ## How to record answers
 
-Fill in `equal_ground_labels.csv` — columns `choice` (A-E or NONE),
+Fill in `equal_ground_labels.csv` — columns `choice` (A-E, NONE or NOETYM),
 `confidence` (high/medium/low), and `notes`.
 
 Afterwards, paste this same file into a fresh chat to get the model's answers for
