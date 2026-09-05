@@ -1,0 +1,41 @@
+n,street,choice,confidence,notes
+1,North Chopin Avenue,D,high,
+2,North Arlington Drive,A,medium,I see a possible theme with Colonial and Liberty
+3,West Miller Street,NONE,high,Very likely a family name. I use NONE for this even if item is available because I would never want to suggest it as etymology
+4,North Westview Way,NONE,high,
+5,North Red Pine Avenue,NONE,high,Impossible to disambiguate Wikidata items. AI results will be unhelpful
+6,West Balance Rock Drive,NONE,high,No theme
+7,North Player Avenue,NONE,high,Generic
+8,North Ulmer Street,NONE,high,Family name
+9,West Fairmont Street,NONE,medium,Choices are obscure locations
+10,West Afton Street,NONE,medium,Family name
+11,West Surf Street,NONE,high,Generic
+12,South Pomander Road,B,high,"No theme, but fruit is clear favorite"
+13,East Trinity Lane,A,low,Could be the given name or a toponym
+14,West Bucktail Drive,NONE,high,Likely refers to a deer tail
+15,West Parkridge Drive,NONE,high,Invented
+16,West Enchantment Street,A,low,E seems to be a duplicate of A
+17,East Seville Lane,C,medium,Seems more notable than the other locations
+18,East Redwood Court,B,low,"B and C appear identical, as are D and E, but genus should be correct"
+19,Standifer Road,NONE,high,
+20,West Greensboro Court,B,low,"Seems like the most notable, but no clues are available"
+21,West Geyser Street,B,high,
+22,West Gelding Drive,E,high,
+23,West Kingman Street,NONE,high,Family name
+24,West Jean Street,NONE,high,
+25,East Spartan Street,NONE,high,"There is no item for a resident of ancient Sparta, surprisingly"
+26,North Castle Hills Avenue,NONE,high,
+27,West Settlers Drive,NONE,high,Generic
+28,South Ancona Avenue,B,medium,
+29,West Whiff Drive,NONE,high,
+30,North Ballantyne Lane,NONE,high,Family name
+31,North Towerview Lane,NONE,medium,"Seems invented, weak English theme"
+32,North Brownfield Way,NONE,medium,"Could be A, although it seems like an unpleasant name for a street"
+33,East Veterans Memorial Parkway,NONE,high,Generic
+34,North El Rancho Place,B,high,California theme
+35,South Pikesville Avenue,E,low,Don't see a theme
+36,East Sky Bar Street,NONE,high,
+37,West Brentwood Drive,NONE,low,"Could be a theme, but don't see one"
+38,West Pine Valley Lane,NONE,high,Seems invented
+39,North Ethan Place,NONE,high,Family name
+40,North Rathbone Avenue,NONE,high,Could be an actor based on Clooney and Duvall

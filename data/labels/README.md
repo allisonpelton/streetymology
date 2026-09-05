@@ -10,6 +10,8 @@ They are version-controlled for that reason.
 | `pass1_review.csv` | 199 | first labelling pass, stratified across all gazetteer domains |
 | `pass2_relabel.csv` | 28 | focused re-label of `q` rows that became answerable |
 | `labels_merged.csv` | 199 | merged view; pass 2 supersedes pass 1, including changed QIDs |
+| `labels_corrected.csv` | 176 | merged labels after the audit; 174 decided (131 `y`, 43 `n`, 1 `w`, 1 `q`) |
+| `equal_ground/` | 40 | round 1 of the equal-information comparison; see its own README |
 
 ## Verdict codes
 
