@@ -184,7 +184,6 @@ comparison.
         f.chmod(0o664)
     print(f"{len(picked)} items -> {out}  ({out.stat().st_size/1000:.1f} KB)")
     print(f"answer sheet -> {sheet}")
-    print(f"answer sheet -> {sheet}")
     print(f"candidate map -> {kp}")
     dupes = sum(1 for b in body if "share a description" in b)
     print(f"items where candidates share a description: {dupes}")
