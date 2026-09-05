@@ -4,10 +4,11 @@ __pycache__/
 .env
 .env.*
 !.env.example
-data/
+# data/* not data/, because git does not descend into an excluded directory,
+# so a negation inside one never applies. The previous `data/` left
+# labels_corrected.csv and data/labels/equal_ground/ silently untracked.
+data/*
 !data/labels/
-!data/labels/*.csv
-!data/labels/*.md
 *.gpkg
 *.osm.pbf
 *.parquet
