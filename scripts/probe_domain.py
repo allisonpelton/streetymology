@@ -7,8 +7,6 @@ size alone says nothing, and broad domains full of ordinary English words
 (colours, instruments) can be large and still worthless.
 """
 import sys, time
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from streetymology.wikidata import query, qid
 from streetymology.normalize import entity_key, key
 from streetymology import gazetteer as g, match

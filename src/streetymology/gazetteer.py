@@ -8,7 +8,7 @@ import hashlib
 import json
 import time
 from dataclasses import dataclass
-from .config import DATA_DIR
+from .config import data_path
 from .wikidata import query, qid
 from .normalize import entity_key
 
@@ -128,7 +128,7 @@ PAGE = 50_000
 
 
 def path(domain: str):
-    return DATA_DIR / f"gaz_{domain}.json"
+    return data_path(f"gaz_{domain}.json")
 
 
 class GazetteerTooSmall(RuntimeError):
@@ -221,7 +221,7 @@ ALIAS_DOMAINS = {"plant", "bird", "mammal", "fish", "amphibian", "insect",
 
 
 def load_aliases() -> dict[str, list[str]]:
-    p = DATA_DIR / ALIAS_FILE
+    p = data_path(ALIAS_FILE)
     return json.loads(p.read_text()) if p.exists() else {}
 
 

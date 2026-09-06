@@ -8,10 +8,8 @@ Usage:
   python scripts/build_llm_batch.py --limit 500   # a slice
   python scripts/build_llm_batch.py --model claude-haiku-4-5
 """
-import argparse, json, sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+import argparse, json
+from streetymology.config import data_path
 from streetymology import gazetteer as g, match, themes, llm
 from streetymology.streets import osm_cores
 from streetymology.normalize import key
@@ -26,9 +24,9 @@ def strip_dir(name: str) -> str:
 
 def build_items(limit=None) -> list[llm.Item]:
     assign = themes.load()
-    meta = json.loads((DATA_DIR / "meta_candidates.json").read_text())
-    locs = json.loads((DATA_DIR / "meta_location.json").read_text()) if (
-        DATA_DIR / "meta_location.json").exists() else {}
+    meta = json.loads((data_path("meta_candidates.json")).read_text())
+    locs = json.loads((data_path("meta_location.json")).read_text()) if (
+        data_path("meta_location.json")).exists() else {}
     idx = match.build_indexes(g.available(), g.index)
     m = {k: {c.domain for c in match.match(v["name"], idx)} for k, v in assign.items()}
     tm = themes.ThemeModel(assign, m)
@@ -64,11 +62,11 @@ if __name__ == "__main__":
     reqs = llm.build_requests(items, model=a.model, chunk=a.chunk)
     est = llm.estimate_cost(reqs, model=a.model)
 
-    out = DATA_DIR / f"llm_batch_{a.model}.jsonl"
+    out = data_path(f"llm_batch_{a.model}.jsonl")
     with out.open("w") as f:
         for r in reqs:
             f.write(json.dumps({k: v for k, v in r.items() if k != "_items"}) + "\n")
-    (DATA_DIR / "llm_batch_index.json").write_text(json.dumps(
+    (data_path("llm_batch_index.json")).write_text(json.dumps(
         {r["custom_id"]: r["_items"] for r in reqs}))
 
     print(f"items       : {est['items']}")

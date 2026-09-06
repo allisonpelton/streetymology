@@ -7,12 +7,11 @@ then run:  python scripts/score_llm_experiment.py [model ...]
 With no arguments it scores every RESULT file it finds, so several models can be
 compared side by side.
 """
-import csv, re, sys, collections
+import csv, sys, collections
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+from streetymology.config import DATA_DIR, ARTIFACTS_DIR
 
-A = DATA_DIR / "artifacts"
+A = ARTIFACTS_DIR
 
 
 def parse(path: Path):

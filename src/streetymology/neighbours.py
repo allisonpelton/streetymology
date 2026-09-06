@@ -16,7 +16,7 @@ in unrelated parts of the county.
 import json
 import math
 from collections import defaultdict
-from .config import DATA_DIR
+from .config import data_path
 from .normalize import key
 
 RADIUS_M = 200.0
@@ -37,7 +37,7 @@ class NeighbourIndex:
         self.radius = radius_m
         self.segments = defaultdict(list)      # core key -> [(lat, lon), ...]
         self.names = {}
-        els = json.loads((DATA_DIR / CENTERS_FILE).read_text())["elements"]
+        els = json.loads((data_path(CENTERS_FILE)).read_text())["elements"]
         for e in els:
             if "center" not in e or e["tags"].get("highway") in EXCLUDED_HIGHWAYS:
                 continue

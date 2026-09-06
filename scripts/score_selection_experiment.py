@@ -4,12 +4,10 @@ Positive controls: did the model pick the letter mapping to the known QID?
 Negative controls: did it answer NONE? (Disagreements may be adjudicable --
 search can surface an entity AP never saw.)
 """
-import csv, re, sys, collections
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+import csv, collections
+from streetymology.config import ARTIFACTS_DIR
 
-A = DATA_DIR / "artifacts"
+A = ARTIFACTS_DIR
 
 
 def parse(path):

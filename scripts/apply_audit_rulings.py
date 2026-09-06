@@ -5,13 +5,11 @@ the original hand pass, an audit ruling for the author, or an audit ruling for
 the model. Any figure computed from this file must disclose that it is
 LLM-assisted.
 """
-import csv, sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR, LABELS_DIR
+import csv
+from streetymology.config import LABELS_DIR, ARTIFACTS_DIR, DELIVERABLES_DIR
 
-A = DATA_DIR / "artifacts"
-D = DATA_DIR / "deliverables"
+A = ARTIFACTS_DIR
+D = DELIVERABLES_DIR
 OUT = LABELS_DIR / "labels_corrected.csv"
 
 if __name__ == "__main__":

@@ -9,10 +9,8 @@ task is one the models are known to be good at. Split into chat-sized files.
 
 The author's verdict is NEVER shown -- otherwise the audit just confirms itself.
 """
-import csv, json, random, sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR, LABELS_DIR
+import csv, json, random
+from streetymology.config import LABELS_DIR, data_path, ARTIFACTS_DIR, DELIVERABLES_DIR
 from streetymology import themes, gazetteer as g, match
 from streetymology.normalize import key
 
@@ -84,8 +82,8 @@ def main():
     m = {k: {c.domain for c in match.match(v["name"], idx,
              fallback_domains=g.FALLBACK_DOMAINS)} for k, v in assign.items()}
     tm = themes.ThemeModel(assign, m)
-    search = json.loads((DATA_DIR / "search_controls.json").read_text())
-    meta = json.loads((DATA_DIR / "meta_candidates.json").read_text())
+    search = json.loads((data_path("search_controls.json")).read_text())
+    meta = json.loads((data_path("meta_candidates.json")).read_text())
     rows = [r for r in csv.DictReader((LABELS_DIR / "labels_merged.csv").open())
             if r["verdict"] in ("y", "n", "w")]
 
@@ -110,7 +108,7 @@ def main():
     rng.shuffle(items)
 
     batches = [items[i:i + PER_FILE] for i in range(0, len(items), PER_FILE)]
-    out_dir = DATA_DIR / "deliverables"
+    out_dir = DELIVERABLES_DIR
     keyrows = []
     n = 0
     for bi, batch in enumerate(batches, 1):
@@ -140,7 +138,7 @@ def main():
         p = out_dir / f"label_audit_{bi}.md"
         p.write_text(HEADER.format(b=bi, t=len(batches), n=len(batch)) + "\n".join(body))
         print(f"  {p.name}: {len(batch)} items, {p.stat().st_size/1000:.1f} KB")
-    kp = DATA_DIR / "artifacts" / "label_audit_KEY.csv"
+    kp = ARTIFACTS_DIR / "label_audit_KEY.csv"
     with kp.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(keyrows[0].keys()))
         w.writeheader(); w.writerows(keyrows)

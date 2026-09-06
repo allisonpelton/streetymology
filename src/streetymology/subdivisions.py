@@ -13,7 +13,7 @@ import json
 from shapely.geometry import Polygon, Point
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
-from .config import DATA_DIR
+from .config import data_path
 
 WAYS_FILE = "osm_landuse_geom.json"     # ways, with inline geometry
 RELS_FILE = "osm_landuse_rel.json"      # relations + member ways/nodes
@@ -27,14 +27,14 @@ def load_polygons() -> tuple[list, list[str]]:
     """Return (geometries, names) for every named residential polygon."""
     polys, names = [], []
 
-    for e in json.loads((DATA_DIR / WAYS_FILE).read_text())["elements"]:
+    for e in json.loads((data_path(WAYS_FILE)).read_text())["elements"]:
         if e["type"] != "way" or "geometry" not in e:
             continue
         p = _ring([(c["lon"], c["lat"]) for c in e["geometry"]])
         if p is not None and p.is_valid and not p.is_empty:
             polys.append(p); names.append(e["tags"]["name"])
 
-    rel_doc = json.loads((DATA_DIR / RELS_FILE).read_text())["elements"]
+    rel_doc = json.loads((data_path(RELS_FILE)).read_text())["elements"]
     nodes = {e["id"]: (e["lon"], e["lat"]) for e in rel_doc if e["type"] == "node"}
     ways = {e["id"]: e.get("nodes", []) for e in rel_doc if e["type"] == "way"}
     for e in rel_doc:

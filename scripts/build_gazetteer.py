@@ -4,8 +4,6 @@ Serial by design: WDQS allows one client only 60s of processing time per minute.
 Rebuilds any domain whose root query has changed since it was last built.
 """
 import sys, time
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from streetymology import gazetteer as g
 
 if __name__ == "__main__":

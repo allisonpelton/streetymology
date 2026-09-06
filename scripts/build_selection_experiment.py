@@ -12,10 +12,8 @@ Controls come from AP's hand labels, so ground truth exists:
     genuinely correct entity AP never saw, so disagreements here need
     adjudication rather than automatic scoring as errors.
 """
-import csv, json, random, sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR, LABELS_DIR
+import csv, json, random
+from streetymology.config import LABELS_DIR, data_path, ARTIFACTS_DIR, DELIVERABLES_DIR
 from streetymology import themes, gazetteer as g, match
 from streetymology.normalize import key
 
@@ -47,8 +45,8 @@ def main():
     m = {k: {c.domain for c in match.match(v["name"], idx,
              fallback_domains=g.FALLBACK_DOMAINS)} for k, v in assign.items()}
     tm = themes.ThemeModel(assign, m)
-    ctrl_search = json.loads((DATA_DIR / "search_controls.json").read_text())
-    unm_search = json.loads((DATA_DIR / "search_unmatched.json").read_text())
+    ctrl_search = json.loads((data_path("search_controls.json")).read_text())
+    unm_search = json.loads((data_path("search_unmatched.json")).read_text())
     lab = [r for r in csv.DictReader((LABELS_DIR / "labels_merged.csv").open())
            if r["verdict"] in ("y", "n")]
 
@@ -133,9 +131,9 @@ Return a markdown table, one row per item, nothing else:
 ## Items ({len(items)})
 
 """
-    out = DATA_DIR / "deliverables" / "selection_experiment.md"
+    out = DELIVERABLES_DIR / "selection_experiment.md"
     out.write_text(header + "\n".join(body))
-    keyp = DATA_DIR / "artifacts" / "selection_experiment_KEY.csv"
+    keyp = ARTIFACTS_DIR / "selection_experiment_KEY.csv"
     with keyp.open("w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["n", "street", "is_control", "truth_qid", "truth_letter", "candidates"])

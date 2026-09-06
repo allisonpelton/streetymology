@@ -4,10 +4,8 @@ Deliberately does NOT include our computed signal scores. Showing them would
 anchor the labeller and make the resulting evaluation circular -- the whole
 point is to test the signals against a judgement formed independently of them.
 """
-import csv, json, random, sys, collections
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR, LABELS_DIR
+import csv, json, random, collections
+from streetymology.config import LABELS_DIR, data_path, ARTIFACTS_DIR
 from streetymology import gazetteer as g, match
 from streetymology.streets import osm_cores
 from streetymology.signals import proximity, distance_to_ada, notability
@@ -15,7 +13,7 @@ from streetymology.signals import proximity, distance_to_ada, notability
 N = 200
 SEED = 20260904
 GNIS = {"us_river", "us_lake", "us_mountain"}   # enwiki-only, per author
-ARTIFACTS = DATA_DIR / "artifacts"; ARTIFACTS.mkdir(exist_ok=True)
+ARTIFACTS = ARTIFACTS_DIR; ARTIFACTS.mkdir(exist_ok=True)
 
 
 def collect():
@@ -26,8 +24,8 @@ def collect():
     the specific item is wrong. Competing domains are listed inline so no row is
     judged blind to its alternatives.
     """
-    meta = json.loads((DATA_DIR / "meta_candidates.json").read_text())
-    coords = json.loads((DATA_DIR / "meta_coords.json").read_text())
+    meta = json.loads((data_path("meta_candidates.json")).read_text())
+    coords = json.loads((data_path("meta_coords.json")).read_text())
     cores = osm_cores()
     idx = match.build_indexes(g.available(), g.index)
     rows = []

@@ -3,21 +3,19 @@
 'q' (unsure) rows are excluded from precision maths -- they are neither correct
 nor incorrect, and folding them either way would bias the thresholds.
 """
-import csv, json, sys, collections
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR, LABELS_DIR
+import csv, json
+from streetymology.config import LABELS_DIR, data_path, ARTIFACTS_DIR
 from streetymology import signals as S
 
 import os
 LABEL_FILE = os.environ.get("STREETYMOLOGY_LABELS", "labels_corrected.csv")
 
-ARTIFACTS = DATA_DIR / "artifacts"
+ARTIFACTS = ARTIFACTS_DIR
 
 
 def load():
-    coords = json.loads((DATA_DIR / "meta_coords.json").read_text())
-    names = json.loads((DATA_DIR / "meta_nameness.json").read_text())
+    coords = json.loads((data_path("meta_coords.json")).read_text())
+    names = json.loads((data_path("meta_nameness.json")).read_text())
     rows = []
     for r in csv.DictReader((LABELS_DIR / LABEL_FILE).open()):
         v = (r["verdict"] or "").strip().lower()

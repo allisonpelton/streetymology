@@ -1,16 +1,14 @@
 """Measure gazetteer match rate over Ada County street names. Writes an artifact."""
-import json, sys, collections, datetime
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+import json, collections, datetime
+from streetymology.config import data_path, ARTIFACTS_DIR
 from streetymology import gazetteer, match
 from streetymology.normalize import key
 
-ARTIFACTS = DATA_DIR / "artifacts"; ARTIFACTS.mkdir(exist_ok=True)
+ARTIFACTS = ARTIFACTS_DIR; ARTIFACTS.mkdir(exist_ok=True)
 
 
 def osm_cores():
-    els = json.loads((DATA_DIR / "osm_named_ways.json").read_text())["elements"]
+    els = json.loads((data_path("osm_named_ways.json")).read_text())["elements"]
     cores = {}
     for e in els:
         if e["tags"].get("highway") == "trunk":

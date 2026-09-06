@@ -9,9 +9,7 @@ Usage:
   python scripts/run_llm_batch.py --fetch   <batch_id>
 """
 import argparse, json, sys, time
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR, ANTHROPIC_API_KEY
+from streetymology.config import ANTHROPIC_API_KEY, data_path
 from streetymology import llm
 
 
@@ -26,14 +24,14 @@ def client():
 
 
 def submit(model):
-    path = DATA_DIR / f"llm_batch_{model}.jsonl"
+    path = data_path(f"llm_batch_{model}.jsonl")
     if not path.exists():
         sys.exit(f"{path} missing -- run scripts/build_llm_batch.py --model {model}")
     reqs = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
     c = client()
     batch = c.messages.batches.create(requests=reqs)
     print(f"submitted {len(reqs)} requests -> batch {batch.id}")
-    (DATA_DIR / "llm_batch_last_id.txt").write_text(batch.id)
+    (data_path("llm_batch_last_id.txt")).write_text(batch.id)
     return batch.id
 
 
@@ -55,7 +53,7 @@ def fetch(batch_id):
             print(f"  {res.custom_id}: {res.result.type}"); continue
         text = "".join(b.text for b in res.result.message.content if b.type == "text")
         out[res.custom_id] = text
-    dest = DATA_DIR / f"llm_batch_results_{batch_id}.json"
+    dest = data_path(f"llm_batch_results_{batch_id}.json")
     dest.write_text(json.dumps(out, indent=2))
     print(f"wrote {dest} ({len(out)} responses)")
     return dest

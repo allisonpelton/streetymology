@@ -1,8 +1,7 @@
 """Turn raw batch responses into a verdicts CSV, mapped back to streets."""
-import argparse, csv, json, sys, collections
+import argparse, csv, json, collections
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+from streetymology.config import data_path, ARTIFACTS_DIR
 from streetymology import llm
 
 if __name__ == "__main__":
@@ -12,7 +11,7 @@ if __name__ == "__main__":
     a = ap.parse_args()
 
     raw = json.loads(Path(a.results).read_text())
-    index = json.loads((DATA_DIR / "llm_batch_index.json").read_text())
+    index = json.loads((data_path("llm_batch_index.json")).read_text())
     items = {i.n: i for i in __import__("build_llm_batch").build_items()} if False else {}
 
     verdicts, missing = {}, []
@@ -25,7 +24,7 @@ if __name__ == "__main__":
             else:
                 missing.append((custom_id, n))
 
-    out = DATA_DIR / "artifacts" / "llm_verdicts.csv"
+    out = ARTIFACTS_DIR / "llm_verdicts.csv"
     out.parent.mkdir(exist_ok=True)
     with out.open("w", newline="") as f:
         w = csv.writer(f)

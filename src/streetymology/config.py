@@ -17,5 +17,36 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 # unlike everything in DATA_DIR, which re-downloads.
 LABELS_DIR = ROOT / "data" / "labels"
 
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-LABELS_DIR.mkdir(parents=True, exist_ok=True)
+# DATA_DIR is organised into subfolders. See scripts/organize_data.py.
+RAW_DIR = DATA_DIR / "raw"                    # downloaded, re-fetchable sources
+GAZ_DIR = DATA_DIR / "gazetteers"             # Wikidata domain dumps
+DERIVED_DIR = DATA_DIR / "derived"            # computed intermediates
+ARTIFACTS_DIR = DATA_DIR / "artifacts"        # machine run output
+DELIVERABLES_DIR = DATA_DIR / "deliverables"  # human-facing documents
+BUNDLES_DIR = DATA_DIR / "bundles"            # git bundle backups
+UNUSED_DIR = DATA_DIR / "unused"              # stale; author deletes these
+
+# Filename prefix -> home. Keeps call sites from hard-coding directories.
+_HOMES = (
+    ("osm_", RAW_DIR),
+    ("assessor_", RAW_DIR),
+    ("gaz_", GAZ_DIR),
+    ("meta_", DERIVED_DIR),
+    ("search_", DERIVED_DIR),
+    ("llm_batch", DERIVED_DIR),
+    ("street_subdivisions", DERIVED_DIR),
+)
+
+
+def data_path(name):
+    """Resolve a data filename to its subfolder inside DATA_DIR."""
+    name = str(name)
+    for prefix, home in _HOMES:
+        if name.startswith(prefix):
+            return home / name
+    return DATA_DIR / name
+
+
+for _d in (DATA_DIR, RAW_DIR, GAZ_DIR, DERIVED_DIR, ARTIFACTS_DIR,
+           DELIVERABLES_DIR, BUNDLES_DIR, UNUSED_DIR, LABELS_DIR):
+    _d.mkdir(parents=True, exist_ok=True)

@@ -8,10 +8,8 @@ time per 60s per client:
 Pass 2 is the correct use of the name data we rejected as a gazetteer: asking
 "is 'Blake' a surname?" is a useful penalty; asking "which surname?" is tautology.
 """
-import json, re, sys, time
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+import json, re, time
+from streetymology.config import data_path
 from streetymology.wikidata import query
 from streetymology import gazetteer as g, match
 from streetymology.streets import osm_cores
@@ -35,7 +33,7 @@ def all_matches():
 
 
 def fetch_candidates(qids):
-    out = DATA_DIR / "meta_candidates.json"
+    out = data_path("meta_candidates.json")
     meta = json.loads(out.read_text()) if out.exists() else {}
     qids = [q for q in qids if q not in meta]
     print(f"  {len(qids)} still to fetch", flush=True)
@@ -66,7 +64,7 @@ def fetch_coords(qids):
     an identically-named one in Alabama is not. Sitelink count cannot express
     that, because locally important features are often poorly documented.
     """
-    out = DATA_DIR / "meta_coords.json"
+    out = data_path("meta_coords.json")
     coords = json.loads(out.read_text()) if out.exists() else {}
     todo = [q for q in qids if q not in coords]
     print(f"  {len(todo)} candidates still need coordinates", flush=True)
@@ -112,10 +110,10 @@ if __name__ == "__main__":
     strings = sorted({c.name for _, c in ms})
     print(f"{len(ms)} matches | {len(qids)} distinct QIDs | {len(strings)} distinct strings")
     cand = fetch_candidates(qids)
-    (DATA_DIR / "meta_candidates.json").write_text(json.dumps(cand))
+    (data_path("meta_candidates.json")).write_text(json.dumps(cand))
     co = fetch_coords(qids)
     nm = fetch_nameness(strings)
-    (DATA_DIR / "meta_nameness.json").write_text(json.dumps(nm))
+    (data_path("meta_nameness.json")).write_text(json.dumps(nm))
     located = sum(1 for v in co.values() if v)
     print(f"\nwrote meta_candidates.json ({len(cand)}), meta_coords.json "
           f"({located} located of {len(co)}), meta_nameness.json ({len(nm)})")

@@ -3,12 +3,10 @@
 Re-label rows supersede originals, including their QID: 6 rows were re-shown
 with a different (better-ranked) candidate.
 """
-import csv, sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR, LABELS_DIR
+import csv
+from streetymology.config import LABELS_DIR, ARTIFACTS_DIR
 
-ARTIFACTS = DATA_DIR / "artifacts"
+ARTIFACTS = ARTIFACTS_DIR
 FIELDS = ["street", "domain", "qid", "wikidata_label", "sitelinks",
           "km_from_ada_county", "same_name_items", "other_domains",
           "verdict", "notes", "pass"]

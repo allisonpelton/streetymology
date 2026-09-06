@@ -5,10 +5,8 @@ Rates are measured from AP's actual labelling sessions, not assumed:
   pass 2:  28 rows, ~20 min        -> ~43 s/row  (candidates supplied)
 Manual-from-scratch has no measurement, so it is bracketed rather than guessed.
 """
-import json, sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+import json
+from streetymology.config import data_path
 from streetymology import gazetteer as g, match
 from streetymology.streets import osm_cores
 
@@ -21,7 +19,7 @@ if __name__ == "__main__":
     idx = match.build_indexes(g.available(), g.index)
     cores = osm_cores()
     gaz = sum(1 for k, v in cores.items() if match.match(v, idx, fallback_domains=g.FALLBACK_DOMAINS))
-    search = json.loads((DATA_DIR / "search_unmatched.json").read_text())
+    search = json.loads((data_path("search_unmatched.json")).read_text())
     REJECT = ("family name", "given name", "surname", "wikimedia", "disambiguation")
     MEDIA = ("film", "album", "song", "band", "novel", "video game", "tv series")
     srch = sum(1 for k, v in search.items()

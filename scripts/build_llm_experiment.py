@@ -12,17 +12,15 @@ Design notes:
 - The proposed candidate IS shown, because the real pipeline is
   retrieve-then-select, not generate.
 """
-import csv, json, random, sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR, LABELS_DIR
+import csv, json, random
+from streetymology.config import LABELS_DIR, data_path, ARTIFACTS_DIR
 from streetymology import gazetteer as g, match, themes
 from streetymology.normalize import key
 
 SEED = 20260904
 N_CONTROLS = 17
 MAX_NEIGHBOURS = 25
-OUT = DATA_DIR / "artifacts" / "llm_experiment.md"
+OUT = ARTIFACTS_DIR / "llm_experiment.md"
 
 
 def strip_dir(name: str) -> str:
@@ -36,9 +34,9 @@ def main():
     idx = match.build_indexes(g.available(), g.index)
     m = {k: {c.domain for c in match.match(v["name"], idx)} for k, v in assign.items()}
     tm = themes.ThemeModel(assign, m)
-    meta = json.loads((DATA_DIR / "meta_candidates.json").read_text())
-    locs = json.loads((DATA_DIR / "meta_location.json").read_text()) if (
-        DATA_DIR / "meta_location.json").exists() else {}
+    meta = json.loads((data_path("meta_candidates.json")).read_text())
+    locs = json.loads((data_path("meta_location.json")).read_text()) if (
+        data_path("meta_location.json")).exists() else {}
 
     rows = list(csv.DictReader((LABELS_DIR / "labels_merged.csv").open()))
     unknown = [r for r in rows if r["verdict"] == "q"]
@@ -123,7 +121,7 @@ Return a markdown table, one row per item, nothing else:
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(header + "\n".join(lines))
 
-    key_path = DATA_DIR / "artifacts" / "llm_experiment_KEY.csv"
+    key_path = ARTIFACTS_DIR / "llm_experiment_KEY.csv"
     with key_path.open("w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["n", "street", "domain", "qid", "true_verdict", "is_control"])

@@ -11,17 +11,15 @@ Usage:
   python scripts/search_unmatched.py --limit 20     # sample, for timing
   python scripts/search_unmatched.py                # everything
 """
-import argparse, json, sys, time
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR, USER_AGENT
+import argparse, json, time
+from streetymology.config import USER_AGENT, data_path
 from streetymology import gazetteer as g, match
 from streetymology.streets import osm_cores
 from streetymology.normalize import normalize
 import requests
 
 API = "https://www.wikidata.org/w/api.php"
-OUT = DATA_DIR / "search_unmatched.json"
+OUT = data_path("search_unmatched.json")
 PAUSE = 0.25          # serial and polite; the API has no published hard limit
 
 

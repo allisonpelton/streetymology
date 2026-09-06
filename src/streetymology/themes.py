@@ -13,7 +13,7 @@ domain's county-wide base rate.
 import json
 import math
 from collections import defaultdict
-from .config import DATA_DIR
+from .config import data_path
 
 
 def binom_sf(k: int, n: int, p: float) -> float:
@@ -82,4 +82,4 @@ class ThemeModel:
 
 
 def load(assignments_file="street_subdivisions.json"):
-    return json.loads((DATA_DIR / assignments_file).read_text())
+    return json.loads((data_path(assignments_file)).read_text())

@@ -12,10 +12,8 @@ context, and no way to tell Wikidata near-duplicates apart. This set gives her:
 The same file goes to a model afterwards, so the comparison is like-for-like.
 Streets are drawn from those never previously labelled.
 """
-import argparse, csv, json, random, sys, time
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR, LABELS_DIR
+import argparse, csv, json, random, time
+from streetymology.config import LABELS_DIR, data_path, ARTIFACTS_DIR, DELIVERABLES_DIR
 from streetymology.wikidata import query
 from streetymology import themes, gazetteer as g, match, neighbours
 from streetymology.normalize import key
@@ -37,7 +35,7 @@ def main():
     rng = random.Random(args.seed)
 
     sfx = args.suffix
-    sheet = DATA_DIR / "deliverables" / f"equal_ground{sfx}_labels.csv"
+    sheet = DELIVERABLES_DIR / f"equal_ground{sfx}_labels.csv"
     # Completed label sheets are hand-made and unregenerable.
     if sheet.exists():
         with sheet.open(newline="") as fh:
@@ -52,11 +50,11 @@ def main():
              fallback_domains=g.FALLBACK_DOMAINS)} for k, v in assign.items()}
     tm = themes.ThemeModel(assign, m)
     ni = neighbours.NeighbourIndex()
-    search = json.loads((DATA_DIR / "search_unmatched.json").read_text())
-    meta = json.loads((DATA_DIR / "meta_candidates.json").read_text())
+    search = json.loads((data_path("search_unmatched.json")).read_text())
+    meta = json.loads((data_path("meta_candidates.json")).read_text())
     already = {key(r["street"]) for r in csv.DictReader((LABELS_DIR / "labels_corrected.csv").open())}
     # Every previously issued labelling set, or the same streets come back.
-    for prev in sorted((DATA_DIR / "deliverables").glob("equal_ground*_labels.csv")):
+    for prev in sorted((DELIVERABLES_DIR).glob("equal_ground*_labels.csv")):
         with prev.open(newline="") as fh:
             already |= {key(r["street"]) for r in csv.DictReader(fh) if r.get("street")}
     cores = osm_cores()
@@ -169,9 +167,9 @@ comparison.
 ## Items ({len(picked)})
 
 """
-    out = DATA_DIR / "deliverables" / f"equal_ground{sfx}.md"
+    out = DELIVERABLES_DIR / f"equal_ground{sfx}.md"
     out.write_text(hdr + "\n".join(body))
-    kp = DATA_DIR / "artifacts" / f"equal_ground{sfx}_KEY.csv"
+    kp = ARTIFACTS_DIR / f"equal_ground{sfx}_KEY.csv"
     with kp.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(keyrows[0].keys()))
         w.writeheader(); w.writerows(keyrows)

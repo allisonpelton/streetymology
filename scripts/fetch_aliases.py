@@ -4,15 +4,13 @@ Done as a separate pass because folding an altLabel UNION into the P171*
 taxon traversal made every query exceed the WDQS 60s deadline. Batching by QID
 is cheap and reliable. Resumable.
 """
-import json, sys, time
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+import json, time
+from streetymology.config import data_path
 from streetymology.wikidata import query
 from streetymology import gazetteer as g
 
 CHUNK = 250
-OUT = DATA_DIR / g.ALIAS_FILE
+OUT = data_path(g).ALIAS_FILE
 
 if __name__ == "__main__":
     qids = sorted({r["qid"] for d in g.available() for r in g.load(d)})

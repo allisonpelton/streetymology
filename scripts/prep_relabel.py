@@ -8,16 +8,14 @@ Three things changed since the first pass:
 Rows needing neighbouring-street context are deliberately excluded -- that
 feature does not exist yet, so re-asking would waste the author's time.
 """
-import csv, json, sys, time
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR, LABELS_DIR
+import csv, json, time
+from streetymology.config import LABELS_DIR, data_path, ARTIFACTS_DIR
 from streetymology.wikidata import query
 from streetymology import gazetteer as g, match
 from streetymology.signals import distance_to_ada, proximity, notability
 
-ARTIFACTS = DATA_DIR / "artifacts"
-LOC_CACHE = DATA_DIR / "meta_location.json"
+ARTIFACTS = ARTIFACTS_DIR
+LOC_CACHE = data_path("meta_location.json")
 
 
 def fetch_locations(qids):
@@ -47,8 +45,8 @@ def fetch_locations(qids):
 
 
 if __name__ == "__main__":
-    coords = json.loads((DATA_DIR / "meta_coords.json").read_text())
-    meta = json.loads((DATA_DIR / "meta_candidates.json").read_text())
+    coords = json.loads((data_path("meta_coords.json")).read_text())
+    meta = json.loads((data_path("meta_candidates.json")).read_text())
     idx = match.build_indexes(g.available(), g.index)
     rows = list(csv.DictReader((LABELS_DIR / "pass1_review.csv").open()))
 

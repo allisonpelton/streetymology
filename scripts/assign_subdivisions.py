@@ -1,17 +1,15 @@
 """Cache street -> subdivision assignment. Point-in-polygon first, then nearest
 within 150m for streets running along a boundary."""
-import json, sys, collections
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from streetymology.config import DATA_DIR
+import json, collections
+from streetymology.config import data_path
 from streetymology.subdivisions import SubdivisionIndex
 from streetymology.normalize import key
 
-OUT = DATA_DIR / "street_subdivisions.json"
+OUT = data_path("street_subdivisions.json")
 
 if __name__ == "__main__":
     si = SubdivisionIndex()
-    ways = [e for e in json.loads((DATA_DIR / "osm_ways_center.json").read_text())["elements"]
+    ways = [e for e in json.loads((data_path("osm_ways_center.json")).read_text())["elements"]
             if "center" in e and e["tags"].get("highway") != "trunk"]
     core_to_subs = collections.defaultdict(collections.Counter)
     names = {}
