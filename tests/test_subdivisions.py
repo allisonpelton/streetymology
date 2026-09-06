@@ -1,5 +1,4 @@
-import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
+
 from shapely.geometry import Polygon
 from streetymology.subdivisions import SubdivisionIndex
 

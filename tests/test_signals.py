@@ -1,5 +1,4 @@
-import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
+
 from streetymology.signals import commonness, notability, nameness
 
 
@@ -25,8 +24,6 @@ def test_notability_separates_stub_from_documented():
 def test_personal_names_penalised():
     assert nameness(True, False) < nameness(False, False)
     assert nameness(True, True) == 0.0
-
-
 
 
 def test_proximity_prefers_local_features():

@@ -1,5 +1,4 @@
-import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
+
 from streetymology.llm import Item, build_prompt, build_requests, parse_table, estimate_cost
 
 ITEM = Item(1, "West Indus Street", "constellation", "Q10406", "Indus",
