@@ -1,20 +1,41 @@
 """Compare human and model answers on the equal-ground labelling set.
 
-Agreement is reported for all items. Accuracy is reported only where an
+Agreement is reported for all answered items. Accuracy is reported only where an
 adjudication file supplies verdicts, since the set has no ground-truth key.
 
-Rows adjudicated NOETYM are excluded from the accuracy comparison: they turn on
-an editorial judgement about what belongs in OSM, not on evidence. Use
---exclude to exclude further rows by number.
+Three answer kinds: a letter (a candidate is right), NONE (a referent may exist
+but is not among the candidates), NOETYM (the name has no etymology worth
+publishing). NOETYM is reported as its own class rather than folded into NONE.
+
+Two accuracy figures are printed. "etymology accuracy" drops rows where either
+side said NOETYM or the verdict was NOETYM, and is the figure comparable to
+round 1. "full accuracy" keeps them and treats NOETYM as an ordinary answer.
+Use --exclude to drop further rows by number.
+
+Never writes to the labelling CSV. Adjudication lives in its own file.
 """
 import argparse, csv, collections, os, re
 
 DATA = os.environ.get("STREETYMOLOGY_DATA_DIR", "/workspace/streetymology-data")
 
+NONE, NOETYM = "NONE", "NOETYM"
+
+
+def kind(choice):
+    """Answer class of a raw choice cell."""
+    c = (choice or "").strip().upper()
+    return c if c in (NONE, NOETYM) else "letter"
+
 
 def read_human(path):
+    """Answered rows only, so a partly finished sheet scores on what is done."""
     with open(path, newline="", encoding="utf-8") as fh:
-        return {int(r["n"]): r for r in csv.DictReader(fh)}
+        rows = {}
+        for r in csv.DictReader(fh):
+            r["choice"] = (r.get("choice") or "").strip().upper()
+            if r["choice"]:
+                rows[int(r["n"])] = r
+        return rows
 
 
 def read_model(path):
@@ -24,61 +45,86 @@ def read_model(path):
             cells = [c.strip() for c in line.strip().strip("|").split("|")]
             if len(cells) < 6 or not re.fullmatch(r"\d+", cells[0]):
                 continue
-            rows[int(cells[0])] = dict(
-                zip(("n", "street", "choice", "confidence", "theme", "reasoning"), cells)
-            )
+            r = dict(zip(("n", "street", "choice", "confidence", "theme", "reasoning"), cells))
+            r["choice"] = r["choice"].strip().upper()
+            rows[int(r["n"])] = r
     return rows
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--human", default=f"{DATA}/deliverables/equal_ground_labels.csv")
-    ap.add_argument("--model", default=f"{DATA}/deliverables/equal_ground_results.md")
+    ap.add_argument("--human", default=f"{DATA}/deliverables/equal_ground_2_labels.csv")
+    ap.add_argument("--model", default=f"{DATA}/deliverables/equal_ground_2_results.md")
     ap.add_argument("--adjudication",
-                    default=f"{DATA}/deliverables/equal_ground_adjudication.csv")
+                    default=f"{DATA}/deliverables/equal_ground_2_adjudication.csv")
     ap.add_argument("--exclude", default="", help="comma-separated item numbers")
+    ap.add_argument("--per-item", action="store_true",
+                    help="list individual disagreements; withhold while labelling")
     a = ap.parse_args()
 
     H, M = read_human(a.human), read_model(a.model)
     ns = sorted(set(H) & set(M))
-    print(f"items: human {len(H)}, model {len(M)}, compared {len(ns)}\n")
+    if not ns:
+        print("no answered items in common")
+        return
+    print(f"items: human answered {len(H)}, model {len(M)}, compared {len(ns)}")
+    if len(H) < len(M):
+        print(f"  partial sheet: {len(M) - len(H)} item(s) not yet labelled\n")
+    else:
+        print()
 
     exact = [n for n in ns if H[n]["choice"] == M[n]["choice"]]
-    abst = lambda c: c.upper() == "NONE"
-    same_call = [n for n in ns if abst(H[n]["choice"]) == abst(M[n]["choice"])]
+    same_kind = [n for n in ns if kind(H[n]["choice"]) == kind(M[n]["choice"])]
+    print(f"exact choice agreement: {len(exact)}/{len(ns)} = {len(exact)/len(ns):.0%}")
+    print(f"answer-class agreement: {len(same_kind)}/{len(ns)} = {len(same_kind)/len(ns):.0%}")
 
-    print(f"exact choice agreement : {len(exact)}/{len(ns)} = {len(exact)/len(ns):.0%}")
-    print(f"abstain/commit agreement: {len(same_call)}/{len(ns)} = {len(same_call)/len(ns):.0%}")
-    print(f"human abstained : {sum(abst(H[n]['choice']) for n in ns)}/{len(ns)}")
-    print(f"model abstained : {sum(abst(M[n]['choice']) for n in ns)}/{len(ns)}")
+    print("\nanswer class mix")
+    for who, D in (("human", H), ("model", M)):
+        c = collections.Counter(kind(D[n]["choice"]) for n in ns)
+        print(f"  {who}  letter {c['letter']:3d}   NONE {c[NONE]:3d}   NOETYM {c[NOETYM]:3d}")
 
-    kinds = collections.Counter()
-    for n in ns:
-        h, m = H[n]["choice"], M[n]["choice"]
-        if h == m:
-            kinds["agree"] += 1
-        elif abst(h):
-            kinds["human NONE, model committed"] += 1
-        elif abst(m):
-            kinds["model NONE, human committed"] += 1
-        else:
-            kinds["both committed, different letter"] += 1
-    print("\ndisagreement shape")
-    for k, v in kinds.most_common():
-        print(f"  {k:34s} {v}")
+    print("\nclass confusion, human row x model column")
+    ks = ("letter", NONE, NOETYM)
+    print(f"  {'':8s}" + "".join(f"{k:>8s}" for k in ks))
+    for hk in ks:
+        row = [sum(1 for n in ns if kind(H[n]["choice"]) == hk
+                   and kind(M[n]["choice"]) == mk) for mk in ks]
+        print(f"  {hk:8s}" + "".join(f"{v:8d}" for v in row))
+
+    # The decision that reaches OSM is binary: publish a QID or do not.
+    pub = lambda c: kind(c) == "letter"
+    same_pub = [n for n in ns if pub(H[n]["choice"]) == pub(M[n]["choice"])]
+    print(f"\npublish/withhold agreement: {len(same_pub)}/{len(ns)}"
+          f" = {len(same_pub)/len(ns):.0%}")
+
+    # NOETYM as a detector, scored against the human as reference.
+    hn = {n for n in ns if kind(H[n]["choice"]) == NOETYM}
+    mn = {n for n in ns if kind(M[n]["choice"]) == NOETYM}
+    if hn or mn:
+        tp = len(hn & mn)
+        print(f"\nNOETYM detection, human as reference")
+        print(f"  human {len(hn)}, model {len(mn)}, both {tp}")
+        if mn:
+            print(f"  precision {tp}/{len(mn)} = {tp/len(mn):.0%}")
+        if hn:
+            print(f"  recall    {tp}/{len(hn)} = {tp/len(hn):.0%}")
 
     print("\nagreement by human confidence")
     for c in ("high", "medium", "low"):
-        sub = [n for n in ns if H[n]["confidence"].strip().lower() == c]
+        sub = [n for n in ns if (H[n].get("confidence") or "").strip().lower() == c]
         if sub:
             ok = sum(H[n]["choice"] == M[n]["choice"] for n in sub)
-            print(f"  {c:7s} n={len(sub):2d}  agree {ok}/{len(sub)} = {ok/len(sub):.0%}")
+            print(f"  {c:7s} n={len(sub):3d}  agree {ok}/{len(sub)} = {ok/len(sub):.0%}")
 
-    print("\ndisagreements")
-    for n in ns:
-        if H[n]["choice"] != M[n]["choice"]:
-            print(f"  {n:2d} {H[n]['street'][:34]:34s} human {H[n]['choice']:4s}"
-                  f"({H[n]['confidence'][:3]})  model {M[n]['choice']:4s}({M[n]['confidence'][:3]})")
+    disagree = [n for n in ns if H[n]["choice"] != M[n]["choice"]]
+    print(f"\ndisagreements: {len(disagree)}")
+    if a.per_item:
+        for n in disagree:
+            print(f"  {n:3d} {H[n]['street'][:34]:34s} human {H[n]['choice']:6s}"
+                  f"({(H[n].get('confidence') or '')[:3]})  "
+                  f"model {M[n]['choice']:6s}({M[n]['confidence'][:3]})")
+    else:
+        print("  (per-item detail withheld; pass --per-item once labelling is done)")
 
     if not os.path.exists(a.adjudication):
         print("\nno adjudication file; agreement only, no accuracy figure")
@@ -88,21 +134,37 @@ def main():
     with open(a.adjudication, newline="", encoding="utf-8") as fh:
         for r in csv.DictReader(fh):
             if r.get("verdict", "").strip():
-                V[int(r["n"])] = r["verdict"].strip()
+                V[int(r["n"])] = r["verdict"].strip().upper()
 
     manual = {int(x) for x in a.exclude.split(",") if x.strip()}
-    noetym = {n for n, v in V.items() if v.upper() == "NOETYM"} | manual
-    scored = [n for n in ns if n not in noetym and (n not in V or V[n])]
 
     def truth(n):
-        return V.get(n, H[n]["choice"] if H[n]["choice"] == M[n]["choice"] else None)
+        """Adjudicated verdict, else the agreed answer, else unknown."""
+        if n in V:
+            return V[n]
+        return H[n]["choice"] if H[n]["choice"] == M[n]["choice"] else None
 
-    hs = sum(truth(n) == H[n]["choice"] for n in scored if truth(n))
-    ms = sum(truth(n) == M[n]["choice"] for n in scored if truth(n))
-    tot = sum(1 for n in scored if truth(n))
-    print(f"\naccuracy, {len(noetym)} row(s) excluded")
-    print(f"  human {hs}/{tot} = {hs/tot:.0%}")
-    print(f"  model {ms}/{tot} = {ms/tot:.0%}")
+    def report(label, pool):
+        rows = [n for n in pool if truth(n)]
+        if not rows:
+            print(f"\n{label}: no scorable rows")
+            return
+        hs = sum(truth(n) == H[n]["choice"] for n in rows)
+        ms = sum(truth(n) == M[n]["choice"] for n in rows)
+        print(f"\n{label}, n={len(rows)}")
+        print(f"  human {hs}/{len(rows)} = {hs/len(rows):.0%}")
+        print(f"  model {ms}/{len(rows)} = {ms/len(rows):.0%}")
+
+    scorable = [n for n in ns if n not in manual]
+    # Either side saying NOETYM makes the row an editorial call, not an evidence call.
+    noetym_rows = {n for n in scorable
+                   if NOETYM in (kind(H[n]["choice"]), kind(M[n]["choice"]))
+                   or V.get(n) == NOETYM}
+    report("full accuracy, NOETYM kept as an answer", scorable)
+    report("etymology accuracy, NOETYM rows dropped",
+           [n for n in scorable if n not in noetym_rows])
+    print(f"\n  {len(noetym_rows)} NOETYM row(s) dropped from the second figure"
+          f"{f', {len(manual)} excluded manually' if manual else ''}")
 
 
 if __name__ == "__main__":
