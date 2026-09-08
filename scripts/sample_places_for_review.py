@@ -11,8 +11,12 @@ columns; nothing else in the tree reads the result, so a verdict costs only the
 judging.
 
 Two columns because the rule answers two questions. `verdict` judges the choice
-of plat; `theme_ok` judges whether that plat could help identify an etymology at
-all, which is the only test of the era weight.
+of plat; `theme_ok` says only whether a theme from that plat would be PLAUSIBLE
+-- it is the era weight in a form a person can judge, and carries no claim that
+the theme would actually help.
+
+Streets print as core names. The directional and post-type are noise to read
+past, twenty times over.
 """
 import argparse, csv, json, random
 
@@ -54,7 +58,8 @@ def main():
                 f"{p['name']} ({str(p['recorded'])[:4]}, {p['inside_m']}m"
                 f"{'/' + str(p['run_m']) + 'm run' if p['run_m'] != p['inside_m'] else ''})"
                 for p in v["plats"][:6])
-            w.writerow([i, v["name"], v["plats"][0]["street_m"],
+            w.writerow([i, v.get("display") or v["name"],
+                        v["plats"][0]["street_m"],
                         v["platted_share"],
                         v["naming_plat"] or "(abstains)",
                         str(v["naming_recorded"])[:4] if v["naming_recorded"] else "",
