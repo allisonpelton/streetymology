@@ -11,6 +11,8 @@ answers are shown, attributed.
 """
 import argparse, csv, os, re
 
+from streetymology import rounds, taxonomy
+
 DATA = os.environ.get("STREETYMOLOGY_DATA_DIR", "/workspace/streetymology-data")
 
 
@@ -59,15 +61,24 @@ def dedupe(cands, key):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--items", default=f"{DATA}/deliverables/equal_ground.md")
-    ap.add_argument("--human", default=f"{DATA}/deliverables/equal_ground_labels.csv")
-    ap.add_argument("--model", default=f"{DATA}/deliverables/equal_ground_results.md")
-    ap.add_argument("--key", default=f"{DATA}/artifacts/equal_ground_KEY.csv")
-    ap.add_argument("--out-md", default=f"{DATA}/deliverables/equal_ground_adjudication.md")
-    ap.add_argument("--out-csv", default=f"{DATA}/deliverables/equal_ground_adjudication.csv")
+    rounds.add_argument(ap)
+    ap.add_argument("--items")
+    ap.add_argument("--human")
+    ap.add_argument("--model")
+    ap.add_argument("--key")
+    ap.add_argument("--out-md")
+    ap.add_argument("--out-csv")
     ap.add_argument("--force", action="store_true",
                     help="overwrite an answer sheet that already has verdicts")
     a = ap.parse_args()
+    R = rounds.Round(a.round)
+    a.items = a.items or R.items
+    a.human = a.human or R.labels
+    a.model = a.model or R.results
+    a.key = a.key or R.key
+    a.out_md = a.out_md or R.adjudication_md
+    a.out_csv = a.out_csv or R.adjudication_csv
+    print(f"round {R.n}: {R.deliverables}")
 
     # Refuse to clobber completed hand adjudication. It cannot be regenerated.
     if os.path.exists(a.out_csv) and not a.force:
@@ -85,18 +96,15 @@ def main():
 
     disputed = [n for n in sorted(set(H) & set(M)) if H[n]["choice"] != M[n]["choice"]]
 
-    body = ["""# Equal-ground adjudication
+    body = [f"""# Equal-ground adjudication, round {R.n}
 
 Items where the two answers differed. Rule on the evidence: pick the letter you
 believe is the referent, or one of the abstentions.
 
-- **NONE** — a referent may exist, but no candidate below is it.
-- **NOETYM** — no etymology worth publishing: invented, purely descriptive, or a
-  bare surname or given name that is technically correct and editorially
-  useless. These rows are excluded from the comparison.
+{taxonomy.guide()}
 
 You may pick an option neither side chose. Record answers in
-`equal_ground_adjudication.csv`.
+`{os.path.basename(a.out_csv)}`.
 """]
 
     for n in disputed:
@@ -109,8 +117,7 @@ You may pick an option neither side chose. Record answers in
         body.append("- **Candidates:**")
         for letter, text in cands:
             body.append(f"    - **{letter}.** {text}")
-        body.append("    - **NONE.** A referent may exist, but no candidate above is it.")
-        body.append("    - **NOETYM.** No etymology worth publishing.")
+        body.extend(taxonomy.options_block())
         if dropped:
             body.append(f"\n  _({dropped} duplicate candidate(s) removed — same "
                         f"Wikidata item under another letter.)_")

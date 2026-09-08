@@ -13,16 +13,18 @@ The same file goes to a model afterwards, so the comparison is like-for-like.
 Streets are drawn from those never previously labelled.
 """
 import argparse, csv, json, random, time
-from streetymology.config import LABELS_DIR, data_path, ARTIFACTS_DIR, DELIVERABLES_DIR
+from streetymology.config import LABELS_DIR, data_path
+from streetymology import rounds
 from streetymology.wikidata import query
 from streetymology import themes, gazetteer as g, match, neighbours
+from streetymology.candidates import publishable
+from streetymology import taxonomy
 from streetymology.normalize import key
 from streetymology.streets import osm_cores
 
 SEED = 20260907
 N = 40
 MAX_CAND = 5
-REJECT = ("wikimedia", "disambiguation")
 LETTERS = "ABCDE"
 
 
@@ -30,19 +32,21 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-n", type=int, default=N, help="number of streets")
     ap.add_argument("--seed", type=int, default=SEED)
-    ap.add_argument("--suffix", default="", help="e.g. _2 -> equal_ground_2.md")
+    rounds.add_argument(ap, default=None)
     args = ap.parse_args()
     rng = random.Random(args.seed)
 
-    sfx = args.suffix
-    sheet = DELIVERABLES_DIR / f"equal_ground{sfx}_labels.csv"
+    if args.round is None:
+        raise SystemExit("--round is required: name the round you are building.")
+    R = rounds.Round(args.round)
+    sheet = R.labels
     # Completed label sheets are hand-made and unregenerable.
     if sheet.exists():
         with sheet.open(newline="") as fh:
             filled = [r for r in csv.DictReader(fh) if r.get("choice", "").strip()]
         if filled:
             raise SystemExit(f"{sheet} already holds {len(filled)} answers. "
-                             f"Use --suffix to write a new round.")
+                             f"Pass a new --round to write another round.")
 
     assign = themes.load()
     idx = match.build_indexes(g.available(), g.index)
@@ -54,7 +58,7 @@ def main():
     meta = json.loads((data_path("meta_candidates.json")).read_text())
     already = {key(r["street"]) for r in csv.DictReader((LABELS_DIR / "labels_corrected.csv").open())}
     # Every previously issued labelling set, or the same streets come back.
-    for prev in sorted((DELIVERABLES_DIR).glob("equal_ground*_labels.csv")):
+    for prev in rounds.all_label_sheets():
         with prev.open(newline="") as fh:
             already |= {key(r["street"]) for r in csv.DictReader(fh) if r.get("street")}
     cores = osm_cores()
@@ -65,11 +69,13 @@ def main():
             continue
         cands = []
         for c in match.match(orig, idx, fallback_domains=g.FALLBACK_DOMAINS):
-            cands.append({"qid": c.qid, "label": c.name,
-                          "description": meta.get(c.qid, {}).get("description", "")})
+            d = meta.get(c.qid, {}).get("description", "")
+            # Gazetteer matches used to bypass this filter entirely.
+            if not publishable(d):
+                continue
+            cands.append({"qid": c.qid, "label": c.name, "description": d})
         for h in search.get(k, []):
-            d = (h.get("description") or "").lower()
-            if not d or any(r in d for r in REJECT):
+            if not publishable(h.get("description")):
                 continue
             if h["qid"] not in {x["qid"] for x in cands}:
                 cands.append(h)
@@ -111,11 +117,7 @@ def main():
             al = f"  _also known as: {', '.join(sorted(set(al))[:4])}_" if al else ""
             lines.append(f"    - **{L}.** {c['label']} — "
                          f"{c.get('description') or '(no description)'}{al}")
-        lines.append("    - **NONE.** A referent may exist, but no candidate "
-                     "above is it.")
-        lines.append("    - **NOETYM.** The name has no etymology worth "
-                     "publishing: invented, purely descriptive, or a bare "
-                     "surname or given name used as filler.")
+        lines.extend(taxonomy.options_block())
         if dupe:
             lines.append("    _(note: two candidates share a description; the "
                          "aliases are the only way to tell them apart)_")
@@ -130,21 +132,7 @@ descriptions, and aliases. Streets never labelled before.
 
 ## Background
 
-Most American suburban street names have **no etymology at all** — a developer
-picked a word because it sounded pleasant. Wikidata contains something for almost
-any string. A candidate existing is not evidence the street refers to it.
-**NONE and NOETYM are expected to be common answers.**
-
-Two different abstentions, and the difference matters:
-
-- **NONE** — a real referent may well exist, but it is not among the candidates.
-- **NOETYM** — the name has no etymology worth publishing at all. Invented,
-  purely descriptive ("Westview"), or a bare surname or given name that only
-  matches because Wikidata has an item for the surname. Choosing the surname
-  item would be technically correct and editorially useless.
-
-NOETYM rows are excluded from the human/model comparison, because they turn on
-an editorial judgement about what belongs in OSM rather than on evidence.
+{taxonomy.guide()}
 
 Subdivisions are usually themed. Nearby streets are the strongest evidence.
 Themes can be mixed, and many subdivisions have no theme at all.
@@ -167,9 +155,9 @@ comparison.
 ## Items ({len(picked)})
 
 """
-    out = DELIVERABLES_DIR / f"equal_ground{sfx}.md"
+    out = R.items
     out.write_text(hdr + "\n".join(body))
-    kp = ARTIFACTS_DIR / f"equal_ground{sfx}_KEY.csv"
+    kp = R.key
     with kp.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(keyrows[0].keys()))
         w.writeheader(); w.writerows(keyrows)

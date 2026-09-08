@@ -16,6 +16,8 @@ Never writes to the labelling CSV. Adjudication lives in its own file.
 """
 import argparse, csv, collections, os, re
 
+from streetymology import rounds
+
 DATA = os.environ.get("STREETYMOLOGY_DATA_DIR", "/workspace/streetymology-data")
 
 NONE, NOETYM = "NONE", "NOETYM"
@@ -53,14 +55,19 @@ def read_model(path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--human", default=f"{DATA}/deliverables/equal_ground_2_labels.csv")
-    ap.add_argument("--model", default=f"{DATA}/deliverables/equal_ground_2_results.md")
-    ap.add_argument("--adjudication",
-                    default=f"{DATA}/deliverables/equal_ground_2_adjudication.csv")
+    rounds.add_argument(ap)
+    ap.add_argument("--human", help="override the round's label sheet")
+    ap.add_argument("--model", help="override the round's model answers")
+    ap.add_argument("--adjudication", help="override the round's adjudication sheet")
     ap.add_argument("--exclude", default="", help="comma-separated item numbers")
     ap.add_argument("--per-item", action="store_true",
                     help="list individual disagreements; withhold while labelling")
     a = ap.parse_args()
+    R = rounds.Round(a.round)
+    a.human = a.human or R.labels
+    a.model = a.model or R.results
+    a.adjudication = a.adjudication or R.adjudication_csv
+    print(f"round {R.n}: {R.deliverables}")
 
     H, M = read_human(a.human), read_model(a.model)
     ns = sorted(set(H) & set(M))
@@ -165,6 +172,22 @@ def main():
            [n for n in scorable if n not in noetym_rows])
     print(f"\n  {len(noetym_rows)} NOETYM row(s) dropped from the second figure"
           f"{f', {len(manual)} excluded manually' if manual else ''}")
+
+    # The figures above credit both sides for every undisputed row, so they
+    # share a floor of len(agreed) correct answers and compress the gap. Only
+    # the adjudicated rows carry information about who was right.
+    disputed = [n for n in scorable if H[n]["choice"] != M[n]["choice"]]
+    report("adjudicated disagreements only", [n for n in disputed if n in V])
+
+    unruled = [n for n in disputed if n not in V]
+    if unruled:
+        print(f"\n{len(unruled)} disagreement(s) left unruled, excluded above")
+        pattern = collections.Counter(
+            f"human {kind(H[n]['choice'])} vs model {kind(M[n]['choice'])}"
+            for n in unruled)
+        for k, v in pattern.most_common():
+            print(f"  {v:3d}  {k}")
+        print(f"  items: {', '.join(str(n) for n in unruled)}")
 
 
 if __name__ == "__main__":
