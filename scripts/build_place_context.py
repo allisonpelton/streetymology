@@ -39,44 +39,45 @@ NEAR_M = 200.0
 # 1900s acreage filing that was re-platted decades later. Above this share the
 # earliest plat is taken as the naming act; below it, nothing old enough
 # materially contains the street and the largest share wins.
-# The naming plat is the OLDEST plat holding at least RUN_MIN_M of UNBROKEN
-# street. Three earlier attempts failed for reasons worth keeping:
-#   - share of the whole street: a street can cross three plats and be named by
-#     the one holding a third of it;
-#   - share of a WAY: OSM way splits are arbitrary, so this measured mapping
-#     accidents, and a 0.9 threshold demanded a whole way inside one plat;
-#   - earliest date alone: pre-1950 acreage plats own the dirt, not the name.
-# Metres of unbroken run survive all three problems. A plat that laid out a
-# street contains a long continuous piece of it; a plat that merely clips a
-# corner holds a few metres.
-RUN_MIN_M = 60.0
-# ... and at least this fraction of the LONGEST run any plat holds. An absolute
-# floor alone let an old plat clipping one block outvote the plat that built the
-# street: Avimor Drive went to Mcafee (2007, 93 m) over Avimor (2008, 831 m).
-# Age only decides between plats that both plausibly laid the street out.
-RUN_RATIO = 0.5
-# A street can leave a plat and come straight back: the boundary detours around
-# a park parcel or a phase line. Pieces whose ends are this close count as one
-# run, so a re-entry does not halve the evidence.
+# --- how likely is each plat to be the one that named the street ------------
+#
+# Every hard threshold tried here failed on some real street, so plats are
+# SCORED and the score is kept in the output. Three signals, each catching a
+# failure the others missed:
+#
+#   cover      metres of street inside the plat over the street's length.
+#   continuity longest unbroken run over the metres inside. Pieces whose ends
+#              are within BRIDGE_M count as one run: 40% of naming plats are
+#              entered more than once, because boundaries detour round parks.
+#   dominance  metres inside over the street's PLATTED metres. This is what a
+#              grid street fails -- Boise's numbered streets are 0.97 platted,
+#              but no single addition owns them.
+#
+# Age is a preference, not a signal: among plats scoring close to the best, the
+# oldest is taken. It cannot override a much better-scoring plat, because
+# pre-1950 acreage filings own the dirt and not the name.
 BRIDGE_M = 60.0
-# ... and the plat must hold at least this much of the whole street. Measured by
-# length band: streets under 300 m sit almost wholly inside their plat (median
-# share 1.00, 0.1% below this floor), while streets over 3 km do not (median
-# 0.17, 71.7% below it). Those long ones are section-line and rural roads that
-# predate the plats along them -- Eisenman, Homer, Horseshoe Bend -- and a plat
-# holding 110 m of a 4.6 km road did not name it.
-SHARE_MIN = 0.25
-# A street can cross many plats without any of them having laid it out: Boise's
-# numbered grid streets run through additions filed piecemeal over decades, each
-# holding a slice. Union coverage does not catch this -- numbered streets are
-# 0.97 platted at the median, like everything else -- so the test is that no
-# single plat OWNS the platted length. Named 29th Street after Cruzen's 1906
-# addition before this existed.
-CROSSING_PLATS = 5
-DOMINANCE_MIN = 0.6
-# Plats older than this predate themed developer naming. AP: expect trees,
-# presidents and family names, and fall back to the name itself and neighbours.
+AGE_BAND = 0.8      # a plat scoring this fraction of the best counts as equal
+MIN_SCORE = 0.15    # below this, no plat plausibly laid the street out
+
+# Plats older than this predate themed developer naming: expect trees,
+# presidents, surnames. AP adds two cautions about plat NAMES generally, which
+# is why the name is membership evidence and not theme evidence:
+#   - the recorded name is often a bare given name or surname while the
+#     subdivision's sign carries the name people actually use;
+#   - name-only plats are common before 1950 and, today, mostly divide farmland
+#     where there are no streets and nothing to derive.
 THEMELESS_BEFORE = 1950
+
+
+def plat_score(inside_m, run_m, street_m, covered_m):
+    """0-1 likelihood that this plat laid the street out."""
+    if street_m <= 0 or inside_m <= 0:
+        return 0.0
+    cover = min(1.0, inside_m / street_m)
+    continuity = min(1.0, run_m / inside_m)
+    dominance = min(1.0, inside_m / covered_m) if covered_m else 0.0
+    return cover * (0.5 + 0.5 * continuity) * (0.5 + 0.5 * dominance)
 
 
 def main():
@@ -84,32 +85,19 @@ def main():
     ap.add_argument("--near", type=float, default=NEAR_M)
     ap.add_argument("--out", default=OUT)
     ap.add_argument("--dump", help="print the context of one street and stop")
-    ap.add_argument("--dominance-min", type=float, default=None,
-                    help="share of the PLATTED length the naming plat must hold "
-                         "when the street crosses many plats")
-    ap.add_argument("--share-min", type=float, default=None,
-                    help="fraction of the whole street the naming plat must hold")
+    ap.add_argument("--min-score", type=float, default=None,
+                    help="score below which no plat is named")
     ap.add_argument("--bridge", type=float, default=None,
                     help="metres of excursion tolerated before a street leaving "
                          "and re-entering a plat counts as two runs")
-    ap.add_argument("--run-ratio", type=float, default=None,
-                    help="fraction of the longest run a plat must also hold")
-    ap.add_argument("--run-min", type=float, default=None,
-                    help="metres of unbroken street a plat must hold to count "
-                         "as having laid the street out")
+
     a = ap.parse_args()
 
-    global RUN_MIN_M, RUN_RATIO, BRIDGE_M, SHARE_MIN, DOMINANCE_MIN
-    if a.dominance_min is not None:
-        DOMINANCE_MIN = a.dominance_min
-    if a.share_min is not None:
-        SHARE_MIN = a.share_min
+    global BRIDGE_M, MIN_SCORE
     if a.bridge is not None:
         BRIDGE_M = a.bridge
-    if a.run_min is not None:
-        RUN_MIN_M = a.run_min
-    if a.run_ratio is not None:
-        RUN_RATIO = a.run_ratio
+    if a.min_score is not None:
+        MIN_SCORE = a.min_score
 
     doc = json.loads((data_path(WAYS)).read_text())
     by_core = collections.defaultdict(list)
@@ -162,11 +150,18 @@ def main():
             if rec and (not cur["recorded"] or rec < cur["recorded"]):
                 cur["recorded"] = rec
                 cur["name"] = pretty(plat.name)
-        place_plats[p.id] = sorted(
-            ({**v, "inside_m": round(v["inside_m"]), "run_m": round(v["run_m"]),
-              "share": round(v["inside_m"] / street_m, 3),
-              "street_m": round(street_m)} for v in acc.values()),
-            key=lambda v: -v["run_m"])
+        scored = []
+        for v in acc.values():
+            scored.append({**v, "inside_m": round(v["inside_m"]),
+                           "run_m": round(v["run_m"]),
+                           "share": round(v["inside_m"] / street_m, 3),
+                           "street_m": round(street_m),
+                           "score": round(plat_score(v["inside_m"], v["run_m"],
+                                                     street_m, covered_m), 3)})
+        tot_score = sum(x["score"] for x in scored) or 1.0
+        for x in scored:
+            x["confidence"] = round(x["score"] / tot_score, 3)
+        place_plats[p.id] = sorted(scored, key=lambda v: -v["score"])
 
     # --- membership of a plat, by base name -------------------------------
     members = collections.defaultdict(set)
@@ -203,35 +198,11 @@ def main():
     out = {}
     for p in allp:
         pls = place_plats[p.id]
-        # Three independent tests, each earning its place from a failure:
-        #   run     -- a plat that laid a street out holds an unbroken piece of
-        #              it. Capped for short streets: a 54 m cul-de-sac cannot
-        #              hold 60 m of anything (Copenhagen Lane abstained).
-        #   inside  -- and holds most of what any plat holds. Compared on TOTAL
-        #              metres, not on the bridged run: bridging joined Mcafee's
-        #              fragments into a 505 m run that beat Avimor's 831 m.
-        #   share   -- and holds a real fraction of the street, which is what
-        #              rules out rural roads no plat named.
-        best_inside = max((x["inside_m"] for x in pls), default=0.0)
-        street_m = pls[0]["street_m"] if pls else 0.0
-        need_run = min(RUN_MIN_M, 0.8 * street_m)
-        laid_out = [x for x in pls if x["run_m"] >= need_run
-                    and x["inside_m"] >= RUN_RATIO * best_inside
-                    and x["share"] >= SHARE_MIN]
-        # Date first, then the longer run: two plats recorded the same year are
-        # not ordered by date at all, and Inspirado Drive went to Starpointe
-        # (443 m) over Inspirado (602 m) on that coin flip.
-        # No fallback to "whatever plat is nearest". A street that merely grazes
-        # a boundary -- run 0 m, inside 0 m -- was not laid out by that plat, and
-        # naming it anyway invents an etymology. Abstain instead: the plats stay
-        # in the record as weak context, but nothing is asserted.
-        naming = (min(laid_out, key=lambda x: (x["recorded"] or "9999", -x["run_m"]))
-                  if laid_out else None)
-        if naming and len(pls) >= CROSSING_PLATS:
-            covered = (platted_share.get(p.id) or 0) * street_m
-            dominance = naming["inside_m"] / covered if covered > 0 else 0.0
-            if dominance < DOMINANCE_MIN:
-                naming = None
+        best = pls[0]["score"] if pls else 0.0
+        contenders = [x for x in pls if x["score"] >= AGE_BAND * best]
+        naming = (min(contenders, key=lambda x: (x["recorded"] or "9999", -x["score"]))
+                  if best >= MIN_SCORE else None)
+
         # Two tiers. A place whose naming plat is the same was named by the same
         # act; a place that merely shares a plat may have been named by an
         # earlier or later one. Both are evidence, not equally.
@@ -248,11 +219,13 @@ def main():
             "naming_plat": naming["name"] if naming else None,
             "naming_recorded": naming["recorded"] if naming else None,
             "naming_share": naming["share"] if naming else None,
-            # False means no plat holds RUN_MIN_M of unbroken street: the whole
-            # street is short or is cut up, and the longest run was taken.
-            "platted_share": platted_share.get(p.id),
             "naming_run_m": naming["run_m"] if naming else None,
-            "naming_laid_out": bool(naming and naming["run_m"] >= RUN_MIN_M),
+            "naming_score": naming["score"] if naming else None,
+            "naming_confidence": naming["confidence"] if naming else None,
+            # How far clear the winner is. Small means the choice is contested.
+            "margin": (round(pls[0]["score"] - pls[1]["score"], 3)
+                       if len(pls) > 1 else None),
+            "platted_share": platted_share.get(p.id),
             "naming_themeless_era": bool(
                 naming and naming["recorded"]
                 and int(naming["recorded"][:4]) < THEMELESS_BEFORE),
@@ -269,9 +242,10 @@ def main():
         v = out[pid]
         print(f"\n=== {v['name']}  [{pid}]  analysed={v['analysed']}")
         for pl in v["plats"]:
-            print(f"  plat {pl['name']:30s} {pl['recorded'][:4] if pl['recorded'] else '????'}"
-                  f"  run {pl['run_m']:5.0f} m  inside {pl['inside_m']:5.0f} m"
-                  f"  of {pl['street_m']:5.0f} m")
+            print(f"  plat {pl['name'][:26]:26s} {pl['recorded'][:4] if pl['recorded'] else '????'}"
+                  f"  score {pl['score']:.2f} conf {pl['confidence']:.2f}"
+                  f"  run {pl['run_m']:5.0f} inside {pl['inside_m']:5.0f}"
+                  f" of {pl['street_m']:5.0f} m")
         for bucket in ("peers", "same_plat", "attached", "near_unplatted"):
             print(f"  {bucket} ({len(v[bucket])}):")
             for q in v[bucket][:25]:
@@ -303,9 +277,14 @@ def main():
           f"  ({sum(1 for t in tot if t > 22)/len(an):.1%})")
     print(f"  no context at all    {sum(1 for t in tot if t == 0)}"
           f"  ({sum(1 for t in tot if t == 0)/len(an):.1%})")
-    laid = sum(1 for v in an if v.get("naming_laid_out"))
-    print(f"  naming plat holds >={RUN_MIN_M:.0f} m of unbroken street: {laid}"
-          f"  ({laid/len(an):.1%})")
+    sc = sorted(v["naming_score"] for v in an if v["naming_score"] is not None)
+    if sc:
+        print(f"  naming plat score: median {sc[len(sc)//2]:.2f}, "
+              f"p10 {sc[len(sc)//10]:.2f}")
+    close = [v for v in an if v.get("margin") is not None and v["margin"] < 0.05
+             and v["naming_plat"]]
+    print(f"  contested, top two within 0.05: {len(close)}"
+          f"  ({len(close)/len(an):.1%})")
     abstain = [v for v in an if v["plats"] and not v["naming_plat"]]
     print(f"  plats cover it but none laid it out: {len(abstain)}"
           f"  ({len(abstain)/len(an):.1%})  <- no naming plat asserted")

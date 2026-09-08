@@ -31,6 +31,10 @@ def main():
                          "roads no plat laid out")
     ap.add_argument("--max-share", type=float, default=0.25,
                     help="with --weak, the share below which a choice is weak")
+    ap.add_argument("--contested", action="store_true",
+                    help="places where two plats score almost the same")
+    ap.add_argument("--max-margin", type=float, default=0.05,
+                    help="with --contested, the score gap that counts as close")
     ap.add_argument("--numbered", action="store_true",
                     help="numbered streets: they belong to original townsites, "
                          "so any other naming plat is a red flag")
@@ -56,6 +60,23 @@ def main():
                 print(f"    {mark} {pl['name'][:28]:28s} {str(pl['recorded'])[:4]}"
                       f"  run {pl['run_m']:5.0f}  inside {pl['inside_m']:5.0f}"
                       f"  pieces {pl['pieces']}")
+        return
+
+    if a.contested:
+        rows = [v for v in ctx.values()
+                if v["analysed"] and v["naming_plat"]
+                and v.get("margin") is not None and v["margin"] <= a.max_margin]
+        rows.sort(key=lambda v: (v["margin"], -(v["naming_score"] or 0)))
+        print(f"{len(rows)} place(s) where the top two plats are within "
+              f"{a.max_margin} of each other\n")
+        for v in rows[:a.limit]:
+            print(f"  {v['name'][:30]:30s} street {v['plats'][0]['street_m']:5.0f} m"
+                  f"  in {len(v['plats'])} plats  margin {v['margin']:.3f}")
+            for pl in v["plats"][:4]:
+                mark = "->" if pl["name"] == v["naming_plat"] else "  "
+                print(f"    {mark} {pl['name'][:26]:26s} {str(pl['recorded'])[:4]}"
+                      f"  score {pl['score']:.2f} conf {pl['confidence']:.2f}"
+                      f"  inside {pl['inside_m']:5.0f}  run {pl['run_m']:5.0f}")
         return
 
     if a.numbered:
