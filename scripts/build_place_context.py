@@ -70,6 +70,33 @@ MIN_SCORE = 0.15    # below this, no plat plausibly laid the street out
 THEMELESS_BEFORE = 1950
 
 
+# Age used as a WEIGHT rather than a cutoff. AP's rule: a plat recorded before
+# about 1950 is never a source of theme -- the exceptions, trees and presidents,
+# are self-evident from the street name and need no subdivision. Such a plat is
+# still wanted for membership, which is why this weight scales the theme
+# confidence and never the geometric score or the choice of plat.
+#
+# It also does the work six geometric hypotheses could not: Boise's grid streets
+# are covered by 1900s additions, so their theme confidence collapses, while
+# Retort Avenue's 2007 plat keeps its own. Graded, so a 1946 plat is damped
+# rather than discarded -- Chester's The Glenn is a correct answer.
+THEME_ERA_FLOOR = 0.15      # weight given to the oldest plats
+THEME_ERA_START = 1915      # at or below this year, the floor
+THEME_ERA_FULL = 1965       # at or above this year, full weight
+
+
+def era_weight(year):
+    """0.15-1.0 by recording year. See the note above; not a cutoff."""
+    if not year:
+        return THEME_ERA_FLOOR
+    if year >= THEME_ERA_FULL:
+        return 1.0
+    if year <= THEME_ERA_START:
+        return THEME_ERA_FLOOR
+    f = (year - THEME_ERA_START) / (THEME_ERA_FULL - THEME_ERA_START)
+    return round(THEME_ERA_FLOOR + f * (1.0 - THEME_ERA_FLOOR), 3)
+
+
 def plat_score(inside_m, run_m, street_m, covered_m):
     """0-1 likelihood that this plat laid the street out."""
     if street_m <= 0 or inside_m <= 0:
@@ -161,6 +188,11 @@ def main():
         tot_score = sum(x["score"] for x in scored) or 1.0
         for x in scored:
             x["confidence"] = round(x["score"] / tot_score, 3)
+            x["era_weight"] = era_weight(int(x["recorded"][:4])
+                                         if x["recorded"] else None)
+            # How much this plat should be allowed to suggest a THEME, as
+            # opposed to membership: geometric confidence damped by age.
+            x["theme_confidence"] = round(x["confidence"] * x["era_weight"], 3)
         place_plats[p.id] = sorted(scored, key=lambda v: -v["score"])
 
     # --- membership of a plat, by base name -------------------------------
@@ -222,6 +254,8 @@ def main():
             "naming_run_m": naming["run_m"] if naming else None,
             "naming_score": naming["score"] if naming else None,
             "naming_confidence": naming["confidence"] if naming else None,
+            "naming_theme_confidence": (naming["theme_confidence"]
+                                        if naming else None),
             # How far clear the winner is. Small means the choice is contested.
             "margin": (round(pls[0]["score"] - pls[1]["score"], 3)
                        if len(pls) > 1 else None),
@@ -281,6 +315,11 @@ def main():
     if sc:
         print(f"  naming plat score: median {sc[len(sc)//2]:.2f}, "
               f"p10 {sc[len(sc)//10]:.2f}")
+    tc = sorted(v["naming_theme_confidence"] for v in an
+                if v.get("naming_theme_confidence") is not None)
+    if tc:
+        print(f"  theme confidence: median {tc[len(tc)//2]:.2f}, "
+              f"under 0.25: {sum(1 for x in tc if x < 0.25)/len(tc):.1%}")
     close = [v for v in an if v.get("margin") is not None and v["margin"] < 0.05
              and v["naming_plat"]]
     print(f"  contested, top two within 0.05: {len(close)}"

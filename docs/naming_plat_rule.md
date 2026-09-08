@@ -110,22 +110,44 @@ hypotheses were tested against the data and none separates them:
 | hypothesis | result |
 |---|---|
 | the naming plat owns land on **both sides** of the street | rejected. Cruzen holds 29% of 29th Street's left offset and 30% of its right; Quail Ridge, correct, sits at 0.28/0.39 |
-| a developer's street **terminates** inside its plat, a grid street passes through | rejected as a decider. Reads 29th, 10th, 11th correctly, but The Glenn scores 0.00 on Chester and is right, and Mcafee scores 0.93 against Avimor's 0.07, inverted. Both failures come from a place merging several roads. Worth retrying per-alignment |
+| a developer's street **terminates** inside its plat, a grid street passes through | rejected, including on a fair per-alignment test. The correct plat frequently holds a street's MIDDLE while later, smaller plats hold its ends, so terminating inside a plat is weak evidence *against*: The Glenn 0/2 on Chester and Avimor No 09 0/2, both correct, against Mcafee 2/2, wrong |
 | plat boundaries meet a street they laid out **at junctions**, and cut a pre-existing street mid-block | rejected. Nearly every plat scores 100%, including Cruzen on 29th. Ada County plat boundaries follow rights-of-way |
 | a **fully platted** street was created by plats | rejected, twice over. It does not discriminate — 83.6% of streets are within 10 m of fully platted — and AP's objection stands independently: a street dipping out of its plat where it meets an arterial must behave like one that does not |
 | **junction density**: a grid street crosses many others | rejected. Numbered streets 1.05 attachments per 100 m, everything else 1.07. Retort is denser (2.11) than 29th (1.05), the opposite of the prediction |
 | **era**: the grid is old | correlates strongly — earliest plat is pre-1950 for 75.3% of numbered streets against 14.5% of others — but is not causal, and using it would punish `Sycamore Drive → Sycamore Drive 1940` and `Chester → The Glenn 1946`, both correct |
 | **date spread** across the covering plats | the best correlate found: numbered median 45 years, others 18. Still not a decider — Chester spans 51 years and Wichita 48, and both are right |
 
-The provisional conclusion is that plat geometry alone cannot tell a street the
-plats were built around from one they built, because the two leave the same
-footprint. What differs is history, which this data expresses only through dates,
-and dates are ambiguous because old plats do sometimes name streets.
+Plat geometry alone cannot tell a street the plats were built around from one
+they built: the two leave the same footprint. What differs is history, and the
+only trace of history here is the date.
 
-What the pipeline does about it: nothing beyond reporting the score honestly. The
-model is shown the plats, their dates and the confidence, and the street's own
-name — and "29th Street" announces itself as a grid number in a way the geometry
-never will.
+## Age as a weight, not a cutoff
+
+Date is used, but only where a wrong answer is cheap. AP's rule: a plat recorded
+before about 1950 is never a source of theme. The exceptions — trees and
+presidents — are self-evident from the street name and need no subdivision. Such
+a plat is still wanted for membership.
+
+So `theme_confidence = confidence × era_weight`, where the weight ramps from 0.15
+at 1915 to 1.0 at 1965. It never touches the geometric score and never changes
+which plat is chosen. Graded rather than all-or-nothing, so a 1946 plat is damped
+and not discarded.
+
+This is what finally separates the two cases six geometric hypotheses could not:
+
+    street            plat                  confidence   theme confidence
+    Retort Avenue     Placerville 2007         0.36           0.36
+    29th Street       Cruzen 1906              0.32           0.05
+    11th Street       Boise Townsite 1867      0.42           0.06
+    Chester Lane      The Glenn 1946           0.64           0.43
+    Sycamore Drive    Sycamore Drive 1940      0.88           0.51
+    Quail Ridge Dr    Quail Ridge 1989         1.00           1.00
+
+Median theme confidence is 1.00; 4.6% of places fall below 0.25.
+
+It is a proxy for a development pattern a person would recognise on sight, and it
+does not fix everything: 9th Avenue still takes Canna Lily Estates (1995) at 0.59,
+because that plat really is modern.
 
 A plat-count proxy was tried and removed: abstain when a street crosses 5+ plats
 and its naming plat holds under 60% of the platted length. An 8:1 enrichment on
