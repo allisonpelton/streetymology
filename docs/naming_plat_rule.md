@@ -30,11 +30,20 @@ the others missed:
 | continuity | longest unbroken run ÷ metres inside | tells a plat the street runs through from one it crosses repeatedly |
 | dominance | metres inside ÷ street's PLATTED metres | grid streets: Boise's numbered streets are 0.97 platted, but no addition owns them |
 
-    score = cover × (0.5 + 0.5 × continuity) × (0.5 + 0.5 × dominance)
+    score = cover × (0.5 + 0.5 × continuity) × (0.5 + 0.5 × dominance × platted)
 
-`confidence` is that score normalised across the plats covering the street, so a
-lone weak plat is not mistaken for a strong one. Both are written to
-`place_context.json` for every plat, not just the winner.
+where `platted` is the fraction of the street inside any plat. Dominance asks
+which plat owns the platted part, which is meaningless on a street that is barely
+platted — East Meadow View Road is 15% platted, so its single plat held 240 of
+the 238 platted metres and scored dominance 1.0 on a farm road. Capping the
+credit drops it to 0.09, below the threshold at which any plat is named.
+
+    confidence = score ÷ (Σ scores of covering plats + (1 − best score))
+
+The `1 − best score` term is the null hypothesis, "no plat named this street".
+Without it confidence was purely relative and 60.7% of places read exactly 1.00,
+including that farm road. Both numbers are written to `place_context.json` for
+every plat, not only the winner.
 
 **Age is a preference, not a signal.** Among plats scoring within `AGE_BAND`
 (0.8) of the best, the oldest wins — it laid the ground out. It cannot override a

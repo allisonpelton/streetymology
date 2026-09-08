@@ -27,7 +27,7 @@ from shapely.geometry import LineString
 from streetymology import places as P
 from streetymology.config import data_path
 from streetymology.plats import PlatIndex, pretty
-from streetymology.normalize import key
+from streetymology.normalize import key, normalize
 
 WAYS = "osm_ways_geom.json"
 PLATS = "street_plats.json"
@@ -103,8 +103,15 @@ def plat_score(inside_m, run_m, street_m, covered_m):
         return 0.0
     cover = min(1.0, inside_m / street_m)
     continuity = min(1.0, run_m / inside_m)
+    # Dominance asks which plat owns the PLATTED part of the street, which is
+    # the question a grid street fails. On a street that is barely platted the
+    # question is meaningless, and answering it earned full marks for nothing:
+    # East Meadow View Road is 15% platted, so its one plat held 240 of the 238
+    # platted metres and scored dominance 1.0 on a farm road. Credit is
+    # therefore capped by how much of the street is platted at all.
     dominance = min(1.0, inside_m / covered_m) if covered_m else 0.0
-    return cover * (0.5 + 0.5 * continuity) * (0.5 + 0.5 * dominance)
+    platted = min(1.0, covered_m / street_m) if street_m else 0.0
+    return cover * (0.5 + 0.5 * continuity) * (0.5 + 0.5 * dominance * platted)
 
 
 def main():
@@ -252,6 +259,10 @@ def main():
                      if place_plats.get(q) and place_plats[q][0]["base"] == naming["base"]}
         out[p.id] = {
             "core": p.core, "name": p.name, "analysed": p.analysed,
+            # What a neighbour list should print. Directional and post-type
+            # carry no etymology and cost prompt budget that names need:
+            # "West Bayhorse Street" -> "Bayhorse".
+            "display": normalize(p.name),
             "plats": pls,
             "naming_plat": naming["name"] if naming else None,
             "naming_recorded": naming["recorded"] if naming else None,
