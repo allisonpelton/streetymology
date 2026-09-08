@@ -16,7 +16,7 @@ import argparse, csv, json, random, time
 from streetymology.config import LABELS_DIR, data_path
 from streetymology import rounds
 from streetymology.wikidata import query
-from streetymology import themes, gazetteer as g, match, neighbours
+from streetymology import themes, neighbours
 from streetymology.candidates import publishable
 from streetymology import taxonomy
 from streetymology.normalize import key
@@ -49,10 +49,11 @@ def main():
                              f"Pass a new --round to write another round.")
 
     assign = themes.load()
-    idx = match.build_indexes(g.available(), g.index)
-    m = {k: {c.domain for c in match.match(v["name"], idx,
-             fallback_domains=g.FALLBACK_DOMAINS)} for k, v in assign.items()}
-    tm = themes.ThemeModel(assign, m)
+    # ThemeModel's domain scoring is unused: nothing calls agreement() or
+    # unmatched_rate(), and context() reads only subdivision membership. The
+    # gazetteer match that used to fill this dict cost a full pass over 8,368
+    # streets to produce something never read.
+    tm = themes.ThemeModel(assign, {})
     ni = neighbours.NeighbourIndex()
     search = json.loads((data_path("search_unmatched.json")).read_text())
     meta = json.loads((data_path("meta_candidates.json")).read_text())
@@ -68,12 +69,6 @@ def main():
         if k in already:
             continue
         cands = []
-        for c in match.match(orig, idx, fallback_domains=g.FALLBACK_DOMAINS):
-            d = meta.get(c.qid, {}).get("description", "")
-            # Gazetteer matches used to bypass this filter entirely.
-            if not publishable(d):
-                continue
-            cands.append({"qid": c.qid, "label": c.name, "description": d})
         for h in search.get(k, []):
             if not publishable(h.get("description")):
                 continue

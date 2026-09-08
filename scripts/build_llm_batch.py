@@ -10,7 +10,7 @@ Usage:
 """
 import argparse, json
 from streetymology.config import data_path
-from streetymology import gazetteer as g, match, themes, llm
+from streetymology import themes, llm
 from streetymology.streets import osm_cores
 from streetymology.normalize import key
 
@@ -27,13 +27,11 @@ def build_items(limit=None) -> list[llm.Item]:
     meta = json.loads((data_path("meta_candidates.json")).read_text())
     locs = json.loads((data_path("meta_location.json")).read_text()) if (
         data_path("meta_location.json")).exists() else {}
-    idx = match.build_indexes(g.available(), g.index)
-    m = {k: {c.domain for c in match.match(v["name"], idx)} for k, v in assign.items()}
     tm = themes.ThemeModel(assign, m)
 
     items, n = [], 0
     for k, orig in sorted(osm_cores().items()):
-        cands = match.match(orig, idx, fallback_domains=g.FALLBACK_DOMAINS)
+        cands = search.get(k, [])
         if not cands:
             continue                       # nothing proposed; nothing to judge
         best = cands[0]

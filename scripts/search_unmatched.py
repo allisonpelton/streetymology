@@ -1,4 +1,9 @@
-"""Query the Wikidata search API for street names no gazetteer matches.
+"""Query the Wikidata search API for every street name.
+
+This is now the only candidate source. It was written to cover the names the
+curated gazetteers missed; the gazetteer arm was retired on 2026-09-07 after it
+reached 16.7% of streets against search's 73%, so the filter it applied is gone
+and every core is searched.
 
 Curated gazetteers cannot reach entities whose label differs from the street
 name -- Wikidata calls it "Harvard University", not "Harvard". wbsearchentities
@@ -13,7 +18,6 @@ Usage:
 """
 import argparse, json, time
 from streetymology.config import USER_AGENT, data_path
-from streetymology import gazetteer as g, match
 from streetymology.streets import osm_cores
 from streetymology.normalize import normalize
 import requests
@@ -41,10 +45,8 @@ if __name__ == "__main__":
     ap.add_argument("--limit", type=int)
     a = ap.parse_args()
 
-    idx = match.build_indexes(g.available(), g.index)
     cores = osm_cores()
-    unmatched = {k: normalize(v) for k, v in cores.items()
-                 if not match.match(v, idx, fallback_domains=g.FALLBACK_DOMAINS)}
+    unmatched = dict(cores)
     cache = json.loads(OUT.read_text()) if OUT.exists() else {}
     todo = [k for k in sorted(unmatched) if k not in cache]
     if a.limit:

@@ -28,7 +28,11 @@ def binom_sf(k: int, n: int, p: float) -> float:
 class ThemeModel:
     def __init__(self, assignments: dict, matches: dict[str, set[str]]):
         """assignments: core key -> {"subdivisions": {name: count}}
-        matches: core key -> set of domains it matches"""
+        matches: core key -> set of domains it matches.
+
+        The gazetteer arm supplied these domains and was retired 2026-09-07.
+        agreement() and unmatched_rate() are still tested but no longer called
+        by anything: pass {} unless a new domain source appears."""
         self.members = defaultdict(set)          # subdivision -> {core keys}
         for k, v in assignments.items():
             for s in v["subdivisions"]:

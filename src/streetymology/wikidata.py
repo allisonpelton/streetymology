@@ -1,4 +1,4 @@
-"""Wikidata SPARQL client: shared by gazetteer building, candidate retrieval,
+"""Wikidata SPARQL client: shared by candidate retrieval,
 and QID validation. Handles retries and CSV parsing in one place."""
 import csv, io, time
 import requests
