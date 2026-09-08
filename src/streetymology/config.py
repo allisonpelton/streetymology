@@ -34,7 +34,8 @@ _HOMES = (
     ("meta_", DERIVED_DIR),
     ("search_", DERIVED_DIR),
     ("llm_batch", DERIVED_DIR),
-    ("street_subdivisions", DERIVED_DIR),
+    ("street_", DERIVED_DIR),
+    ("place_", DERIVED_DIR),
 )
 
 
