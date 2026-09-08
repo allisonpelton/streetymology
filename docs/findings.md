@@ -69,6 +69,58 @@ Ground truth is version-controlled at `data/labels/equal_ground/`. It cannot be
 rebuilt: the builder's dedupe now runs before truncation, so the same seed no
 longer reproduces the set.
 
+## Equal-ground round 2, settled 2026-09-07
+
+200 streets, none previously labelled, drawn from the unmatched pool. AP labelled
+all 200; 72 disagreements went to adjudication and she ruled on 52. Regenerate
+any figure with `scripts/score_equal_ground.py --round 2`.
+
+Agreement: 128/200 exact, 163/200 publish-or-withhold. Model NOETYM precision
+83%, recall 66% against AP's labels.
+
+**Accuracy, on the 52 disagreements she ruled on: model 37/52 (71%), AP 12/52
+(23%).** Aggregate accuracy figures (model 92%, human 78%) credit both sides for
+all 128 undisputed rows and should not be quoted without that caveat.
+
+**What this means and does not mean.** AP adjudicated disputes in which she was
+one of the two parties, with her own answer displayed, so this is accuracy
+against her considered second judgement, not against truth. Her notes run
+against herself — "human missed the theme" appears repeatedly. Taking it at face
+value, the model is not at parity with the author on this task; it is better than
+her, mostly at noticing subdivision themes she skimmed past.
+
+20 disagreements were left unruled, all of them NONE vs NOETYM. That boundary is
+underspecified in the labelling guide and neither party applies it consistently.
+
+## `nameness` works; it had never been given its own input
+
+Superseded the round-1 verdict. Measured against "is this candidate the right
+entity" it scored AUC 0.568 and was on notice for removal. That was the wrong
+question: surname matching is a *no-publishable-etymology* detector, not an
+entity picker.
+
+The deeper fault was the data. `fetch_metadata.py` feeds `fetch_nameness` the
+labels of gazetteer *candidates*, so `meta_nameness.json` only ever covered the
+1,395 gazetteer-matched streets. The equal-ground sets are drawn from the
+unmatched pool by design, so **3 of 200 round-2 streets had any nameness data at
+all**. The signal had never been evaluated on the population it exists to filter.
+
+`scripts/fetch_core_nameness.py` asks the question of the street's own core name.
+With that input, on round 2 (`scripts/evaluate_noetym_signals.py --round 2`):
+
+    AUC 0.671 as a NOETYM detector
+
+    nameness  n    NOETYM rate   meaning
+       0.0    33      73%        core is both a surname and a given name
+       0.2    49      61%        core is one of the two
+       1.0    98      34%        core is not a known personal name
+
+Monotonic, against a 48% base rate. As a hard rule, "core is a known personal
+name -> NOETYM" gives precision 66%, recall 62%.
+
+Not good enough to publish on alone. Good enough to *withhold* on, and good
+enough to drop bare-name candidates from the list shown to the LLM.
+
 ## Domain precision is not estimable
 
 High/low precision was assigned by intuition twice and was wrong both times, in
