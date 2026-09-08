@@ -95,38 +95,42 @@ of five letters or fewer, mostly surnames.
   Hoot Nanney Farms; at 0.9 it demanded a whole way inside one plat, which only
   streets with convenient splits could satisfy.
 
-## The unsound part: streets no plat named
+## The unsound part: streets the plats grew around
 
 Boise's numbered grid streets are laid out by the town, with additions filed
-piecemeal along them for decades. Before this was addressed, 29th Street was
-named by Cruzen's 1906 addition and 9th Avenue by Canna Lily Estates (1995).
+piecemeal along them for decades. The score marks them down — 29th Street 0.19,
+10th Street 0.24 — but does not separate them from a weak correct answer: Retort
+Avenue is right at 0.24.
 
-Two causal explanations were tested against the geometry and **both failed**:
+The two are **structurally identical in the geometry**. Retort sits in three
+plats holding 118 m, 109 m and 105 m of it; 29th sits in plats holding 674 m,
+399 m, 396 m and 391 m. Same shape, same proportions, different history. Six
+hypotheses were tested against the data and none separates them:
 
-- *The plat that laid out a street owns the land on both sides of it.* Rejected:
-  Cruzen holds 29% of the left offset of 29th Street and 30% of the right —
-  symmetric — while Quail Ridge, a correct case, sits at 0.28/0.39.
-- *A developer's street terminates inside its plat; a grid street passes
-  through.* Rejected as a decider: it reads 29th, 10th and 11th correctly as
-  pass-through, but The Glenn scores 0.00 on Chester, which is the right answer,
-  and Mcafee scores 0.93 against Avimor's 0.07, which is inverted. Both failures
-  come from a place merging several roads, so "free ends" counts every cul-de-sac
-  in the core rather than the ends of one road. Worth retrying per-alignment.
+| hypothesis | result |
+|---|---|
+| the naming plat owns land on **both sides** of the street | rejected. Cruzen holds 29% of 29th Street's left offset and 30% of its right; Quail Ridge, correct, sits at 0.28/0.39 |
+| a developer's street **terminates** inside its plat, a grid street passes through | rejected as a decider. Reads 29th, 10th, 11th correctly, but The Glenn scores 0.00 on Chester and is right, and Mcafee scores 0.93 against Avimor's 0.07, inverted. Both failures come from a place merging several roads. Worth retrying per-alignment |
+| plat boundaries meet a street they laid out **at junctions**, and cut a pre-existing street mid-block | rejected. Nearly every plat scores 100%, including Cruzen on 29th. Ada County plat boundaries follow rights-of-way |
+| a **fully platted** street was created by plats | rejected, twice over. It does not discriminate — 83.6% of streets are within 10 m of fully platted — and AP's objection stands independently: a street dipping out of its plat where it meets an arterial must behave like one that does not |
+| **junction density**: a grid street crosses many others | rejected. Numbered streets 1.05 attachments per 100 m, everything else 1.07. Retort is denser (2.11) than 29th (1.05), the opposite of the prediction |
+| **era**: the grid is old | correlates strongly — earliest plat is pre-1950 for 75.3% of numbered streets against 14.5% of others — but is not causal, and using it would punish `Sycamore Drive → Sycamore Drive 1940` and `Chester → The Glenn 1946`, both correct |
+| **date spread** across the covering plats | the best correlate found: numbered median 45 years, others 18. Still not a decider — Chester spans 51 years and Wichita 48, and both are right |
 
-A plat-count proxy was tried and then removed. It abstained when a street crossed
-5+ plats and its naming plat held under 60% of the platted length — an 8:1
-enrichment on numbered streets, but no mechanism behind it, and AP's objection
-was decisive: some alignments legitimately run through many subdivisions.
+The provisional conclusion is that plat geometry alone cannot tell a street the
+plats were built around from one they built, because the two leave the same
+footprint. What differs is history, which this data expresses only through dates,
+and dates are ambiguous because old plats do sometimes name streets.
 
-What replaced it is the `dominance` term in the score. It does not abstain on
-grid streets; it scores them low (29th Street 0.19, 10th Street 0.24) and says
-so. **This is the unresolved part of the pipeline**: nothing distinguishes a
-weakly-evidenced correct answer (Retort Avenue, 0.24) from a weakly-evidenced
-wrong one (29th Street, 0.19).
+What the pipeline does about it: nothing beyond reporting the score honestly. The
+model is shown the plats, their dates and the confidence, and the street's own
+name — and "29th Street" announces itself as a grid number in a way the geometry
+never will.
 
-Union coverage was checked as an alternative and does not separate: numbered
-streets are 0.97 platted at the median, the same as everything else. The
-additions cover the grid; they simply each own a slice.
+A plat-count proxy was tried and removed: abstain when a street crosses 5+ plats
+and its naming plat holds under 60% of the platted length. An 8:1 enrichment on
+numbered streets, but no mechanism, and AP's objection was decisive — some
+alignments legitimately run through many subdivisions.
 
 ## Checking the result
 
