@@ -201,3 +201,42 @@ the place merges several alignments and the case is genuinely ambiguous. Home
 Acres is roughly fifteen separate subdivisions across Boise, presumably one
 landowner, and Elder is a surname that may have been used twice. Chasing it would
 be overfitting to one street.
+
+## How often it is wrong
+
+Fifty places judged by AP across two draws, neither of them streets the rule was
+built on. Regenerate with `scripts/estimate_naming_plat_error.py`.
+
+- **Sample 1**, 20 places drawn uniformly: 18 right. Its two failures scored 0.52
+  and 0.62 while every correct row was at or above 0.89, so confidence separated
+  them completely.
+- **Sample 2**, 30 places stratified by confidence and restricted to the 41% of
+  places covered by more than one plat: 17 right. Deliberately pessimistic — it
+  excludes the single-plat majority and oversamples weak bands.
+
+Reweighting sample 2 by band population and combining the strata:
+
+    overall expected error                       3%
+    wrong AND presented at theme confidence >0.6  1.1%
+
+**The 3% is a central estimate, not a ceiling.** The 0.95-1.00 band holds 87% of
+the ambiguous stratum and rests on six judged rows with no errors; if its true
+rate were 5% the overall figure would be 4.7%, and at 10% it would be 6.5%. The
+honest range is 3-7% overall, 1-2% presented confidently.
+
+Errors concentrate where confidence is low: 67% wrong in the 0.4-0.8 bands, which
+together are 6% of the population.
+
+## Failure modes found, and what can be done about them
+
+| mode | example | fixable? |
+|---|---|---|
+| the street was never named by any plat — former county and farm roads the plats grew around | Duncan, Eugene, Lewis, Waltman, Aikens, Horseshoe Bend | no signal found. AP: county roads are not reliably PLSS-aligned — the river breaks the grid, some run mid-mile, and some mid-mile roads are new enough to be themed |
+| platted but unnamed: the plat laid the street out without naming it | Hartman, Aikens | not from this data. "Laid out by" and "named by" are different events and the pipeline conflates them |
+| the plat polygon was redrawn by later replats until it no longer contains the street | Saxton, Ballard | no. The evidence is destroyed in the source |
+| OSM road geometry is wrong | Fisher Park | not a pipeline problem |
+| the street was renamed after platting | Breneman, formerly Pennsylvania Avenue | no |
+| the name comes from a person or feature the plat merely echoes | Aikens (property owner), Table Rock (the mountain), James Court (a sheriff, via the plat's namesake) | no, and the model may do better than the geometry here |
+
+Every mode above is a limit of the source data rather than of the rule. That is
+the reason this line of work was stopped.

@@ -53,6 +53,27 @@ def main():
         if below == 0:
             print("  -> confidence ranks every failure below every success")
 
+    # The number that matters downstream. A wrong plat only hurts if the model
+    # is also told to trust it for a theme: that is when an etymology gets
+    # invented. A wrong plat at low theme confidence is nearly harmless.
+    print("\nrisk of an invented theme: wrong or unnamed plat, by theme confidence")
+    for lo, hi in ((0.0, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1.01)):
+        band = [r for r in rows if (f(r, "theme_confidence") or 0) >= lo
+                and (f(r, "theme_confidence") or 0) < hi]
+        if not band:
+            continue
+        bad_b = [r for r in band
+                 if r["verdict"].strip().lower() not in ("right", "unsure")]
+        print(f"  theme {lo:.2f}-{hi:.2f}: {len(bad_b):2d} of {len(band):2d} rows"
+              f" not right")
+    risky = [r for r in rows
+             if r["verdict"].strip().lower() not in ("right", "unsure")
+             and (f(r, "theme_confidence") or 0) >= 0.6]
+    print(f"  presented confidently AND wrong: {len(risky)}/{n} = {len(risky)/n:.0%}")
+    for r in risky:
+        print(f"      {r['street'][:18]:18s} theme {r['theme_confidence']:>5}"
+              f"  {r['verdict']}  {r['notes'][:52]}")
+
     th = collections.Counter((r.get("theme_ok") or "").strip().lower()
                              for r in rows if (r.get("theme_ok") or "").strip())
     if th:
