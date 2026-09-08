@@ -22,6 +22,8 @@ def main():
     ap.add_argument("--link", type=float, default=places.LINK_M)
     ap.add_argument("--split", type=float, default=places.SPLIT_M)
     ap.add_argument("--out", default=OUT)
+    ap.add_argument("--report-dupes", action="store_true",
+                    help="cores occupying more than one place, for eyeballing")
     ap.add_argument("--report-merges", action="store_true",
                     help="list places built from alignments that do not touch")
     a = ap.parse_args()
@@ -77,6 +79,30 @@ def main():
     print(f"\n  cores keeping >=1 analysed place {len(cores_analysed)}"
           f"  ({len(cores_analysed)/len(built):.1%}); "
           f"{len(built) - len(cores_analysed)} cores leave the universe")
+
+    if a.report_dupes:
+        # A core in several places is a name used twice. Numbered streets are
+        # excluded: they are known repeats and would swamp the list.
+        import re as _re
+        num = _re.compile(r"^\d+(st|nd|rd|th)$")
+        rows = []
+        for k, ps in built.items():
+            if len(ps) < 2 or num.match(k.strip()):
+                continue
+            gaps = []
+            for i in range(len(ps)):
+                for j in range(i + 1, len(ps)):
+                    gaps.append(places._min_dist(ps[i].points, ps[j].points, 0.0))
+            rows.append((min(gaps), max(gaps), len(ps), ps[0].name,
+                         sum(1 for q in ps if q.analysed)))
+        rows.sort()
+        print(f"\n{len(rows)} non-numbered core(s) split into separate places\n")
+        print(f"{'closest':>8} {'furthest':>9} {'places':>7}  street")
+        for lo, hi, n, name, an in rows:
+            flag = "" if an == n else f"  ({n - an} arterial)"
+            print(f"{lo/1000:8.2f} {hi/1000:9.2f} {n:7d}  {name}{flag}")
+        print("\n(distances in km, between the nearest points of two places)")
+        return
 
     if a.report_merges:
         # Places assembled from separate alignments: the road stops, and another

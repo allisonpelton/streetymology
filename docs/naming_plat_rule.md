@@ -20,49 +20,63 @@ Regenerate every figure here with:
 
 ## The rule
 
-Every hard threshold tried here broke a real street, so plats are **scored** and
-the score travels with the answer. Three signals, each of which caught a failure
-the others missed:
+Two questions, answered separately. Tangling them was the mistake in the previous
+version.
 
-| signal | definition | the failure it catches |
-|---|---|---|
-| cover | metres of street inside the plat ÷ street length | a plat that laid a street out holds most of it |
-| continuity | longest unbroken run ÷ metres inside | tells a plat the street runs through from one it crosses repeatedly |
-| dominance | metres inside ÷ street's PLATTED metres | grid streets: Boise's numbered streets are 0.97 platted, but no addition owns them |
+**1. Was this street laid out by plats at all?** `confidence` is the fraction of
+the street lying inside any plat. East Meadow View Road, a farm road, is 0.15;
+Retort Avenue is 1.00. Below `MIN_PLATTED` (0.25) no plat is named at all.
+
+**2. Which plat named it?** The oldest plat with a *material* claim — one holding
+at least `MATERIAL_RATIO` (0.5) of the metres the leading plat holds. The count
+of material plats is reported as `contenders`. Ambiguity here says nothing about
+question 1: Retort sits in three plats at a third each and is no less certainly a
+platted street for it.
+
+`theme_confidence` is `confidence × era_weight`, the era ramping from 0.15 at
+1915 to 1.0 at 1965.
+
+Metres are measured on the merged geometry of a place, not per OSM way, since way
+splits are arbitrary. Runs re-entering a plat within `BRIDGE_M` (60 m) count as
+one: 41% of naming plats are entered more than once, because boundaries detour
+around park parcels and phase lines. Phases of one plat are joined on base name,
+their metres added, the earliest recording taken as the date.
+
+Five numbers in total: `BRIDGE_M`, `MATERIAL_RATIO`, `MIN_PLATTED`, and the two
+era endpoints.
+
+### What this replaced, and why
+
+The previous version multiplied three terms with floors:
 
     score = cover × (0.5 + 0.5 × continuity) × (0.5 + 0.5 × dominance × platted)
 
-where `platted` is the fraction of the street inside any plat. Dominance asks
-which plat owns the platted part, which is meaningless on a street that is barely
-platted — East Meadow View Road is 15% platted, so its single plat held 240 of
-the 238 platted metres and scored dominance 1.0 on a farm road. Capping the
-credit drops it to 0.09, below the threshold at which any plat is named.
+It double-counted. `dominance` is `inside ÷ (platted × street)`, which equals
+`cover` whenever a street is fully platted, so the score squared cover and
+punished Retort twice for the single fact of sharing its street with two
+neighbours — precisely the case where the oldest plat is the obvious answer. The
+0.5 floors existed only to stop a term zeroing a score, were never justified by
+anything, and are gone with it. Twelve tunables became five.
 
-    confidence = score ÷ (Σ scores of covering plats + (1 − best score))
+As of 2026-09-08: confidence median 1.00, under 0.5 for 1.2% of places; theme
+confidence median 1.00, under 0.25 for 5.4%; 18.2% have more than one contender;
+1.4% name no plat.
 
-The `1 − best score` term is the null hypothesis, "no plat named this street".
-Without it confidence was purely relative and 60.7% of places read exactly 1.00,
-including that farm road. Both numbers are written to `place_context.json` for
-every plat, not only the winner.
+## What the numbers look like
 
-**Age is a preference, not a signal.** Among plats scoring within `AGE_BAND`
-(0.8) of the best, the oldest wins — it laid the ground out. It cannot override a
-clearly better-scoring plat, because pre-1950 acreage filings own the dirt and
-not the name. Below `MIN_SCORE` (0.15) no plat is named at all.
+    street            plat                  confidence   theme   contenders
+    Retort Avenue     Placerville 2007         1.00       1.00        3
+    29th Street       West Side 1905           1.00       0.15        4
+    Chester Lane      The Glenn 1946           0.96       0.65        2
+    Quail Ridge Dr    Quail Ridge 1989         1.00       1.00        1
+    Copenhagen Lane   Danish Flats 2025        1.00       1.00        1
+    Sycamore Drive    Sycamore Drive 1940      1.00       0.57        1
+    Meadow View Road  none                     -          -           -
 
-**Re-entry is normal and is bridged.** 41% of naming plats are entered more than
-once, because plat boundaries detour around park parcels, school sites and phase
-lines. Pieces whose ends are within 60 m count as one run. The parameter is not
-sensitive: no bridging → 60 m changes 113 choices, 60 → 150 m changes 20,
-60 → 400 m changes 32.
+Retort and 29th Street are both fully platted and are separated by era alone.
+Meadow View abstains because 15% of it lies in any plat.
 
-**Phases are one naming act.** `SUTTERS MILL SUB NO 01` and `NO 02` are joined on
-base name, their metres added, the earliest recording taken as the date.
 
-As of 2026-09-08: median naming score 0.87, p10 0.33; 2.5% of analysed places
-name no plat; 4.6% are contested, meaning the top two plats score within 0.05.
-
-## What the scores look like
 
     Copenhagen Lane  Danish Flats 2025   score 0.86  confidence 0.94
     Sycamore Drive   Sycamore Drive 1940 score 0.75  confidence 0.88
@@ -73,9 +87,8 @@ name no plat; 4.6% are contested, meaning the top two plats score within 0.05.
     10th Street      Boise Townsite 1867 score 0.24  confidence 0.41
     29th Street      Cruzen 1906         score 0.19  confidence 0.32
 
-Retort is correct at 0.24 and 29th Street is wrong at 0.19, which is why a hard
-cutoff kept breaking one to fix the other. The score does not separate them; it
-reports how weak both are, and the prompt can say so.
+Under the two-factor rule these separate cleanly, but only because of the era
+weight; the geometry still cannot tell them apart.
 
 ## Plat names are membership evidence, not theme evidence
 

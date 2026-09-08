@@ -39,54 +39,43 @@ NEAR_M = 200.0
 # 1900s acreage filing that was re-platted decades later. Above this share the
 # earliest plat is taken as the naming act; below it, nothing old enough
 # materially contains the street and the largest share wins.
-# --- how likely is each plat to be the one that named the street ------------
+# --- two questions, answered separately -------------------------------------
 #
-# Every hard threshold tried here failed on some real street, so plats are
-# SCORED and the score is kept in the output. Three signals, each catching a
-# failure the others missed:
+# 1. WAS THIS STREET LAID OUT BY PLATS AT ALL?  `laid_out` is the fraction of
+#    the street lying inside any plat. East Meadow View Road is a farm road at
+#    0.15; Retort Avenue is 1.00. This is the confidence, on its own.
 #
-#   cover      metres of street inside the plat over the street's length.
-#   continuity longest unbroken run over the metres inside. Pieces whose ends
-#              are within BRIDGE_M count as one run: 40% of naming plats are
-#              entered more than once, because boundaries detour round parks.
-#   dominance  metres inside over the street's PLATTED metres. This is what a
-#              grid street fails -- Boise's numbered streets are 0.97 platted,
-#              but no single addition owns them.
+# 2. WHICH PLAT NAMED IT?  The oldest plat with a material claim -- one holding
+#    at least MATERIAL_RATIO of the metres the leading plat holds. Ambiguity
+#    here says nothing about question 1: Retort is one of three plats at a third
+#    each, and is no less certainly a platted street for that.
 #
-# Age is a preference, not a signal: among plats scoring close to the best, the
-# oldest is taken. It cannot override a much better-scoring plat, because
-# pre-1950 acreage filings own the dirt and not the name.
-BRIDGE_M = 60.0
-AGE_BAND = 0.8      # a plat scoring this fraction of the best counts as equal
-MIN_SCORE = 0.15    # below this, no plat plausibly laid the street out
-
-# Plats older than this predate themed developer naming: expect trees,
-# presidents, surnames. AP adds two cautions about plat NAMES generally, which
-# is why the name is membership evidence and not theme evidence:
-#   - the recorded name is often a bare given name or surname while the
-#     subdivision's sign carries the name people actually use;
-#   - name-only plats are common before 1950 and, today, mostly divide farmland
-#     where there are no streets and nothing to derive.
-THEMELESS_BEFORE = 1950
-
+# The previous version multiplied cover, continuity and dominance together with
+# 0.5 floors on two of them. It double-counted -- dominance equals cover
+# whenever a street is fully platted -- so Retort was penalised twice for the
+# single fact of sharing its street with two neighbours. The floors were the
+# least defensible numbers in the tree and are gone with it.
+BRIDGE_M = 60.0          # excursion tolerated before a re-entry counts as a break
+MATERIAL_RATIO = 0.5     # of the leading plat's metres, to be a candidate
+MIN_PLATTED = 0.25       # below this the street is not a platted street
 
 # Age used as a WEIGHT rather than a cutoff. AP's rule: a plat recorded before
 # about 1950 is never a source of theme -- the exceptions, trees and presidents,
 # are self-evident from the street name and need no subdivision. Such a plat is
-# still wanted for membership, which is why this weight scales the theme
-# confidence and never the geometric score or the choice of plat.
+# still wanted for membership, which is why this weight scales theme confidence
+# and never the choice of plat.
 #
 # It also does the work six geometric hypotheses could not: Boise's grid streets
 # are covered by 1900s additions, so their theme confidence collapses, while
-# Retort Avenue's 2007 plat keeps its own. Graded, so a 1946 plat is damped
-# rather than discarded -- Chester's The Glenn is a correct answer.
-THEME_ERA_FLOOR = 0.15      # weight given to the oldest plats
-THEME_ERA_START = 1915      # at or below this year, the floor
-THEME_ERA_FULL = 1965       # at or above this year, full weight
+# Retort Avenue's 2007 plat keeps its own.
+THEME_ERA_FLOOR = 0.15
+THEME_ERA_START = 1915
+THEME_ERA_FULL = 1965
+THEMELESS_BEFORE = 1950
 
 
 def era_weight(year):
-    """0.15-1.0 by recording year. See the note above; not a cutoff."""
+    """0.15-1.0 by recording year. A weight, not a cutoff."""
     if not year:
         return THEME_ERA_FLOOR
     if year >= THEME_ERA_FULL:
@@ -97,41 +86,24 @@ def era_weight(year):
     return round(THEME_ERA_FLOOR + f * (1.0 - THEME_ERA_FLOOR), 3)
 
 
-def plat_score(inside_m, run_m, street_m, covered_m):
-    """0-1 likelihood that this plat laid the street out."""
-    if street_m <= 0 or inside_m <= 0:
-        return 0.0
-    cover = min(1.0, inside_m / street_m)
-    continuity = min(1.0, run_m / inside_m)
-    # Dominance asks which plat owns the PLATTED part of the street, which is
-    # the question a grid street fails. On a street that is barely platted the
-    # question is meaningless, and answering it earned full marks for nothing:
-    # East Meadow View Road is 15% platted, so its one plat held 240 of the 238
-    # platted metres and scored dominance 1.0 on a farm road. Credit is
-    # therefore capped by how much of the street is platted at all.
-    dominance = min(1.0, inside_m / covered_m) if covered_m else 0.0
-    platted = min(1.0, covered_m / street_m) if street_m else 0.0
-    return cover * (0.5 + 0.5 * continuity) * (0.5 + 0.5 * dominance * platted)
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--near", type=float, default=NEAR_M)
     ap.add_argument("--out", default=OUT)
     ap.add_argument("--dump", help="print the context of one street and stop")
-    ap.add_argument("--min-score", type=float, default=None,
-                    help="score below which no plat is named")
+    ap.add_argument("--min-platted", type=float, default=None,
+                    help="fraction of a street that must lie in plats at all")
     ap.add_argument("--bridge", type=float, default=None,
                     help="metres of excursion tolerated before a street leaving "
                          "and re-entering a plat counts as two runs")
 
     a = ap.parse_args()
 
-    global BRIDGE_M, MIN_SCORE
+    global BRIDGE_M, MIN_PLATTED
     if a.bridge is not None:
         BRIDGE_M = a.bridge
-    if a.min_score is not None:
-        MIN_SCORE = a.min_score
+    if a.min_platted is not None:
+        MIN_PLATTED = a.min_platted
 
     doc = json.loads((data_path(WAYS)).read_text())
     by_core = collections.defaultdict(list)
@@ -185,27 +157,19 @@ def main():
                 cur["recorded"] = rec
                 cur["name"] = pretty(plat.name)
         scored = []
+        best_inside = max((v["inside_m"] for v in acc.values()), default=0.0)
         for v in acc.values():
             scored.append({**v, "inside_m": round(v["inside_m"]),
                            "run_m": round(v["run_m"]),
-                           "share": round(v["inside_m"] / street_m, 3),
                            "street_m": round(street_m),
-                           "score": round(plat_score(v["inside_m"], v["run_m"],
-                                                     street_m, covered_m), 3)})
-        # "No plat named this street" competes for the probability mass, with
-        # weight 1 - best_score. Without it confidence was purely relative and
-        # 60.7% of places read exactly 1.00 -- including a street 15% platted
-        # whose single plat held a seventh of it.
-        best_score = max((x["score"] for x in scored), default=0.0)
-        tot_score = sum(x["score"] for x in scored) + (1.0 - best_score)
-        for x in scored:
-            x["confidence"] = round(x["score"] / tot_score, 3)
-            x["era_weight"] = era_weight(int(x["recorded"][:4])
-                                         if x["recorded"] else None)
-            # How much this plat should be allowed to suggest a THEME, as
-            # opposed to membership: geometric confidence damped by age.
-            x["theme_confidence"] = round(x["confidence"] * x["era_weight"], 3)
-        place_plats[p.id] = sorted(scored, key=lambda v: -v["score"])
+                           # of the street, and of the street's PLATTED part
+                           "share": round(v["inside_m"] / street_m, 3),
+                           "claim": round(v["inside_m"] / covered_m, 3)
+                           if covered_m else 0.0,
+                           "material": v["inside_m"] >= MATERIAL_RATIO * best_inside,
+                           "era_weight": era_weight(int(v["recorded"][:4])
+                                                    if v["recorded"] else None)})
+        place_plats[p.id] = sorted(scored, key=lambda v: -v["inside_m"])
 
     # --- membership of a plat, by base name -------------------------------
     members = collections.defaultdict(set)
@@ -242,10 +206,11 @@ def main():
     out = {}
     for p in allp:
         pls = place_plats[p.id]
-        best = pls[0]["score"] if pls else 0.0
-        contenders = [x for x in pls if x["score"] >= AGE_BAND * best]
-        naming = (min(contenders, key=lambda x: (x["recorded"] or "9999", -x["score"]))
-                  if best >= MIN_SCORE else None)
+        laid_out = platted_share.get(p.id) or 0.0
+        material = [x for x in pls if x["material"]]
+        naming = (min(material, key=lambda x: (x["recorded"] or "9999",
+                                               -x["inside_m"]))
+                  if material and laid_out >= MIN_PLATTED else None)
 
         # Two tiers. A place whose naming plat is the same was named by the same
         # act; a place that merely shares a plat may have been named by an
@@ -268,13 +233,14 @@ def main():
             "naming_recorded": naming["recorded"] if naming else None,
             "naming_share": naming["share"] if naming else None,
             "naming_run_m": naming["run_m"] if naming else None,
-            "naming_score": naming["score"] if naming else None,
-            "naming_confidence": naming["confidence"] if naming else None,
-            "naming_theme_confidence": (naming["theme_confidence"]
-                                        if naming else None),
-            # How far clear the winner is. Small means the choice is contested.
-            "margin": (round(pls[0]["score"] - pls[1]["score"], 3)
-                       if len(pls) > 1 else None),
+            "naming_claim": naming["claim"] if naming else None,
+            # Question 1: how sure are we a plat named this street at all.
+            "confidence": round(laid_out, 3) if naming else None,
+            # Question 1 damped by the plat's era: how much theme it may suggest.
+            "theme_confidence": (round(laid_out * naming["era_weight"], 3)
+                                 if naming else None),
+            # How many plats could plausibly be the one. 1 is unambiguous.
+            "contenders": len(material),
             "platted_share": platted_share.get(p.id),
             "naming_themeless_era": bool(
                 naming and naming["recorded"]
@@ -293,9 +259,9 @@ def main():
         print(f"\n=== {v['name']}  [{pid}]  analysed={v['analysed']}")
         for pl in v["plats"]:
             print(f"  plat {pl['name'][:26]:26s} {pl['recorded'][:4] if pl['recorded'] else '????'}"
-                  f"  score {pl['score']:.2f} conf {pl['confidence']:.2f}"
-                  f"  run {pl['run_m']:5.0f} inside {pl['inside_m']:5.0f}"
-                  f" of {pl['street_m']:5.0f} m")
+                  f"  inside {pl['inside_m']:5.0f} of {pl['street_m']:5.0f} m"
+                  f"  claim {pl['claim']:.2f}"
+                  f"{'  MATERIAL' if pl['material'] else ''}")
         for bucket in ("peers", "same_plat", "attached", "near_unplatted"):
             print(f"  {bucket} ({len(v[bucket])}):")
             for q in v[bucket][:25]:
@@ -327,19 +293,18 @@ def main():
           f"  ({sum(1 for t in tot if t > 22)/len(an):.1%})")
     print(f"  no context at all    {sum(1 for t in tot if t == 0)}"
           f"  ({sum(1 for t in tot if t == 0)/len(an):.1%})")
-    sc = sorted(v["naming_score"] for v in an if v["naming_score"] is not None)
-    if sc:
-        print(f"  naming plat score: median {sc[len(sc)//2]:.2f}, "
-              f"p10 {sc[len(sc)//10]:.2f}")
-    tc = sorted(v["naming_theme_confidence"] for v in an
-                if v.get("naming_theme_confidence") is not None)
+    conf = sorted(v["confidence"] for v in an if v.get("confidence") is not None)
+    if conf:
+        print(f"  confidence (street was platted): median {conf[len(conf)//2]:.2f}, "
+              f"under 0.5: {sum(1 for x in conf if x < 0.5)/len(conf):.1%}")
+    tc = sorted(v["theme_confidence"] for v in an
+                if v.get("theme_confidence") is not None)
     if tc:
         print(f"  theme confidence: median {tc[len(tc)//2]:.2f}, "
               f"under 0.25: {sum(1 for x in tc if x < 0.25)/len(tc):.1%}")
-    close = [v for v in an if v.get("margin") is not None and v["margin"] < 0.05
-             and v["naming_plat"]]
-    print(f"  contested, top two within 0.05: {len(close)}"
-          f"  ({len(close)/len(an):.1%})")
+    amb = [v for v in an if v.get("contenders", 0) > 1]
+    print(f"  more than one plat could be the namer: {len(amb)}"
+          f"  ({len(amb)/len(an):.1%})")
     abstain = [v for v in an if v["plats"] and not v["naming_plat"]]
     print(f"  plats cover it but none laid it out: {len(abstain)}"
           f"  ({len(abstain)/len(an):.1%})  <- no naming plat asserted")
