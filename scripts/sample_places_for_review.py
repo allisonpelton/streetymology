@@ -6,9 +6,13 @@ sample. This draws places that were NOT looked at, so the rule can be measured
 on streets nobody tuned against.
 
 Seeded, so the same draw can be reproduced. Excludes the tuning streets by core
-name. Writes a CSV for LibreOffice with the evidence laid out and a blank
-verdict column; nothing else in the tree reads the result, so a verdict costs
-only the judging.
+name. Writes a CSV for LibreOffice with the evidence laid out and two blank
+columns; nothing else in the tree reads the result, so a verdict costs only the
+judging.
+
+Two columns because the rule answers two questions. `verdict` judges the choice
+of plat; `theme_ok` judges whether that plat could help identify an etymology at
+all, which is the only test of the era weight.
 """
 import argparse, csv, json, random
 
@@ -44,7 +48,7 @@ def main():
         w.writerow(["n", "street", "street_m", "platted_share",
                     "pipeline_choice", "choice_year", "confidence",
                     "theme_confidence", "contenders", "plats_covering",
-                    "verdict", "notes"])
+                    "verdict", "theme_ok", "notes"])
         for i, v in enumerate(picked, 1):
             plats = "; ".join(
                 f"{p['name']} ({str(p['recorded'])[:4]}, {p['inside_m']}m"
@@ -57,10 +61,11 @@ def main():
                         v["confidence"] if v["confidence"] is not None else "",
                         v["theme_confidence"]
                         if v["theme_confidence"] is not None else "",
-                        v["contenders"], plats, "", ""])
+                        v["contenders"], plats, "", "", ""])
     out.chmod(0o664)
     print(f"wrote {out}  ({len(picked)} places, seed {a.seed})")
-    print("verdict column: right / wrong / should-abstain / unsure")
+    print("verdict:  right / wrong / none / missed / tie / unsure")
+    print("theme_ok: yes / no / unsure")
     ab = sum(1 for v in picked if not v["naming_plat"])
     print(f"of the sample, {ab} abstain and {len(picked) - ab} name a plat")
 
