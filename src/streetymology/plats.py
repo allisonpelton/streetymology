@@ -15,9 +15,11 @@ produces something a prompt can show a model.
 """
 import datetime
 import json
+import math
 import re
 
 from shapely.geometry import Polygon, MultiPolygon
+from shapely.ops import linemerge, unary_union
 from shapely.strtree import STRtree
 
 from .config import data_path
@@ -57,6 +59,52 @@ def pretty(name: str) -> str:
     # Lower-case only INTERIOR articles: "The Highlands" keeps its capital.
     b = re.sub(r"(?<!^)\b(Of|The|And|At)\b", lambda m: m.group(1).lower(), b)
     return b
+
+
+def _line_metres(line):
+    """Length of a lon/lat LineString in metres."""
+    cs = list(line.coords)
+    t = 0.0
+    for (x1, y1), (x2, y2) in zip(cs, cs[1:]):
+        dy = (y2 - y1) * 111_320.0
+        dx = (x2 - x1) * 111_320.0 * math.cos(math.radians(y1))
+        t += math.hypot(dx, dy)
+    return t
+
+
+def _longest_run(pieces, bridge_m=0.0):
+    """Longest chain of pieces, joining any two whose ends are within bridge_m."""
+    lens = [_line_metres(p) for p in pieces]
+    if not pieces:
+        return 0.0
+    if bridge_m <= 0 or len(pieces) == 1:
+        return max(lens)
+    ends = [(p.coords[0], p.coords[-1]) for p in pieces]
+
+    def gap(i, j):
+        best = float("inf")
+        for a in ends[i]:
+            for b in ends[j]:
+                dy = (b[1] - a[1]) * 111_320.0
+                dx = (b[0] - a[0]) * 111_320.0 * math.cos(math.radians(a[1]))
+                best = min(best, math.hypot(dx, dy))
+        return best
+
+    seen, best = set(), 0.0
+    for i in range(len(pieces)):
+        if i in seen:
+            continue
+        stack, total = [i], 0.0
+        seen.add(i)
+        while stack:
+            k = stack.pop()
+            total += lens[k]
+            for j in range(len(pieces)):
+                if j not in seen and gap(k, j) <= bridge_m:
+                    seen.add(j)
+                    stack.append(j)
+        best = max(best, total)
+    return best
 
 
 def _rings_to_geom(rings):
@@ -128,6 +176,76 @@ class PlatIndex:
         """Plats whose polygon intersects `geom`, nearest-in-time order unknown."""
         return [self.plats[i] for i in self.tree.query(geom)
                 if self.plats[i].geom.intersects(geom)]
+
+    def runs_inside(self, lines, bridge_m=0.0):
+        """plat -> (metres inside, longest run, number of separate pieces).
+
+        `bridge_m` tolerates a street leaving the plat and coming straight back:
+        two pieces whose ends are within that distance count as one run. A plat
+        boundary detours around a park parcel, a school site or a phase line,
+        and the street that runs through it was still laid out by that plat.
+
+        Takes every way of a place at once and merges them first, because OSM
+        splits a street at arbitrary points -- a lane change, a bridge, an
+        editing session. A "share of a way" therefore measures mapping accidents
+        as much as geography. What a plat that LAID OUT a street produces is a
+        long unbroken run of it inside the boundary, and that survives however
+        the ways were split.
+        """
+        merged = linemerge(lines)
+        parts = list(merged.geoms) if merged.geom_type == "MultiLineString" \
+            else [merged]
+        out = {}
+        for p in self.covering(merged):
+            total, pieces = 0.0, []
+            for part in parts:
+                try:
+                    inter = part.intersection(p.geom)
+                except Exception:                                 # noqa: BLE001
+                    inter = part.intersection(p.geom.buffer(0))
+                if inter.is_empty:
+                    continue
+                for piece in (list(inter.geoms) if hasattr(inter, "geoms")
+                              else [inter]):
+                    if piece.geom_type != "LineString":
+                        continue
+                    m = _line_metres(piece)
+                    total += m
+                    pieces.append(piece)
+            if total > 0:
+                out[p] = (total, _longest_run(pieces, bridge_m), len(pieces))
+        return out
+
+    def covered_metres(self, lines):
+        """Metres of street lying inside ANY plat, and the merged street length.
+
+        Plats overlap -- an amended plat sits on its original, phases abut -- so
+        summing per-plat metres double counts. The union is what says whether a
+        street was platted at all. A grid street laid out by a town, with
+        additions filed piecemeal along it decades later, is mostly NOT inside
+        any plat, and that is what distinguishes it from a street a developer
+        built.
+        """
+        merged = linemerge(lines)
+        parts = list(merged.geoms) if merged.geom_type == "MultiLineString" \
+            else [merged]
+        total = sum(_line_metres(p) for p in parts)
+        covering = [p.geom for p in self.covering(merged)]
+        if not covering:
+            return 0.0, total
+        u = unary_union(covering)
+        inside = 0.0
+        for part in parts:
+            try:
+                inter = part.intersection(u)
+            except Exception:                                     # noqa: BLE001
+                inter = part.intersection(u.buffer(0))
+            if inter.is_empty:
+                continue
+            for piece in (list(inter.geoms) if hasattr(inter, "geoms") else [inter]):
+                if piece.geom_type == "LineString":
+                    inside += _line_metres(piece)
+        return inside, total
 
     def share_inside(self, line):
         """plat -> fraction of `line`'s length inside that plat.
