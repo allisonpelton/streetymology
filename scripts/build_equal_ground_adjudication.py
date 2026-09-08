@@ -68,6 +68,10 @@ def main():
     ap.add_argument("--key")
     ap.add_argument("--out-md")
     ap.add_argument("--out-csv")
+    ap.add_argument("--only", default="",
+                    help="restrict to these item numbers, e.g. a re-ruling pass")
+    ap.add_argument("--unruled", action="store_true",
+                    help="restrict to disagreements left without a verdict")
     ap.add_argument("--force", action="store_true",
                     help="overwrite an answer sheet that already has verdicts")
     a = ap.parse_args()
@@ -95,6 +99,15 @@ def main():
         keys[int(r["n"])] = dict(p.split("=") for p in r["candidates"].split("|"))
 
     disputed = [n for n in sorted(set(H) & set(M)) if H[n]["choice"] != M[n]["choice"]]
+    if a.unruled:
+        # Rows that went out for adjudication and came back without a verdict.
+        with open(R.adjudication_csv, newline="", encoding="utf-8") as fh:
+            blank = {int(r["n"]) for r in csv.DictReader(fh)
+                     if not r.get("verdict", "").strip()}
+        disputed = [n for n in disputed if n in blank]
+    if a.only:
+        want = {int(x) for x in a.only.replace(",", " ").split()}
+        disputed = [n for n in disputed if n in want]
 
     body = [f"""# Equal-ground adjudication, round {R.n}
 
