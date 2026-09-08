@@ -33,16 +33,46 @@ TUNED = {"retort", "chester", "avimor", "copenhagen", "29th", "10th", "11th",
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=20)
+    ap.add_argument("--strata", action="store_true",
+                    help="draw evenly across confidence bands, and only where "
+                         "more than one plat covers the street")
+    ap.add_argument("--exclude-sheet", action="append", default=[],
+                    help="CSV whose streets are already judged")
     ap.add_argument("--seed", type=int, default=20260908)
     ap.add_argument("--out", default=str(DELIVERABLES_DIR / "naming_plat_review" /
                                          "naming_plat_sample.csv"))
     a = ap.parse_args()
 
     ctx = json.loads((data_path(CTX)).read_text())
+    seen = set()
+    for path in a.exclude_sheet:
+        with open(path, newline="", encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                seen.add(r["street"].strip().lower())
+
+    def judged(v):
+        return ((v.get("display") or v["name"]).strip().lower() in seen
+                or v["name"].strip().lower() in seen)
+
     pool = [v for v in ctx.values()
-            if v["analysed"] and v["plats"] and v["core"] not in TUNED]
+            if v["analysed"] and v["plats"] and v["core"] not in TUNED
+            and not judged(v)]
     rng = random.Random(a.seed)
-    picked = rng.sample(pool, min(a.n, len(pool)))
+
+    if a.strata:
+        # A street covered by ONE plat was named by it, barring development
+        # patterns invisible in this data, so judging those measures nothing.
+        # 59% of places are that case. What is worth judging is where the rule
+        # had a choice, spread across the confidence it reported.
+        pool = [v for v in pool if len(v["plats"]) > 1]
+        bands = [(0.0, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 0.95), (0.95, 1.01)]
+        per = max(1, a.n // len(bands))
+        picked = []
+        for lo, hi in bands:
+            inband = [v for v in pool if lo <= (v["confidence"] or 0) < hi]
+            picked += rng.sample(inband, min(per, len(inband)))
+    else:
+        picked = rng.sample(pool, min(a.n, len(pool)))
     picked.sort(key=lambda v: v["name"])
 
     out = __import__("pathlib").Path(a.out)
