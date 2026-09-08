@@ -185,7 +185,12 @@ def main():
                            "street_m": round(street_m),
                            "score": round(plat_score(v["inside_m"], v["run_m"],
                                                      street_m, covered_m), 3)})
-        tot_score = sum(x["score"] for x in scored) or 1.0
+        # "No plat named this street" competes for the probability mass, with
+        # weight 1 - best_score. Without it confidence was purely relative and
+        # 60.7% of places read exactly 1.00 -- including a street 15% platted
+        # whose single plat held a seventh of it.
+        best_score = max((x["score"] for x in scored), default=0.0)
+        tot_score = sum(x["score"] for x in scored) + (1.0 - best_score)
         for x in scored:
             x["confidence"] = round(x["score"] / tot_score, 3)
             x["era_weight"] = era_weight(int(x["recorded"][:4])
