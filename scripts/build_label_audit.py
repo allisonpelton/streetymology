@@ -18,7 +18,7 @@ SEED = 20260906
 PER_FILE = 44
 MAX_CAND = 5
 MAX_NEIGHBOURS = 18
-REJECT = ("family name", "given name", "surname", "wikimedia", "disambiguation")
+from streetymology.candidates import publishable
 LETTERS = "ABCDE"
 HEADER = """# Street name etymology audit — batch {b} of {t}
 
@@ -72,7 +72,7 @@ def strip_dir(n):
 
 def usable(h):
     d = (h.get("description") or "").lower()
-    return bool(d) and not any(r in d for r in REJECT)
+    return bool(d) and not not publishable(d)
 
 
 def main():

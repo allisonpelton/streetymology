@@ -20,11 +20,11 @@ if __name__ == "__main__":
     cores = osm_cores()
     gaz = sum(1 for k, v in cores.items() if match.match(v, idx, fallback_domains=g.FALLBACK_DOMAINS))
     search = json.loads((data_path("search_unmatched.json")).read_text())
-    REJECT = ("family name", "given name", "surname", "wikimedia", "disambiguation")
+    from streetymology.candidates import publishable
     MEDIA = ("film", "album", "song", "band", "novel", "video game", "tv series")
     srch = sum(1 for k, v in search.items()
-               if any((h.get("description") or "").lower()
-                      and not any(r in (h.get("description") or "").lower() for r in REJECT + MEDIA)
+               if any(publishable(h.get("description"))
+                      and not any(r in (h.get("description") or "").lower() for r in MEDIA)
                       for h in v))
     total = len(cores)
     withc = gaz + srch

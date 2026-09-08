@@ -24,7 +24,7 @@ SEED = 20260905
 N_POS, N_NEG, N_UNKNOWN = 12, 10, 18
 MAX_CAND = 5
 MAX_NEIGHBOURS = 20
-REJECT = ("family name", "given name", "surname", "wikimedia", "disambiguation")
+from streetymology.candidates import publishable
 LETTERS = "ABCDE"
 
 
@@ -35,7 +35,7 @@ def strip_dir(n):
 
 def usable(h):
     d = (h.get("description") or "").lower()
-    return bool(d) and not any(r in d for r in REJECT)
+    return bool(d) and not not publishable(d)
 
 
 def main():
