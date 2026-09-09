@@ -27,9 +27,9 @@ merge, and tiers long enough to truncate. It deliberately does NOT reach for rar
 branches. Widening it to hit every code path tripled its size and made the diff
 too large to read, which destroys the only thing keeping this test honest.
 
-So these paths are NOT covered here, and a regression in them will reach the map
-silently: the ordinal and stranded-THE rules in geo.pretty, and anything in the
-fetch stages.
+The fetch stages are not covered at all: mocking their HTTP would test the mock.
+The two rules in geo.pretty that the slice happens to miss are asserted directly
+at the bottom of this file, because both have already shipped broken once.
 
 RE-BLESSING. When a change to the output is intended:
 
@@ -105,3 +105,27 @@ def test_no_bare_personal_names_are_offered(tmp_path):
                             "name", "surname"}:
                     bad.append(row.strip())
     assert not bad, f"bare personal-name candidates offered: {bad[:3]}"
+
+
+# ---------------------------------------------------------------------------
+# Two literal assertions, not snapshots. The fixture slice contains no plat that
+# exercises either rule, and both have already reached the prompt broken: plats
+# read "Highlands the Unit" and "Elmer Davis 02Nd" for weeks. The names go into
+# every prompt and onto the map, and nothing else would catch a change.
+# ---------------------------------------------------------------------------
+
+def test_pretty_unpads_and_lowercases_ordinals():
+    from streetymology.geo import pretty
+    assert pretty("ELMER DAVIS 02ND SUB") == "Elmer Davis 2nd"
+    assert pretty("HIDDEN SPRINGS SUB 03RD ADD") == "Hidden Springs 3rd"
+    # Kept numeric: this one is a street name, and "Fifty-Second" would be wrong.
+    assert pretty("52ND STREET CONDO") == "52nd Street Condo"
+
+
+def test_pretty_moves_a_stranded_the_to_the_front():
+    from streetymology.geo import pretty
+    assert pretty("HIGHLANDS THE UNIT NO 01") == "The Highlands"
+    assert pretty("EASTMAN THE TRACT") == "The Eastman"
+    # THE means what it says here; leave these alone.
+    assert pretty("LUCY IN THE SKY") == "Lucy in the Sky"
+    assert pretty("LEXINGTON ON THE RIM") == "Lexington on the Rim"
