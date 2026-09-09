@@ -65,15 +65,17 @@ neighbouring street names, strongest evidence first:
 - **In that subdivision, named by a different one** — the plats overlap, but a
   different developer chose the name. Related, weaker.
 - **Nearby, outside it** — adjacent or unplatted ground. Weakest; proximity
-  alone is not evidence of a shared theme.
+  alone is not evidence of a shared theme. Rarely, one of these streets could 
+  be the etymology.
 
 Two numbers are given, both 0 to 1:
 
-- **Confidence this subdivision laid the street out.** Below about 0.9, treat the
-  subdivision and its street names as uncertain.
-- **Confidence its name follows that subdivision's theme.** This is the first
-  number damped by the plat's age: subdivisions platted before the 1960s often
-  named streets after people and places with no theme at all.
+- **Confidence this subdivision laid the street out.** Below about 0.9, treat the subdivision and its street names as uncertain.
+- **Confidence its name follows that subdivision's theme.** This is merely a 
+  factor of the plat's age. Older subdivisions seldom have themes beyond trees
+  and presidents. This number doesn't imply the subdivision has a theme or 
+  that every listed street is part of the theme. If this value is low, themes
+  are likely coincidental.
 
 ## Answers
 
