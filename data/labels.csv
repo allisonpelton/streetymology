@@ -1,0 +1,240 @@
+street,answer,note
+East 51st Street,INVENTED,Obviously the ordinal number
+East Beamer Court,PERSONAL,Name
+East Beechcraft Court,Q634227,
+East Bentley Drive,NONE,"Should be the car, but not given as option"
+East Blakehurst Street,Q4924569,
+East Blue Valley Lane,INVENTED,Invented for theme
+East Cadillac Drive,Q27436,
+East Castlerock Court,INVENTED,
+East Celia Court,PERSONAL,"May be theme, but candidates seem bad"
+East Chester Lane,PERSONAL,Could be missing theme | Really should be NOETYM. AI comes up with spurious British theme that doesn't apply because they belong to neighboring subdivisions. We need a check for that!
+East Cleary Street,PERSONAL,
+East Daniel Court,PERSONAL,Name
+East Esperanto Street,Q143,
+East Farewell Bend Court,Q5435017,"Most likely a reference to whatever ""Farewell Bend"" is that gives the state recreation area in Oregon its name | Human missed theme! It is, in fact, on the Oregon Trail"
+East Front Runner Lane,INVENTED,"Could it be an individual race horse, or just the concept of the one winning? Neither are options"
+East Grayson Street,PERSONAL,Local's name
+East Greiner Street,PERSONAL,AI selected name despite prompt telling it not to. We need to filter these out from the choices given to AI
+East Hadler Street,INVENTED,
+East Helix Street,NONE,Probably refers to the structure
+East Limestone Street,Q23757,
+East Linmar Drive,PERSONAL,No exact matches for name
+East Loop Lane,INVENTED,
+East Los Altos Drive,Q864124,
+East Maddy Lane,PERSONAL,Local's name
+East Madrigal Street,NONE,"Most likely reference for name, but no apparent theme | Human should have noticed winery theme"
+East Nahuatl Drive,Q13300,
+East Redwood Court,Q1975652,"B and C appear identical, as are D and E, but genus should be correct"
+East Ronda Street,INVENTED,Could be missing theme
+East Rosemary Court,NONE,"Candidate summaries are ambiguous, no way to choose (Update: Q102240169)"
+East Seville Lane,Q8717,Seems more notable than the other locations | B is the one associated with the Wikipedia article with a bare title
+East Shadow Creek Lane,INVENTED,Seems invented
+East Skokie Drive,INVENTED,Nothing supports Illinois theme
+East Sky Bar Street,INVENTED,
+East Spartan Street,NONE,"There is no item for a resident of ancient Sparta, surprisingly"
+East Spinosa Drive,INVENTED,Local's name
+East Terrazzo Court,Q1334655,
+East Trinity Lane,Q37090,Could be the given name or a toponym
+East Veterans Memorial Parkway,INVENTED,Generic
+East Whitehall Street,INVENTED,"Candidates are wrong, but there may be theme"
+Emmett Highway,Q988735,
+North Abernathy Way,Q319659,
+North Anfield Avenue,INVENTED,"Local's name | AI says Liverpool district is well-known, but I've never heard of it"
+North Arlington Drive,INVENTED,I see a possible theme with Colonial and Liberty
+North Avain Avenue,INVENTED,Seems fully invented due to no exact text matches in Wikidata
+North Ballantyne Lane,PERSONAL,"Family name | Model is technically right using family name; was A, a bare personal-name item"
+North Barholm Lane,Q4860662,Could be missing theme
+North Berry Drive,PERSONAL,Ambiguous between name and fruit
+North Bonnie Lane,INVENTED,
+North Bonsai Lane,Q64365,
+North Bottle Creek Place,INVENTED,Probably a geographic theme I'm missing
+North Brownfield Way,INVENTED,"Could be A, although it seems like an unpleasant name for a street | D is an obscure place, very implausible"
+North Burlington Circle,INVENTED,"Generic name | AI says theme may refer to a particular Burlington in England, but no candidate present, while human ruled too generic"
+North Burt Place,PERSONAL,Local's name
+North Cape Arago Place,Q49872810,"Could be referring to the lighthouse, if the lighthouse is particularly famous. There may be a theme, but I am not detecting it."
+North Capitol View Lane,INVENTED,Likely refers to the visibility of the Idaho Capitol Building
+North Castle Hills Avenue,INVENTED,
+North Chopin Avenue,Q1268,
+North Contour Way,INVENTED,
+North Crafted Lane,INVENTED,Refers to the general concept of a crafted thing
+North Crosswater Way,INVENTED,Invented theme
+North Del Sol Way,PERSONAL,Probably invented name
+North Downing Drive,INVENTED,
+North El Rancho Place,Q5351976,California theme
+North Ethan Place,PERSONAL,"Family name | Model is technically right using given name; was D, a bare personal-name item"
+North Fisher Park Way,INVENTED,"Could be local toponym, probably invented"
+North Gossett Avenue,INVENTED,
+North Granite Falls Avenue,INVENTED,Could be missing theme
+North Greenwich Way,Q179385,AI picks NONE because no theme. Human believes A is accurate for generic reference
+North Hale Canyon Avenue,Q49808248,"There are a few in Idaho, and I don't know enough to recognize a theme confined to one part of the state | Human missed Yellowstone theme"
+North Hope Valley Lane,INVENTED,Seems invented
+North Lange Avenue,PERSONAL,"Local's name | Human missed the theme; was B, a bare personal-name item"
+North Lichfield Avenue,Q207371,
+North Maximus Way,INVENTED,Could be missing theme
+North Mobley Drive,PERSONAL,Local's name
+North Player Avenue,INVENTED,Generic
+North Point Place,INVENTED,
+North Powell Creek Avenue,INVENTED,"Probable theme, not obvious to human"
+North Principle Way,Q211364,"May be NOETYM. Reference is to Constitutional principle, for which no Wikidata item may exist"
+North Rathbone Avenue,PERSONAL,"Could be an actor based on Clooney and Duvall | Model is technically right using family name; was E, a bare personal-name item"
+North Red Horse Way,INVENTED,Possibly invented
+North Red Pine Avenue,NONE,Impossible to disambiguate Wikidata items. AI results will be unhelpful
+North Roping Lane,INVENTED,
+North Sanada Way,INVENTED,"Nearby streets imply something in Spanish, but all candidates are in Japanese"
+North Scrivner Place,INVENTED,"Wyoming mountain is reasonable candidate, but I don't see a theme. Better human judgement would require knowledge of notability | Human hallucination! No context supported selection of B"
+North Shannon Lane,Q611919,Could be missing theme
+North Start Point Place,Q24637602,"Part of Avimor, which likely has a theme, but I can't figure it out | Human tried to find theme but missed anyway"
+North Summit Way,NONE,Should refer to the general concept of a mountain summit
+North Sunny Lane,INVENTED,Generic sun theme
+North Towerview Lane,INVENTED,"Seems invented, weak English theme"
+North Ulmer Street,PERSONAL,"Family name | Model is technically right using family name; was E, a bare personal-name item"
+North Verado Avenue,INVENTED,"Technically, the street's etymology is the subdivision. The subdivision name is almost certainly invented. We haven't discussed how to handle that yet."
+North Warwick Avenue,INVENTED,
+North Westview Way,INVENTED,
+North White Barn Road,INVENTED,
+North Willowick Avenue,INVENTED,Only obscure and faraway place names
+North Wing Road,INVENTED,AI hallucinated theme
+North Wintertree Avenue,INVENTED,
+North Woodstream Place,INVENTED,"Likely invented for Wood- theme, slim chance of racehorse not supported by nearby streets"
+North Yardley Avenue,PERSONAL,Local's name
+North Yarmouth Place,Q3448462,Common place name. I don't see a theme but would defer to AI
+North Zircon Place,Q178928,
+South Ancona Avenue,Q3415,
+South Argemone Avenue,Q1783190,
+South Beartooth Way,Q1145853,
+South Bo Daniel Lane,PERSONAL,Likely first and last name of local
+South Carbondale Street,Q577511,
+South Charlotte Avenue,Q16565,
+South Chex Avenue,INVENTED,
+South Crystal Springs Lane,INVENTED,"Common toponym, no clear candidate"
+South Diego Way,INVENTED,
+South Flintstone Avenue,INVENTED,Overlooked invented -stone theme
+South Fountain Creek Place,INVENTED,Invented
+South Gloriosa Lane,Q1454851,
+South Green Cottage Avenue,INVENTED,"Obscure enough to have no Wikipedia entry, so probably invented"
+South Gross Street,NONE,Name | Human overlooked aircraft theme since no candidates matched. It did identify all nearby streets as part of theme. We should be able to heuristically surface this after getting theme from LLM. Feature idea?
+South Highmark Avenue,INVENTED,"Theme is the maximum of something (culmination, prime, apex)"
+South Hills Avenue,INVENTED,
+South Kylee Street,INVENTED,Unclear whether name is from subdivision or subdivision name is from street. Nothing publishable
+South Liberty Street,INVENTED,
+South Loggers Creek Lane,Q49261031,
+South Lois Avenue,PERSONAL,Certainly a local's name
+South Lunar Place,NONE,"Difficult for heuristic to capture, but the best candidate would just be the Moon"
+South Malayan Avenue,NONE,"Obvious bear theme, but no matching bear shows up. Does one exist? Update: Should be the sun bear. Wikidata did not surface because it is alt label"
+South Mare Lane,NONE,Obviously a female horse
+South Mayfly Avenue,NONE,"Human did not know ""mayfly"" was ambiguous"
+South Moon Land Avenue,Q495307,Human mistake. Now noting: Moon Land likely chosen because Moon Landing was over length cap
+South Mustang Creek Lane,NONE,"This 100% refers to Mustang Creek near Elk City, Idaho. There is a Cayuse Creek nearby. Unsure if LLMs will surface this. Would be nice to achieve this heuristically by checking for nearby streets having Wikidata items in close proximity, perhaps with a spatial join. LLMs undoubtedly will sometimes miss these."
+South Osterley Avenue,Q2137632,Inferring theme
+South Outpost Lane,Q1321241,
+South Owl Ridge Way,INVENTED,"Possible Colorado theme given Divide Pass. Unlikely to be invented, but may be a common toponym"
+South Pikesville Avenue,Q755020,Don't see a theme
+South Pomander Road,Q131398340,"No theme, but fruit is clear favorite"
+South R&D Avenue,Q276099,
+South Ravenswood Drive,INVENTED,Invented for -wood theme
+South Saddle Street,Q192249,
+South Sea Breeze Way,Q81242,
+South Silvercreek Lane,INVENTED,Common toponym
+South Songbird Lane,Q194240,
+South Southshore Way,INVENTED,Invented
+South Sportsman Way,Q7111941,
+South Sugar Plum Avenue,INVENTED,"Invented for theme, but theme seems to have real, rather than constructed, names | Human said the hard candy even after acknowledging invented name theme, oops"
+South Sumpter Way,INVENTED,"I could be missing a theme, but candidates are bad | AI claims ghost-town theme supporting E but does not elaborate"
+South Swift Current Way,Q619937,"Seems invented, few streets to establish potential theme. Few candidates implies rural, which is very weak support for the racehorse, but it is a Japanese racehorse so still spurious at best | Human missed the theme"
+South Teaberry Way,NONE,May be Gaultheria procumbens?
+South Timesquare Lane,INVENTED,"Could be the famous Times Square, but the spelling is different enough that it could be an invention-with-influence"
+South Toluka Way,INVENTED,"Almost certainly an alt. Spelling of Toluca, MX"
+South Tomen Avenue,INVENTED,"Seems completely invented as a word | I chose NOETYM, AI chose NONE. Maybe we shouldn't adjudicate these."
+South Topaz Avenue,Q134985,
+South Tylee Way,INVENTED,
+South Waldvogel Lane,PERSONAL,Local's name
+South Westbury Way,INVENTED,"Obvious -bury theme, but name is too common to refer to a particular place"
+South White Castle Avenue,INVENTED,Could be missing theme
+South Whitehaven Place,Q1012481,Only medium confidence because I don't detect theme more specific than English placenames
+South Wooddale Avenue,INVENTED,Invented for -dale theme
+South Zach Place,INVENTED,
+Standifer Road,PERSONAL,"Model is technically right using family name; was D, a bare personal-name item"
+West Afton Street,PERSONAL,Family name
+West Apache Way,NONE,Should be the indigenous peoples
+West Aquarius Street,Q10576,
+West Ardyce Lane,PERSONAL,Local's name
+West Backpack Street,Q5843,
+West Balance Rock Drive,INVENTED,No theme
+West Bank Drive,INVENTED,
+West Bankside Drive,NONE,
+West Beryl Street,Q103480,
+West Big Cliff Street,Q49467605,"Seems invented, could be narrow geographical theme"
+West Big Creek Street,INVENTED,Invented for creek theme. SLIM possibility that invented creek theme is actually Idaho creek theme. Only supported if all creeks are in same part of the state. Matching Idaho settlement very likely coincidence
+West Blenheim Street,Q4926036,"Guessing at an English theme, but real theme would probably be more specific"
+West Brentwood Drive,INVENTED,"Could be a theme, but don't see one"
+West Bucktail Drive,NONE,Likely refers to a deer tail
+West Bush Court,INVENTED,Predates POTUS
+West Castlebar Drive,INVENTED,
+West Chamblee Street,Q2527605,"Likely name, could be missing theme | Human missed Georgia towns theme"
+West Colby Lane,PERSONAL,
+West Covey Hill Court,INVENTED,Almost certainly invented
+West Dalrymple Court,Q5355303,"Seems rather obscure, but clear strongest match for name | Human missed the theme and went for first Wikipedia item! Oops!"
+West Donatella Street,INVENTED,Could be missing theme
+West Dora Street,PERSONAL,Name
+West Elias Street,PERSONAL,
+West Enchantment Street,Q65648550,E seems to be a duplicate of A
+West Fairmont Street,INVENTED,Choices are obscure locations
+West Fernside Drive,INVENTED,"Generic, could be a theme in nearby streets"
+West Flint Drive,Q83087,"No evidence it refers to name, but technically possible"
+West Fordham Drive,Q3041063,Could be many placed named Fordham. LLM may detect more precise theme than English toponym
+West Founders Drive,INVENTED,Generic
+West Fox Brush Drive,NONE,Human ignored the fox theme
+West Fox Ridge Drive,INVENTED,Invented for fox theme
+West Gelding Drive,Q506461,
+West Geyser Street,Q83471,
+West Golf Court,Q5377,
+West Great Basin Drive,Q1137657,I initially chose the feature itself rather than the national park
+West Greenhead Drive,NONE,"Given the duck theme, probably referring to a mallard"
+West Greensboro Court,INVENTED,"Seems like the most notable, but no clues are available"
+West Guido Lane,INVENTED,
+West Hester Street,PERSONAL,Local's name
+West Humanity Lane,INVENTED,Too ambiguous | I think AI missed the mark. It applied specificity rule intended for organism classification to generic term
+West Jean Street,PERSONAL,"Model is technically right using family/given name; was E, a bare personal-name item"
+West Jonathan Drive,PERSONAL,Could be theme
+West Jumper Lane,INVENTED,No theme to go on
+West Kingman Street,PERSONAL,Family name
+West Larry Lane,PERSONAL,
+West Libby Street,INVENTED,
+West Lovegood Lane,Q190282,"No Harry Potter theme I can detect, but the name was invented for the books so not sure what else it could be"
+West Lower Fork Court,INVENTED,Generic toponym
+West Maypearl Street,Q981718,"Likely invented, placename coincidental. I foresee this as a weak point for the LLM"
+West Meada Lane,INVENTED,"No matches, probably invented or obscure name not in Wikidata"
+West Miller Street,PERSONAL,Very likely a family name. I use NONE for this even if item is available because I would never want to suggest it as etymology
+West Mobeetie Street,Q978897,"This is a Cheyenne word not in Wikidata. We'll want to think about how to find these; even without an item, we could still use the name:etymology tag and a note. | Human missed Texas town theme"
+West Newtown Drive,INVENTED,"Too generic, don't see a theme"
+West Nicholson Road,PERSONAL,
+West Nordic Drive,Q201965,"Refers to cross-country skiing, which is mentioned in D, but D is too specific so not chosen | Human hallucination"
+West Oakmont Court,INVENTED,"Generic, but could be a theme"
+West Obsidian Drive,Q53754,
+West Olympic Park Drive,Q2073106,
+West Packsaddle Court,Q107196939,
+West Paint Horse Lane,Q692939,
+West Parkridge Drive,INVENTED,Invented
+West Penstemon Street,Q809265,
+West Pine Valley Lane,INVENTED,Seems invented
+West Pyramid Peak Street,NONE,"Common toponym, could refer to one in Idaho. Not detecting regional theme | VERY IMPORTANT: SKIPPED! AI and human both wrong, and AI makes a bad mistake. It picks up on a Sierra Nevada theme that the human missed, but it goes for the generic mountain with no state listed because it's the ""best available"". The AI should have picked ""NONE"" here. The correct item is Q7263270"
+West Rainwater Court,INVENTED,Human should have noticed invented theme
+West Redwick Drive,INVENTED,Seems invented
+West Rivermont Lane,INVENTED,"Seems like invented/generic water theme, but could be overlooking"
+West Run Court,Q63565252,
+West Salmonberry Street,Q158361,
+West Settlers Drive,INVENTED,Generic
+West Silverberry Drive,Q159188,Reads identically to A except for capitalization. Assuming Q159188
+West Stillwell Drive,INVENTED,Could be missing theme
+West Sugarberry Street,Q1529852,"All choices are similar, human has no intuition for which is most probable"
+West Surf Street,Q11739436,Generic
+West Three Lakes Drive,INVENTED,"Common toponym, seems invented"
+West Tudor Court,Q101978,
+West Valentino Drive,PERSONAL,
+West War Eagle Court,NONE,"Don't see theme, but other candidates are implausible | Human forgot about the real mountain, indeed not among real candidates"
+West Waterbury Drive,INVENTED,"Likely chosen for water theme only | AI reasons no way to pick a particular location and uses NONE for this, but I would use NOETYM. I think we need to clarify when to use NOETYM. Human also may not have been careful applying distinction"
+West Westfield Place,INVENTED,Generic
+West Whiff Drive,INVENTED,
+West Wylie Lane,PERSONAL,
+West Yaryan Drive,PERSONAL,Local's name

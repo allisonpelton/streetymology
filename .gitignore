@@ -4,11 +4,6 @@ __pycache__/
 .env
 .env.*
 !.env.example
-# data/* not data/, because git does not descend into an excluded directory,
-# so a negation inside one never applies. The previous `data/` left
-# labels_corrected.csv and data/labels/equal_ground/ silently untracked.
-data/*
-!data/labels/
 *.gpkg
 *.osm.pbf
 *.parquet
@@ -16,8 +11,9 @@ data/*
 .pytest_cache/
 *.egg-info/
 
-# Pipeline data: lives here so the code can find it, but all of it re-downloads
-# or recomputes. Only labels.csv and plat_judgement/ are tracked.
+# Pipeline data sits in data/ so the code is beside it, but re-downloads or
+# recomputes. Everything else under data/ is tracked, including data/llm/,
+# which holds answers no rerun can reproduce.
 data/raw/
 data/derived/
 data/artifacts/

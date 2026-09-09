@@ -1,0 +1,34 @@
+{
+  "_about": "Plat phases judged to be one naming act. Hand judgement, not regenerable.",
+  "_rule": "Merge when the two plats touch AND either their street names show one theme, or one side names too few streets (<3) to contradict anything. Skip when both sides name enough streets to show a theme and the themes differ.",
+  "_evidence": "scripts/plat_phase_report.py",
+  "_judged": "2026-09-09",
+  "merge": [
+    {"family": ["CALDERWOOD", "CALDERWOOD WEST"], "why": "1 street each; nothing to contradict"},
+    {"family": ["CANONERO", "CANONERO WEST"], "why": "Riva Ridge and Canonero are both Kentucky Derby winners; Terra/Verde/Puerta share the Spanish register"},
+    {"family": ["CASTLEBURY", "CASTLEBURY WEST"], "why": "English place names both sides: Kingsbury, Stansbury, Westbury / Newbury, Cadbury, Osterley"},
+    {"family": ["CAVEN RIDGE ESTATES", "CAVEN RIDGE ESTATES EAST", "CAVEN RIDGE ESTATES WEST"], "why": "1 street each; nothing to contradict"},
+    {"family": ["CRIMSON POINT", "CRIMSON POINT NORTH", "CRIMSON POINT SOUTH"], "why": "parent is 31 X11 colour names; North adds Beige, Henna, Old Lace, all colours. South's single Crawford does not fit but cannot outweigh 31"},
+    {"family": ["DESERTHAWK", "DESERTHAWK EAST"], "why": "deserts both sides: Kalahari, Sahara, Thar / Atacama, Rangipo, Tanami"},
+    {"family": ["FIVE MILE ESTATES", "FIVE MILE ESTATES NORTH", "FIVE MILE ESTATES SOUTH", "FIVE MILE ESTATES WEST"], "why": "North and West share an Iroquois and upstate-New-York theme: Hiawatha, Ithaca, Tioga / Cayuga, Oneida, Onondaga, Oswego, Seneca. Parent names only Leland"},
+    {"family": ["HILLS CENTURY FARM", "HILLS CENTURY FARM NORTH"], "why": "child names only Kalinga and Rincon, too few to contradict the parent's English farm theme; 2-year gap"},
+    {"family": ["KEEP", "KEEP WEST"], "why": "Pride and Prejudice both sides: Bingley, Darcy, Pemberley, Rosings, Wickham / Netherfield"},
+    {"family": ["KENTUCKY RIDGE ESTATES", "KENTUCKY RIDGE ESTATES SOUTH"], "why": "child names only Redup; parent is horse racing"},
+    {"family": ["LEXINGTON HILLS", "LEXINGTON HILLS EAST"], "why": "English places both sides: Belgrave, Chatham, Sevenoaks, Wimbledon / Hampshire, Mansfield, Margate, Salisbury"},
+    {"family": ["LUGARNO TERRA", "LUGARNO TERRA NORTH"], "why": "Sydney suburbs both sides: Bexley, Hurtsville, Manly, Rockdale, Ryde / Blakehurst, Mortdale, Padstow"},
+    {"family": ["NEVILLE RANCH", "NEVILLE RANCH EAST"], "why": "child names only Rabbitbrush"},
+    {"family": ["PALOMA RIDGE", "PALOMA RIDGE WEST"], "why": "recorded concurrently, 2023-2026 against 2024-2025; both sides are nature compounds"},
+    {"family": ["PATAGONIA", "PATAGONIA EAST"], "why": "Patagonian and southern-cone places both sides: Esquel, La Pampa, Osorno, Ushuaia, Viedma / Temuco, Zapala, Esmeralda"},
+    {"family": ["POLLARD", "POLLARD NORTH"], "why": "parent names only Levi"},
+    {"family": ["RANCHERO ESTATES", "RANCHERO ESTATES NORTH"], "why": "Native American peoples both sides: Choctaw, Commanche, Hopi, Kiowa, Paiute, Seminole / Chippewa, Mohican, Wichita"},
+    {"family": ["RIVERSIDE VILLAGE", "RIVERSIDE VILLAGE NORTH"], "why": "water compounds both sides: Lake Front, Lakeview, Riverine / Cove, Rivercove, Riverfront, Rivervista"},
+    {"family": ["SHERWOOD PARK", "SHERWOOD PARK WEST"], "why": "English places and shires both sides: Berkshire, Cranbrook, Kilarney, Wyndham / Birmingham, Dorsetshire, Warrington, Yorkshire"},
+    {"family": ["SOUTHRIDGE", "SOUTHRIDGE SOUTH"], "why": "timber and western-river compounds carry across: Heavy Timber, Knotty Pine, Spanish Fork / Timberwood, Rio De Plata"},
+    {"family": ["WOODBURN", "WOODBURN WEST"], "why": "parent names only Apple Pine and Woodpine; Woodchest continues the wood compound"}
+  ],
+  "skip": [
+    {"family": ["HARRIS RANCH", "HARRIS RANCH EAST"], "why": "14-year gap, and Glacier Lily and Prominence do not continue the sawmill theme of Bandsaw, Dry Kiln, Quartersawn, Sawdust"},
+    {"family": ["HARRIS RANCH", "HARRIS RANCH NORTH"], "why": "26 sawmill names against 6 birds, Grebe, Hootowl, Linnet. Both sides are large enough to show a theme and the themes differ"},
+    {"family": ["SHELBURNE", "SHELBURNE EAST", "SHELBURNE SOUTH"], "why": "the parent names only Peaceful Pond and Pond View, but East (Awbrey, Bott, Cleary, Langdon) and South (Courvoisier, Hennessy, Jameson) have different themes from each other. Merging through the parent would make two unrelated developments peers"}
+  ]
+}
