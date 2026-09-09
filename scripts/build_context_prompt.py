@@ -71,8 +71,8 @@ neighbouring street names, strongest evidence first:
 Two numbers are given, both 0 to 1:
 
 - **Confidence this subdivision laid the street out.** Below about 0.9, treat the subdivision and its street names as uncertain.
-- **Confidence its name follows that subdivision's theme.** This is merely a 
-  factor of the plat's age. Older subdivisions seldom have themes beyond trees
+- **Confidence its name follows that subdivision's theme.** This is the
+  confidence above, reduced by the plat's age. Older subdivisions seldom have themes beyond trees
   and presidents. This number doesn't imply the subdivision has a theme or 
   that every listed street is part of the theme. If this value is low, themes
   are likely coincidental.

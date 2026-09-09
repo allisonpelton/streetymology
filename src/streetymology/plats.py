@@ -53,11 +53,29 @@ def base_name(name: str) -> str:
     return _WS.sub(" ", out)
 
 
+# "HIGHLANDS THE UNIT" is "The Highlands, Unit 1" in the assessor's filing
+# order. _TRAIL removes "UNIT 01" but not a bare "UNIT", so THE is stranded
+# mid-string and the trailing-THE rule below never fires. Only invert when THE
+# is followed by a plat-type word: "LUCY IN THE SKY" and "LEXINGTON ON THE RIM"
+# mean what they say.
+_THE_PLAT_TYPE = re.compile(r"^(.*?)\s+THE\s+(?:UNIT|TRACTS?|CONDO)$", re.I)
+# The assessor zero-pads ordinals and _TRAIL leaves them, so .title() produced
+# "02Nd". Display-only: base_name still sees the original, so nothing regroups.
+_ORDINAL = re.compile(r"\b0*(\d+)(st|nd|rd|th)\b", re.I)
+
+
 def pretty(name: str) -> str:
     """Title-cased base name for showing to a model or a reader."""
-    b = base_name(name).title()
+    b = base_name(name)
+    m = _THE_PLAT_TYPE.match(b)
+    if m:
+        b = f"THE {m.group(1)}"
+    b = b.title()
     # Lower-case only INTERIOR articles: "The Highlands" keeps its capital.
-    b = re.sub(r"(?<!^)\b(Of|The|And|At)\b", lambda m: m.group(1).lower(), b)
+    b = re.sub(r"(?<!^)\b(Of|The|And|At|In|On)\b", lambda m: m.group(1).lower(), b)
+    # "02Nd" -> "2nd". Kept numeric: "52nd Street Condo" is a street name, and
+    # "Fifty-Second Street" would be wrong.
+    b = _ORDINAL.sub(lambda m: m.group(1) + m.group(2).lower(), b)
     return b
 
 
