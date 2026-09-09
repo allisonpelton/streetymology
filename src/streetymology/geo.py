@@ -12,6 +12,14 @@ this layer. Three things the assessor has that OSM cannot give:
 Names arrive in assessor shorthand: upper case, with `SUB`, `ADD`, `AMD` and a
 `NO n` phase marker. `base_name()` strips those to the naming act; `pretty()`
 produces something a prompt can show a model.
+
+Two words, kept apart everywhere:
+
+  plat          the recorded document and its polygon. What this code measures
+                against, and what every identifier here is named for.
+  subdivision   the development the plat records. Used only in text a person or
+                a model reads, in `prompt.py`, because a reader should not have
+                to know what a plat is.
 """
 import datetime
 import json
@@ -183,6 +191,19 @@ class Plat:
         return f"<Plat {self.name!r} {self.year}>"
 
 
+def _strands(lines):
+    """A place's ways merged into its continuous stretches.
+
+    OSM splits a street wherever an editor stopped, so the ways are merged first
+    and only genuine discontinuities survive. Three words are kept apart below:
+    a STRAND is a continuous stretch of the street itself, a PIECE is the part of
+    a strand lying inside one plat, and a RUN is a chain of pieces joined across
+    short excursions outside it.
+    """
+    merged = linemerge(lines)
+    return list(merged.geoms) if merged.geom_type == "MultiLineString" else [merged]
+
+
 class PlatIndex:
     """Every recorded plat, searchable by geometry."""
 
@@ -221,17 +242,15 @@ class PlatIndex:
         long unbroken run of it inside the boundary, and that survives however
         the ways were split.
         """
-        merged = linemerge(lines)
-        parts = list(merged.geoms) if merged.geom_type == "MultiLineString" \
-            else [merged]
+        strands = _strands(lines)
         out = {}
-        for p in self.covering(merged):
+        for p in self.covering(linemerge(lines)):
             total, pieces = 0.0, []
-            for part in parts:
+            for strand in strands:
                 try:
-                    inter = part.intersection(p.geom)
+                    inter = strand.intersection(p.geom)
                 except Exception:                                 # noqa: BLE001
-                    inter = part.intersection(p.geom.buffer(0))
+                    inter = strand.intersection(p.geom.buffer(0))
                 if inter.is_empty:
                     continue
                 for piece in (list(inter.geoms) if hasattr(inter, "geoms")
@@ -255,20 +274,18 @@ class PlatIndex:
         any plat, and that is what distinguishes it from a street a developer
         built.
         """
-        merged = linemerge(lines)
-        parts = list(merged.geoms) if merged.geom_type == "MultiLineString" \
-            else [merged]
-        total = sum(p.length for p in parts)
-        covering = [p.geom for p in self.covering(merged)]
+        strands = _strands(lines)
+        total = sum(s.length for s in strands)
+        covering = [p.geom for p in self.covering(linemerge(lines))]
         if not covering:
             return 0.0, total
         u = unary_union(covering)
         inside = 0.0
-        for part in parts:
+        for strand in strands:
             try:
-                inter = part.intersection(u)
+                inter = strand.intersection(u)
             except Exception:                                     # noqa: BLE001
-                inter = part.intersection(u.buffer(0))
+                inter = strand.intersection(u.buffer(0))
             if inter.is_empty:
                 continue
             for piece in (list(inter.geoms) if hasattr(inter, "geoms") else [inter]):
@@ -299,11 +316,24 @@ class PlatIndex:
 
 
 # ----------------------------------------------------------------------
-# Places: a street name in ONE location, built on the plats above.
+# Ways, alignments, places, duplicates.
+#
+#   way         what OSM stores: a street cut into pieces at intersections,
+#               bridges, or wherever an editor stopped.
+#   alignment   ways that run along the same line and continue each other. A
+#               purely geometric relation -- collinear, same heading -- with no
+#               claim about who built the street or what it was named after.
+#   place       alignments close enough together to be the same street in one
+#               location. This is the unit everything downstream works in.
+#   duplicate   alignments of the same name too far apart to be one street: the
+#               same word chosen twice in different parts of the county. They
+#               become separate places and share no context.
 # ----------------------------------------------------------------------
 
-
+# Ada County's grid puts a mile between arterials, so a break shorter than this
+# is one street interrupted rather than two.
 LINK_M = 2000.0
+# Beyond this, two alignments of one name are duplicates, not one street.
 SPLIT_M = 5000.0
 
 # Classes a developer plausibly named. Anything above tertiary is a public road
@@ -369,37 +399,37 @@ def _min_dist(a_pts, b_pts, stop_at=None):
 def _components(items, pts_of, gap, test):
     """Single-linkage grouping of `items`.
 
-    `test(pts, parts, gap)` decides linkage, and there is no default: the two
-    callers mean different things by "connected". `_place_test` is closest
-    approach; `_road_test` also demands the pieces be collinear.
+    `test(pts, members, gap)` decides linkage, and there is no default: the two
+    callers mean different things by "connected". `_same_location` is closest
+    approach; `_same_alignment` also demands the pieces be collinear.
     """
     groups = []
     for it in items:
         pts = pts_of(it)
-        hits = [g for g in groups if test(pts, g["parts"], gap)]
+        hits = [g for g in groups if test(pts, g["members"], gap)]
         if not hits:
-            groups.append({"items": [it], "pts": list(pts), "parts": [list(pts)]})
+            groups.append({"items": [it], "pts": list(pts), "members": [list(pts)]})
             continue
         first = hits[0]
         first["items"].append(it)
         first["pts"].extend(pts)
-        first["parts"].append(list(pts))
+        first["members"].append(list(pts))
         for other in hits[1:]:
             first["items"].extend(other["items"])
             first["pts"].extend(other["pts"])
-            first["parts"].extend(other["parts"])
+            first["members"].extend(other["members"])
             groups.remove(other)
     return groups
 
 
-def _road_test(pts, parts, gap):
-    """Same road: touching, or resuming collinearly after a gap."""
-    return any(continues(pts, part, gap) for part in parts)
+def _same_alignment(pts, members, gap):
+    """On one line: touching, or resuming collinearly after a break."""
+    return any(continues(pts, m, gap) for m in members)
 
 
-def _place_test(pts, parts, gap):
-    """Same place: anything within `gap` of anything."""
-    return any(_min_dist(pts, part, gap) <= gap for part in parts)
+def _same_location(pts, members, gap):
+    """Near each other, whatever their heading. Not a claim of alignment."""
+    return any(_min_dist(pts, m, gap) <= gap for m in members)
 
 
 class Place:
@@ -413,7 +443,8 @@ class Place:
         self.ways = ways
         self.points = points
         self.classes = {w["highway"] for w in ways}
-        # Five Mile rule: contamination is a property of the alignment.
+        # One arterial way disqualifies the whole place, not just that way: an
+        # arterial predates the plats it crosses, and a place is one street.
         self.analysed = bool(self.classes) and self.classes <= ANALYSED_CLASSES
 
     @property
@@ -430,17 +461,22 @@ class Place:
 
 
 def build(ways_by_core, link_m=LINK_M, split_m=SPLIT_M):
-    """core -> [Place]. `ways_by_core` maps core key to way dicts with points."""
+    """core name -> [Place], in two steps.
+
+    Ways carrying the name are grouped into alignments, then alignments within
+    `split_m` of each other into places. Alignments left apart are duplicates and
+    get a place each, so nothing is carried between them.
+    """
     out = {}
     for core, ways in ways_by_core.items():
-        aligns = _components(ways, lambda w: w["points"], link_m, _road_test)
-        # Alignments closer than split_m are one etymology unit: the same
-        # developer naming two nearby streets, not two coincidental choices.
-        units = _components(aligns, lambda g: g["pts"], split_m, _place_test) \
-            if len(aligns) > 1 else [{"items": aligns, "pts": aligns[0]["pts"]}]
-        places = []
-        for i, u in enumerate(units):
-            ws = [w for g in u["items"] for w in g["items"]]
-            places.append(Place(core, i, ws, u["pts"]))
-        out[core] = places
+        alignments = _components(ways, lambda w: w["points"], link_m,
+                                 _same_alignment)
+        located = (_components(alignments, lambda g: g["pts"], split_m,
+                               _same_location)
+                   if len(alignments) > 1
+                   else [{"items": alignments, "pts": alignments[0]["pts"]}])
+        out[core] = [
+            Place(core, i, [w for g in loc["items"] for w in g["items"]],
+                  loc["pts"])
+            for i, loc in enumerate(located)]
     return out
