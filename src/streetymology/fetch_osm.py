@@ -11,9 +11,11 @@ the polylines themselves rather than between their midpoints.
 Written to `osm_ways_geom.json`; the centre file is left alone so nothing that
 depends on it breaks while the switch is made.
 """
-import argparse, json, sys, time, urllib.parse, urllib.request
+import argparse
+import json
+import sys
 
-from streetymology.config import OVERPASS_ENDPOINTS, USER_AGENT, data_path
+from streetymology.config import OVERPASS_ENDPOINTS, data_path, session
 
 OUT = "osm_ways_geom.json"
 
@@ -37,21 +39,19 @@ out geom;
 
 def fetch(timeout, endpoints=None):
     body = QUERY % {"timeout": timeout, "classes": CLASSES}
+    # The session retries a given endpoint; this loop moves to the next one,
+    # which is a different failure and not something Retry can do.
+    s = session()
     last = None
     for endpoint in (endpoints or OVERPASS_ENDPOINTS):
         print(f"requesting {endpoint} ...", flush=True)
-        req = urllib.request.Request(
-            endpoint,
-            data=urllib.parse.urlencode({"data": body}).encode(),
-            headers={"User-Agent": USER_AGENT},
-        )
         try:
-            with urllib.request.urlopen(req, timeout=timeout + 60) as r:
-                return json.loads(r.read().decode())
+            r = s.post(endpoint, data={"data": body}, timeout=timeout + 60)
+            r.raise_for_status()
+            return r.json()
         except Exception as e:                       # noqa: BLE001 - report and try next
             last = e
             print(f"  failed: {str(e)[:120]}", flush=True)
-            time.sleep(5)
     raise SystemExit(f"all endpoints failed; last error: {last}")
 
 

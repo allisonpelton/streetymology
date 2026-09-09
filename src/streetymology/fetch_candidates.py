@@ -21,9 +21,8 @@ import csv
 import io
 import json
 import time
-from streetymology.config import USER_AGENT, data_path
+from streetymology.config import data_path, session
 from streetymology.normalize import normalize, osm_cores
-import requests
 
 API = "https://www.wikidata.org/w/api.php"
 OUT = data_path("search_unmatched.json")
@@ -43,8 +42,9 @@ def search(session, term, limit=5):
             for h in r.json().get("search", [])]
 
 
-if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
+def main():
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--limit", type=int)
     a = ap.parse_args()
 
@@ -56,15 +56,15 @@ if __name__ == "__main__":
         todo = todo[:a.limit]
     print(f"{len(unmatched)} unmatched, {len(todo)} to query", flush=True)
 
-    s = requests.Session()
-    s.headers["User-Agent"] = USER_AGENT
+    s = session()
     t0 = time.time()
     for i, k in enumerate(todo, 1):
         try:
             cache[k] = search(s, unmatched[k])
-        except Exception as e:
+        except Exception as e:                       # noqa: BLE001
+            # The session has already retried transport and 5xx errors. Getting
+            # here means this one term is bad, so skip it and keep the run going.
             print(f"  {k}: {str(e)[:60]}", flush=True)
-            time.sleep(3)
             continue
         if i % 200 == 0:
             el = time.time() - t0
@@ -76,3 +76,7 @@ if __name__ == "__main__":
     hits = sum(1 for v in cache.values() if v)
     print(f"done in {time.time()-t0:.0f}s. {hits}/{len(cache)} names returned candidates")
     print(f"-> {OUT}")
+
+
+if __name__ == "__main__":
+    main()

@@ -12,9 +12,11 @@ Layer: External/ExternalMap/MapServer/18 ("Subdivisions"), 8,000 features.
 Writes `raw/assessor_subdivisions.json`: one record per feature with attributes
 and WGS84 rings. Raw download, no interpretation.
 """
-import argparse, json, time, urllib.parse, urllib.request
+import argparse
+import json
+import time
 
-from streetymology.config import data_path
+from streetymology.config import data_path, session
 
 URL = ("http://www.adacountyassessor.org/arcgis/rest/services/External/"
        "ExternalMap/MapServer/18/query")
@@ -22,23 +24,20 @@ OUT = "assessor_subdivisions.json"
 BATCH = 200
 
 
-def get(params, tries=4):
-    for i in range(tries):
-        try:
-            # POST: an OBJECTID batch makes the query string long enough that
-            # the server answers 404 to a GET.
-            body = urllib.parse.urlencode(params).encode()
-            req = urllib.request.Request(URL, data=body)
-            with urllib.request.urlopen(req, timeout=120) as r:
-                d = json.loads(r.read())
-            if "error" in d:
-                raise RuntimeError(d["error"])
-            return d
-        except Exception as e:
-            if i == tries - 1:
-                raise
-            print(f"  retry {i+1}: {e}")
-            time.sleep(3 * (i + 1))
+_S = session()
+
+
+def get(params):
+    """POST because an OBJECTID batch makes a GET query string long enough that
+    the server answers 404. Transport and 5xx retries come from the session; an
+    error in the body means the request itself was wrong, so it is not retried.
+    """
+    r = _S.post(URL, data=params, timeout=120)
+    r.raise_for_status()
+    d = r.json()
+    if "error" in d:
+        raise RuntimeError(d["error"])
+    return d
 
 
 def main():

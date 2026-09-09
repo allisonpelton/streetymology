@@ -151,10 +151,32 @@ def main():
     print(f"-> {path}")
 
     if a.report_dupes:
-        multi = {k: ps for k, ps in built.items() if len(ps) > 1}
-        print(f"\n{len(multi)} cores occupying more than one place")
-        for k, ps in sorted(multi.items())[:40]:
-            print(f"  {k:24} {len(ps)} places")
+        report_dupes(built)
+
+
+def report_dupes(built):
+    """Every core name used in more than one place, closest pair first.
+
+    Closest first because a small separation is the suspicious end: two runs a
+    few hundred metres apart are more likely one street the joining rules missed
+    than two developers choosing the same word. A pair kilometres apart is
+    almost certainly a real duplicate.
+    """
+    rows = []
+    for core, ps in built.items():
+        if len(ps) < 2:
+            continue
+        pts = [MultiPoint(p.points) for p in ps]
+        sep = min(pts[i].distance(pts[j])
+                  for i in range(len(ps)) for j in range(i + 1, len(ps)))
+        rows.append((sep, core, ps))
+    rows.sort()
+    print(f"\n{len(rows)} core names used in more than one place, closest first")
+    print(f"{'separation':>11}  {'places':>6}  core")
+    for sep, core, ps in rows:
+        names = " | ".join(sorted({p.name for p in ps}))
+        art = "" if all(p.analysed for p in ps) else "  (arterial)"
+        print(f"{sep/1000:8.2f} km  {len(ps):>6}  {core:22} {names}{art}")
 
 
 if __name__ == "__main__":

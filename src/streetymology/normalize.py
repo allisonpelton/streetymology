@@ -4,7 +4,10 @@ Ada County code: predirectionals and post-types are not part of the name proper
 and do not count toward the 13-character limit. The core name is therefore both
 the correct join key across sources and the correct unit of etymology.
 """
+import json
 import re
+
+from streetymology.config import data_path
 
 DIRECTIONALS = {
     "n","s","e","w","ne","nw","se","sw",
