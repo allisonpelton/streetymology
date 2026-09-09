@@ -4,13 +4,13 @@ UNTESTED -- written before billing was enabled. Verify against current SDK docs
 before trusting it. Refuses to run without ANTHROPIC_API_KEY.
 
 Usage:
-  python scripts/run_llm_batch.py --submit  --model claude-sonnet-4-5
-  python scripts/run_llm_batch.py --poll    <batch_id>
-  python scripts/run_llm_batch.py --fetch   <batch_id>
+  python -m streetymology.run_batch --submit  --model claude-sonnet-4-5
+  python -m streetymology.run_batch --poll    <batch_id>
+  python -m streetymology.run_batch --fetch   <batch_id>
 """
 import argparse, json, sys, time
-from streetymology.config import ANTHROPIC_API_KEY, data_path
-from streetymology import llm
+from streetymology.config import ANTHROPIC_API_KEY, ARTIFACTS_DIR, data_path
+from streetymology.build_batch import MODEL_DEFAULT
 
 
 def client():
@@ -24,9 +24,9 @@ def client():
 
 
 def submit(model):
-    path = data_path(f"llm_batch_{model}.jsonl")
+    path = ARTIFACTS_DIR / f"batch_{model}.jsonl"
     if not path.exists():
-        sys.exit(f"{path} missing -- run scripts/build_llm_batch.py --model {model}")
+        sys.exit(f"{path} missing -- run python -m streetymology.build_batch --model {model}")
     reqs = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
     c = client()
     batch = c.messages.batches.create(requests=reqs)
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--submit", action="store_true")
     ap.add_argument("--poll"); ap.add_argument("--fetch")
-    ap.add_argument("--model", default=llm.MODEL_DEFAULT)
+    ap.add_argument("--model", default=MODEL_DEFAULT)
     a = ap.parse_args()
     if a.submit:
         bid = submit(a.model); poll(bid); fetch(bid)

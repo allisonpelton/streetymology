@@ -70,3 +70,22 @@ def entity_key(name: str) -> str:
     'charlotte'. Those produced spurious matches against unrelated streets.
     """
     return _compare(name)
+
+
+# Loading OSM names lives here too: the only thing anyone does with the
+# extract is turn it into core keys, which is this module's job.
+import json
+
+EXCLUDED_HIGHWAYS = {"trunk"}
+
+
+def osm_cores() -> dict[str, str]:
+    """Map core-name key -> a representative original OSM name."""
+    els = json.loads((data_path("osm_named_ways.json")).read_text())["elements"]
+    cores: dict[str, str] = {}
+    for e in els:
+        if e["tags"].get("highway") in EXCLUDED_HIGHWAYS:
+            continue
+        cores.setdefault(key(e["tags"]["name"]), e["tags"]["name"])
+    cores.pop("", None)
+    return cores

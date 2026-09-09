@@ -2,7 +2,6 @@
 import argparse, csv, json, collections
 from pathlib import Path
 from streetymology.config import data_path, ARTIFACTS_DIR
-from streetymology import llm
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
@@ -16,7 +15,7 @@ if __name__ == "__main__":
 
     verdicts, missing = {}, []
     for custom_id, text in raw.items():
-        parsed = llm.parse_table(text)
+        parsed = parse_table(text)
         expected = index.get(custom_id, [])
         for n in expected:
             if n in parsed:
@@ -39,3 +38,29 @@ if __name__ == "__main__":
     if missing:
         print("WARNING: some requested items were absent from the model output.")
         print("  first few:", missing[:5])
+
+
+# ----------------------------------------------------------------------
+# Response parsing. Was llm.parse_table; only this stage reads model output.
+# ----------------------------------------------------------------------
+
+def parse_table(text: str) -> dict[int, dict]:
+    """Parse the markdown table a model returns. Tolerates prose around it."""
+    out = {}
+    for line in text.splitlines():
+        if not _ROW.match(line):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 3 or not cells[0].isdigit():
+            continue
+        v = cells[2].lower().strip("`")
+        if v not in {"y", "n", "w", "q"}:
+            continue
+        out[int(cells[0])] = {
+            "street": cells[1], "verdict": v,
+            "confidence": cells[3].lower() if len(cells) > 3 else "",
+            "theme": cells[4] if len(cells) > 4 else "",
+            "reasoning": cells[5] if len(cells) > 5 else "",
+        }
+    return out
+

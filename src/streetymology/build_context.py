@@ -1,37 +1,266 @@
-"""Theme context for every place, under AP's causal model of street naming.
+"""Turn the downloaded data into `place_context.json`, in three phases.
 
-Her rule, and the reason each bucket exists: a street's theme comes from the
-subdivision that platted it, or from a street it is ATTACHED to, or from a
-street it is merely near that belongs to no subdivision at all. Everything else
-within some radius is noise, and the old 200 m union of it is what let the model
-read a British theme off streets in another plat.
+Run in order, and the last phase is the one anyone tunes:
 
-Buckets, in the order the prompt should trust them:
+  places   chain OSM ways into places -- a street name in ONE location
+  plats    score every recorded plat's claim on every street and name the winner
+  context  the four buckets of neighbouring streets, with the two confidences
 
-  peers     places sharing the naming plat, matched on `base_name` so
-            "SUTTERS MILL SUB NO 01" and "NO 02" are one act, not two;
-  attached  places sharing an OSM node, i.e. a real intersection. Exact, from
-            way node ids, which the old distance index discarded;
-  unplatted places within NEAR_M that fall in no plat, which is the only case
-            where proximity alone is evidence.
+Was three scripts. They only ever ran back to back, each reading the previous
+one's file, and the parameters worth experimenting with all live in phase three:
+NEAR_M, BRIDGE_M, MATERIAL_RATIO, MIN_PLATTED and the era-weight curve.
 
-The naming plat is the EARLIEST RecordedDate covering the place, not the largest
-polygon. Membership share travels with it: AP's constraint is that the prompt may
-not assert membership at full confidence, because a street can run the boundary
-of the plat that named it.
+  python -m streetymology.build_context             # all three
+  python -m streetymology.build_context --phase context
 """
-import argparse, collections, json
+import argparse
+import collections
+import json
+import math
 
 from shapely.geometry import LineString
 
-from streetymology import places as P
+from streetymology import geo
 from streetymology.config import data_path
-from streetymology.plats import PlatIndex, pretty
+from streetymology.geo import PlatIndex, base_name, pretty
 from streetymology.normalize import key, normalize
 
+# `places` merged into geo; both names kept so the phase bodies read unchanged.
+places = P = geo
+
 WAYS = "osm_ways_geom.json"
+
+# ----------------------------------------------------------------------
+# Phase 1: places
+# ----------------------------------------------------------------------
+
+OUT_PLACES = "street_places.json"
+
+
+def build_places():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--link", type=float, default=places.LINK_M)
+    ap.add_argument("--split", type=float, default=places.SPLIT_M)
+    ap.add_argument("--out", default=None)
+    ap.add_argument("--report-dupes", action="store_true",
+                    help="cores occupying more than one place, for eyeballing")
+    ap.add_argument("--report-merges", action="store_true",
+                    help="list places built from alignments that do not touch")
+    a = ap.parse_args()
+
+    doc = json.loads((data_path(WAYS)).read_text())
+    print(f"extract timestamp: {(doc.get('osm3s') or {}).get('timestamp_osm_base')}")
+
+    by_core = collections.defaultdict(list)
+    for e in doc["elements"]:
+        t = e.get("tags", {})
+        if not t.get("name") or not e.get("geometry"):
+            continue
+        k = key(t["name"])
+        if not k:
+            continue
+        by_core[k].append({
+            "id": e["id"], "name": t["name"], "highway": t.get("highway"),
+            "nodes": e.get("nodes", []),
+            "points": [(g["lat"], g["lon"]) for g in e["geometry"]],
+        })
+
+    print(f"{sum(len(v) for v in by_core.values())} ways, {len(by_core)} cores")
+    built = places.build(by_core, a.link, a.split)
+
+    all_places = [p for ps in built.values() for p in ps]
+    analysed = [p for p in all_places if p.analysed]
+    multi = {k: ps for k, ps in built.items() if len(ps) > 1}
+    print(f"\nplaces {len(all_places)} from {len(built)} cores")
+    print(f"  cores in >1 place        {len(multi):5d}  {len(multi)/len(built):5.1%}"
+          f"   (link {a.link:.0f} m, split {a.split:.0f} m)")
+    sizes = collections.Counter(len(ps) for ps in built.values())
+    print("  places per core: " + ", ".join(f"{k}:{sizes[k]}" for k in sorted(sizes)))
+
+    print(f"\n  analysed places          {len(analysed):5d}"
+          f"  {len(analysed)/len(all_places):5.1%}")
+    dropped = [p for p in all_places if not p.analysed]
+    print(f"  arterial-contaminated    {len(dropped):5d}"
+          f"  {len(dropped)/len(all_places):5.1%}")
+
+    # The Five Mile cases: an alignment that LOOKS residential way-by-way but
+    # carries an arterial classification somewhere along its length.
+    sneaky = [p for p in dropped
+              if p.classes & places.ANALYSED_CLASSES and
+              len(p.classes & places.ANALYSED_CLASSES) < len(p.classes)]
+    part_res = [p for p in sneaky if "residential" in p.classes]
+    print(f"  of those, mixed class    {len(sneaky):5d}"
+          f"   ({len(part_res)} include residential ways)"
+          f"   <- the Five Mile shape")
+    for p in sorted(part_res, key=lambda p: -len(p.ways))[:8]:
+        print(f"      {p.name:34s} {len(p.ways):3d} ways  {sorted(p.classes)}")
+
+    cores_analysed = {k for k, ps in built.items() if any(q.analysed for q in ps)}
+    print(f"\n  cores keeping >=1 analysed place {len(cores_analysed)}"
+          f"  ({len(cores_analysed)/len(built):.1%}); "
+          f"{len(built) - len(cores_analysed)} cores leave the universe")
+
+    if a.report_dupes:
+        # A core in several places is a name used twice. Numbered streets are
+        # excluded: they are known repeats and would swamp the list.
+        import re as _re
+        num = _re.compile(r"^\d+(st|nd|rd|th)$")
+        rows = []
+        for k, ps in built.items():
+            if len(ps) < 2 or num.match(k.strip()):
+                continue
+            gaps = []
+            for i in range(len(ps)):
+                for j in range(i + 1, len(ps)):
+                    gaps.append(places._min_dist(ps[i].points, ps[j].points, 0.0))
+            rows.append((min(gaps), max(gaps), len(ps), ps[0].name,
+                         sum(1 for q in ps if q.analysed)))
+        rows.sort()
+        print(f"\n{len(rows)} non-numbered core(s) split into separate places\n")
+        print(f"{'closest':>8} {'furthest':>9} {'places':>7}  street")
+        for lo, hi, n, name, an in rows:
+            flag = "" if an == n else f"  ({n - an} arterial)"
+            print(f"{lo/1000:8.2f} {hi/1000:9.2f} {n:7d}  {name}{flag}")
+        print("\n(distances in km, between the nearest points of two places)")
+        return
+
+    if a.report_merges:
+        # Places assembled from separate alignments: the road stops, and another
+        # road of the same name starts somewhere between link and split. These
+        # are AP's ambiguous band -- one naming act, or the same word twice.
+        rows = []
+        for k, ps in built.items():
+            for q in ps:
+                aligns = places._components(
+                    q.ways, lambda w: places._thin(w["points"]), a.link,
+                    places._road_test)
+                if len(aligns) < 2:
+                    continue
+                gaps = []
+                for i in range(len(aligns)):
+                    for j in range(i + 1, len(aligns)):
+                        gaps.append(places._min_dist(aligns[i]["pts"],
+                                                     aligns[j]["pts"], 0.0))
+                rows.append((max(gaps), q.name, len(aligns)))
+        rows.sort(reverse=True)
+        print(f"\n{len(rows)} place(s) built from >1 alignment")
+        print(f"{'gap m':>8}  {'aligns':>6}  street")
+        for gap, nm, na in rows[:40]:
+            print(f"{gap:8.0f}  {na:6d}  {nm}")
+        return
+
+    out = {p.id: {"core": p.core, "name": p.name, "analysed": p.analysed,
+                  "classes": sorted(c for c in p.classes if c),
+                  "ways": [w["id"] for w in p.ways],
+                  "n_points": len(p.points)}
+           for p in all_places}
+    path = data_path(a.out or OUT_PLACES)
+    path.write_text(json.dumps(out))
+    path.chmod(0o664)
+    print(f"-> {path}")
+
+# ----------------------------------------------------------------------
+# Phase 2: plat assignment
+# ----------------------------------------------------------------------
+
+
+
+
+OUT_PLATS = "street_plats.json"
+# Analysed classes. Arterials are excluded: they predate the plats they cross,
+# they were not named by developers, and a plat that a highway clips did not
+# name it.
+ANALYSED = {"residential", "unclassified", "tertiary", "living_street"}
+
+
+def length_m(pts):
+    """Polyline length in metres. Shapely works in degrees here, which are not
+    comparable between a north-south and an east-west street."""
+    t = 0.0
+    for a, b in zip(pts, pts[1:]):
+        dy = (b[1] - a[1]) * 111_320.0
+        dx = (b[0] - a[0]) * 111_320.0 * math.cos(math.radians(a[1]))
+        t += math.hypot(dx, dy)
+    return t
+
+
+def assign_plats():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default=None)
+    ap.add_argument("--min-share", type=float, default=0.02,
+                    help="ignore plats holding less than this share of a way")
+    a = ap.parse_args()
+
+    pi = PlatIndex()
+    print(f"{len(pi)} plats")
+
+    els = json.loads((data_path(WAYS)).read_text())["elements"]
+    out, stats = {}, collections.Counter()
+    for e in els:
+        tags = e.get("tags", {})
+        name = tags.get("name")
+        cls = tags.get("highway")
+        if not name or not e.get("geometry"):
+            continue
+        pts = [(g["lon"], g["lat"]) for g in e["geometry"]]
+        if len(pts) < 2:
+            continue
+        line = LineString(pts)
+        shares = pi.share_inside(line)
+        keep = {p: s for p, s in shares.items() if s >= a.min_share}
+        stats["ways"] += 1
+        stats["analysed" if cls in ANALYSED else "context_only"] += 1
+        if keep:
+            stats["with_plat"] += 1
+            if cls in ANALYSED:
+                stats["analysed_with_plat"] += 1
+        out[str(e["id"])] = {
+            "name": name, "core": key(name), "highway": cls,
+            # Length matters downstream: a place's membership must be weighted
+            # by metres, not averaged over ways. Averaging turned a 302 m street
+            # 94% inside The Glenn into "0.31 of Chester is in The Glenn".
+            "length_m": round(length_m(pts), 1),
+            "analysed": cls in ANALYSED,
+            "plats": [{"oid": p.oid, "name": pretty(p.name), "raw": p.name,
+                       "base": p.base,
+                       "recorded": p.recorded.isoformat() if p.recorded else None,
+                       "share": round(s, 3)}
+                      for p, s in sorted(keep.items(), key=lambda kv: -kv[1])],
+        }
+
+    path = data_path(a.out or OUT_PLATS)
+    path.write_text(json.dumps(out))
+    path.chmod(0o664)
+
+    n, na = stats["ways"], stats["analysed"]
+    print(f"{n} named ways, {na} analysed classes, {n - na} context-only (arterial)")
+    print(f"  in at least one plat        {stats['with_plat']:6d}"
+          f"  {stats['with_plat']/n:6.1%}")
+    print(f"  analysed ways in a plat     {stats['analysed_with_plat']:6d}"
+          f"  {stats['analysed_with_plat']/na:6.1%}")
+
+    counts = collections.Counter(len(v["plats"]) for v in out.values() if v["analysed"])
+    print("\nplats per analysed way: " + ", ".join(
+        f"{k}:{counts[k]}" for k in sorted(counts)[:8]))
+
+    top = [max((p["share"] for p in v["plats"]), default=0.0)
+           for v in out.values() if v["analysed"]]
+    top.sort()
+    if top:
+        m = len(top)
+        print(f"largest share of a way inside one plat: median {top[m//2]:.2f}, "
+              f"p10 {top[m//10]:.2f}, share of ways >0.9: "
+              f"{sum(1 for t in top if t > 0.9)/m:.1%}")
+    print(f"-> {path}")
+
+# ----------------------------------------------------------------------
+# Phase 3: context
+# ----------------------------------------------------------------------
+
+
+
 PLATS = "street_plats.json"
-OUT = "place_context.json"
+OUT_CONTEXT = "place_context.json"
 NEAR_M = 200.0
 # A plat only NAMED a street if it materially contains it. Measured on this
 # data: in 22.1% of analysed places the earliest plat is not the largest, and
@@ -41,7 +270,7 @@ NEAR_M = 200.0
 # materially contains the street and the largest share wins.
 # --- two questions, answered separately -------------------------------------
 #
-# 1. WAS THIS STREET LAID OUT BY PLATS AT ALL?  `laid_out` is the fraction of
+# 1. WAS THIS STREET LAID OUT_CONTEXT BY PLATS AT ALL?  `laid_out` is the fraction of
 #    the street lying inside any plat. East Meadow View Road is a farm road at
 #    0.15; Retort Avenue is 1.00. This is the confidence, on its own.
 #
@@ -86,10 +315,10 @@ def era_weight(year):
     return round(THEME_ERA_FLOOR + f * (1.0 - THEME_ERA_FLOOR), 3)
 
 
-def main():
+def build_context():
     ap = argparse.ArgumentParser()
     ap.add_argument("--near", type=float, default=NEAR_M)
-    ap.add_argument("--out", default=OUT)
+    ap.add_argument("--out", default=None)
     ap.add_argument("--dump", help="print the context of one street and stop")
     ap.add_argument("--min-platted", type=float, default=None,
                     help="fraction of a street that must lie in plats at all")
@@ -268,7 +497,7 @@ def main():
                 print(f"      {out[q]['name']}")
         return
 
-    path = data_path(a.out)
+    path = data_path(a.out or OUT_CONTEXT)
     path.write_text(json.dumps(out))
     path.chmod(0o664)
 
@@ -318,6 +547,22 @@ def main():
     print(f"  that run: median {runs[len(runs)//2]:.0f} m, "
           f"p10 {runs[len(runs)//10]:.0f} m")
     print(f"-> {path}")
+
+PHASES = {"places": build_places, "plats": assign_plats, "context": build_context}
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Build place_context.json.")
+    ap.add_argument("--phase", choices=list(PHASES),
+                    help="run one phase; default runs all three in order")
+    a, rest = ap.parse_known_args()
+    import sys
+    sys.argv = [sys.argv[0]] + rest
+    for name, fn in PHASES.items():
+        if a.phase and name != a.phase:
+            continue
+        print(f"--- {name}")
+        fn()
 
 
 if __name__ == "__main__":

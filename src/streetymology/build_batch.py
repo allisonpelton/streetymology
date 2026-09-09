@@ -15,9 +15,9 @@ lettering, so "Ulmer - family name" is never offered.
 Output is a .jsonl of request payloads and a CSV index mapping every item back to
 its place id, which is what a result parser needs to write answers home.
 
-  python scripts/build_batch.py                 # every place with a candidate
-  python scripts/build_batch.py --limit 200     # a slice, to price it first
-  python scripts/build_batch.py --chunk 25
+  python -m streetymology.build_batch                 # every place with a candidate
+  python -m streetymology.build_batch --limit 200     # a slice, to price it first
+  python -m streetymology.build_batch --chunk 25
 """
 import argparse
 import csv
@@ -25,9 +25,20 @@ import json
 import pathlib
 
 from streetymology.config import data_path, ARTIFACTS_DIR
-from streetymology.llm import MODEL_DEFAULT, PRICES
 from streetymology.prompt import (HEADER, OPTIONS, candidate_lines, load_context,
                                   load_merges, render)
+
+MODEL_DEFAULT = "claude-sonnet-4-5"     # feasibility winner; verify exact id at call time
+MODEL_ESCALATE = "claude-opus-4-1"      # for low-confidence rows
+
+# Verify against current pricing before trusting any estimate.
+# USD per million tokens, (input, output).
+PRICES = {
+    "claude-sonnet-4-5": (3.0, 15.0),
+    "claude-opus-4-1": (15.0, 75.0),
+    "claude-haiku-4-5": (1.0, 5.0),
+}
+
 
 # 40 items per request is what the feasibility test validated. Bigger chunks are
 # untested, and a chunk that overruns max_tokens loses every item in it.
@@ -118,7 +129,7 @@ def main():
     print(f"estimated tokens   : {cost['input_tokens']:,} in, "
           f"{cost['output_tokens']:,} out")
     print(f"estimated cost     : ${cost['usd']} at batch pricing")
-    print("\nNOTHING WAS SENT. To send, enable billing and run scripts/run_llm_batch.py")
+    print("\nNOTHING WAS SENT. To send, enable billing and run python -m streetymology.run_batch")
     print(f"wrote {out}\nwrote {idx}")
 
 
