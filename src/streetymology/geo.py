@@ -322,6 +322,11 @@ class PlatIndex:
 LINK_M = 2000.0
 # Beyond this, two alignments of one name are duplicates, not one street.
 SPLIT_M = 5000.0
+# Ada County is laid on a section grid, so a street running east-west holds one
+# latitude for its whole length. Two runs of one name sitting in the same band
+# are the same street however far apart they are -- which is what keeps a
+# section-line arterial whole when it is broken by gaps wider than SPLIT_M.
+GRID_BAND_M = 150.0
 
 # Classes a developer plausibly named. Anything above tertiary is a public road
 # that predates the plats it crosses.
@@ -440,17 +445,72 @@ class Place:
                 f"{'analysed' if self.analysed else 'arterial'}>")
 
 
+def _band(pts):
+    """The grid band a run sits in, or None if it wanders out of one.
+
+    Distance may only ever join two runs, never separate them, so this is a
+    third way to be the same street and not a test anything can fail. A run that
+    meanders across more than `GRID_BAND_M` has no band, and is left to the
+    distance rules that already handle it.
+    """
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    dx, dy = max(xs) - min(xs), max(ys) - min(ys)
+    axis, lo, hi = ("EW", min(ys), max(ys)) if dx >= dy else ("NS", min(xs), max(xs))
+    return None if hi - lo > GRID_BAND_M else (axis, lo, hi)
+
+
+def _overlap(a, b, band_m):
+    return (a and b and a[0] == b[0]
+            and a[1] - band_m <= b[2] and b[1] - band_m <= a[2])
+
+
+def _merge_bands(groups, band_m=GRID_BAND_M):
+    """Join groups of one name where ANY of their runs share a grid band.
+
+    Per run, not per group. A section-line arterial jogs at section corners, so
+    twenty kilometres of it has no single band; each of its runs does, and one
+    of them matching an isolated piece is enough to say they are one street.
+    """
+    out = []
+    for g in groups:
+        bands = [b for b in (_band(m) for m in g["members"]) if b]
+        hits = [o for o in out
+                if any(_overlap(x, y, band_m) for x in bands for y in o["bands"])]
+        if not hits:
+            out.append({**g, "bands": bands})
+            continue
+        first = hits[0]
+        for other in hits[1:] + [g]:
+            first["items"].extend(other["items"])
+            first["pts"].extend(other["pts"])
+            first["members"].extend(other["members"])
+            first["bands"].extend(other.get("bands", bands))
+            if other is not g:
+                out.remove(other)
+    return out
+
+
 def build(ways_by_core, link_m=LINK_M, split_m=SPLIT_M):
     """core name -> [Place], in two steps.
 
-    Ways carrying the name are grouped into alignments, then alignments within
-    `split_m` of each other into places. Alignments left apart are duplicates and
-    get a place each, so nothing is carried between them.
+    Ways carrying the name are grouped into alignments; alignments sharing a
+    grid band become one however far apart; what remains is joined by proximity.
+    Every step only ever joins, and the band step runs on alignments rather than
+    on the blobs proximity makes, because an alignment is collinear and so has a
+    band to compare.
+
+    Distance is allowed to prove two runs are the same street, never to prove
+    they are not.
+
+    What is left over are duplicates, one place each, sharing no context.
     """
     out = {}
     for core, ways in ways_by_core.items():
         alignments = _components(ways, lambda w: w["points"], link_m,
                                  _same_alignment)
+        if len(alignments) > 1:
+            alignments = _merge_bands(alignments)
         located = (_components(alignments, lambda g: g["pts"], split_m,
                                _same_location)
                    if len(alignments) > 1
