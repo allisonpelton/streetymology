@@ -17,9 +17,11 @@ import datetime
 import json
 import math
 import re
+from collections import defaultdict
 
-from shapely.geometry import Polygon, MultiPolygon
-from shapely.ops import linemerge, unary_union
+from pyproj import Transformer
+from shapely.geometry import MultiPoint, MultiPolygon, Polygon
+from shapely.ops import linemerge, transform as shapely_transform, unary_union
 from shapely.strtree import STRtree
 
 from .config import data_path
@@ -79,39 +81,36 @@ def pretty(name: str) -> str:
     return b
 
 
-# Ada County spans about 0.6 degrees. Over the few-kilometre distances this file
-# measures, treating a degree as a fixed number of metres and scaling longitude
-# by cos(latitude) lands within a metre or so of a projected calculation. Using a
-# real CRS would be more correct in principle and would change every length the
-# naming-plat error rate was measured against, for no accuracy that matters here.
-_M_PER_DEG = 111_320.0
+# Ada County sits in UTM zone 11N. Geometry is projected once, on the way in, so
+# every length and distance below is metres straight from shapely rather than a
+# formula written here. Lengths in degrees are not comparable across directions:
+# a degree of longitude at this latitude is about 72% of a degree of latitude, so
+# an east-west street and a north-south one were being measured on different
+# scales.
+_TO_UTM = Transformer.from_crs("EPSG:4326", "EPSG:32611", always_xy=True)
 
 
-def _metres(lon1, lat1, lon2, lat2):
-    """Distance in metres between two lon/lat points. The only such formula."""
-    dy = (lat2 - lat1) * _M_PER_DEG
-    dx = (lon2 - lon1) * _M_PER_DEG * math.cos(math.radians(lat1))
-    return math.hypot(dx, dy)
+def project(geom):
+    """lon/lat geometry -> UTM 11N metres."""
+    return shapely_transform(lambda xs, ys: _TO_UTM.transform(xs, ys), geom)
 
 
-def _line_metres(line):
-    """Length of a lon/lat LineString in metres."""
-    cs = list(line.coords)
-    return sum(_metres(x1, y1, x2, y2) for (x1, y1), (x2, y2) in zip(cs, cs[1:]))
+def to_utm(lon, lat):
+    """A single lon/lat pair -> (x, y) in metres."""
+    return _TO_UTM.transform(lon, lat)
 
 
 def _longest_run(pieces, bridge_m=0.0):
     """Longest chain of pieces, joining any two whose ends are within bridge_m."""
-    lens = [_line_metres(p) for p in pieces]
     if not pieces:
         return 0.0
+    lens = [p.length for p in pieces]
     if bridge_m <= 0 or len(pieces) == 1:
         return max(lens)
-    ends = [(p.coords[0], p.coords[-1]) for p in pieces]
+    ends = [MultiPoint([p.coords[0], p.coords[-1]]) for p in pieces]
 
     def gap(i, j):
-        return min(_metres(a[0], a[1], b[0], b[1])
-                   for a in ends[i] for b in ends[j])
+        return ends[i].distance(ends[j])
 
     seen, best = set(), 0.0
     for i in range(len(pieces)):
@@ -189,6 +188,7 @@ class PlatIndex:
             g = _rings_to_geom(f.get("geometry", {}).get("rings", []))
             if g is None or g.is_empty:
                 continue
+            g = project(g)
             self.plats.append(Plat(f["attributes"], g))
         self.tree = STRtree([p.geom for p in self.plats])
 
@@ -232,7 +232,7 @@ class PlatIndex:
                               else [inter]):
                     if piece.geom_type != "LineString":
                         continue
-                    m = _line_metres(piece)
+                    m = piece.length
                     total += m
                     pieces.append(piece)
             if total > 0:
@@ -252,7 +252,7 @@ class PlatIndex:
         merged = linemerge(lines)
         parts = list(merged.geoms) if merged.geom_type == "MultiLineString" \
             else [merged]
-        total = sum(_line_metres(p) for p in parts)
+        total = sum(p.length for p in parts)
         covering = [p.geom for p in self.covering(merged)]
         if not covering:
             return 0.0, total
@@ -267,7 +267,7 @@ class PlatIndex:
                 continue
             for piece in (list(inter.geoms) if hasattr(inter, "geoms") else [inter]):
                 if piece.geom_type == "LineString":
-                    inside += _line_metres(piece)
+                    inside += piece.length
         return inside, total
 
     def share_inside(self, line):
@@ -296,8 +296,6 @@ class PlatIndex:
 # Places: a street name in ONE location, built on the plats above.
 # ----------------------------------------------------------------------
 
-import math
-from collections import defaultdict
 
 LINK_M = 2000.0
 SPLIT_M = 5000.0
@@ -310,8 +308,8 @@ THIN_M = 100.0
 
 
 def metres(a, b):
-    """Distance between two (lat, lon) points, as places store them."""
-    return _metres(a[1], a[0], b[1], b[0])
+    """Distance between two projected (x, y) points, in metres."""
+    return math.dist(a, b)
 
 
 def _thin(pts, spacing=THIN_M):
@@ -328,9 +326,7 @@ def _thin(pts, spacing=THIN_M):
 
 def bearing(a, b):
     """Direction of a->b in degrees, folded to 0-180 so it has no compass sense."""
-    dy = (b[0] - a[0]) * _M_PER_DEG
-    dx = (b[1] - a[1]) * _M_PER_DEG * math.cos(math.radians(a[0]))
-    return math.degrees(math.atan2(dy, dx)) % 180.0
+    return math.degrees(math.atan2(b[1] - a[1], b[0] - a[0])) % 180.0
 
 
 def _angle_gap(a, b):
@@ -369,17 +365,13 @@ def continues(a_pts, b_pts, gap, max_angle=30.0):
     return False
 
 
-def _min_dist(a_pts, b_pts, stop_at):
-    """Closest approach between two point sets, abandoning once under stop_at."""
-    best = float("inf")
-    for p in a_pts:
-        for q in b_pts:
-            d = metres(p, q)
-            if d < best:
-                best = d
-                if best <= stop_at:
-                    return best
-    return best
+def _min_dist(a_pts, b_pts, stop_at=None):
+    """Closest approach between two projected point sets, in metres.
+
+    `stop_at` is accepted and ignored: shapely indexes both sets, which beats
+    the early exit the hand-rolled double loop needed.
+    """
+    return MultiPoint(list(a_pts)).distance(MultiPoint(list(b_pts)))
 
 
 def _components(items, pts_of, gap, test):

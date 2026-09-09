@@ -22,13 +22,19 @@ from shapely.geometry import LineString
 
 from streetymology import geo
 from streetymology.config import data_path
-from streetymology.geo import PlatIndex, base_name, pretty
+from streetymology.geo import PlatIndex, base_name, pretty, to_utm
 from streetymology.normalize import key, normalize
 
 # `places` merged into geo; both names kept so the phase bodies read unchanged.
 places = P = geo
 
 WAYS = "osm_ways_geom.json"
+
+
+def _projected(geometry):
+    """OSM lat/lon nodes -> [(x, y)] in metres. Everything downstream is metres."""
+    xs, ys = to_utm([g["lon"] for g in geometry], [g["lat"] for g in geometry])
+    return list(zip(xs, ys))
 
 # ----------------------------------------------------------------------
 # Phase 1: places
@@ -62,7 +68,7 @@ def build_places():
         by_core[k].append({
             "id": e["id"], "name": t["name"], "highway": t.get("highway"),
             "nodes": e.get("nodes", []),
-            "points": [(g["lat"], g["lon"]) for g in e["geometry"]],
+            "points": _projected(e["geometry"]),
         })
 
     print(f"{sum(len(v) for v in by_core.values())} ways, {len(by_core)} cores")
@@ -202,7 +208,7 @@ def assign_plats():
         cls = tags.get("highway")
         if not name or not e.get("geometry"):
             continue
-        pts = [(g["lon"], g["lat"]) for g in e["geometry"]]
+        pts = _projected(e["geometry"])
         if len(pts) < 2:
             continue
         line = LineString(pts)
@@ -270,7 +276,7 @@ NEAR_M = 200.0
 # materially contains the street and the largest share wins.
 # --- two questions, answered separately -------------------------------------
 #
-# 1. WAS THIS STREET LAID OUT_CONTEXT BY PLATS AT ALL?  `laid_out` is the fraction of
+# 1. WAS THIS STREET LAID OUT BY PLATS AT ALL?  `laid_out` is the fraction of
 #    the street lying inside any plat. East Meadow View Road is a farm road at
 #    0.15; Retort Avenue is 1.00. This is the confidence, on its own.
 #
@@ -343,7 +349,7 @@ def build_context():
             continue
         by_core[k].append({"id": e["id"], "name": t["name"],
                            "highway": t.get("highway"), "nodes": e.get("nodes", []),
-                           "points": [(g["lat"], g["lon"]) for g in e["geometry"]]})
+                           "points": _projected(e["geometry"])})
     built = P.build(by_core)
     allp = [p for ps in built.values() for p in ps]
     print(f"{len(allp)} places, {sum(1 for p in allp if p.analysed)} analysed")
@@ -355,8 +361,7 @@ def build_context():
     platted_share = {}
     pi = PlatIndex()
     for p in allp:
-        lines = [LineString([(lon, lat) for lat, lon in w["points"]])
-                 for w in p.ways if len(w["points"]) > 1]
+        lines = [LineString(w["points"]) for w in p.ways if len(w["points"]) > 1]
         for w in p.ways:
             place_of_way[w["id"]] = p.id
             for n in w["nodes"]:
@@ -364,8 +369,7 @@ def build_context():
         if not lines:
             place_plats[p.id] = []
             continue
-        street_m = sum(P.metres(a, b) for w in p.ways
-                       for a, b in zip(w["points"], w["points"][1:])) or 1.0
+        street_m = sum(ln.length for ln in lines) or 1.0
         covered_m, _ = pi.covered_metres(lines)
         platted_share[p.id] = round(covered_m / street_m, 3)
         acc = {}
