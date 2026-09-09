@@ -23,8 +23,9 @@ question, answered by re-fetching and auditing, not by a test.
 SCOPE. The fixture is one coherent geographic slice: the Lugarno Terra plats and
 everything around them, 49 ways and 17 plats. It covers what a normal run does --
 a clean single-plat street, a contested one, a street no plat named, a phase
-merge, and tiers long enough to truncate. It deliberately does NOT reach for rare
-branches. Widening it to hit every code path tripled its size and made the diff
+merge, tiers long enough to truncate, and 17 bare personal-name candidates that
+candidates.publishable removes -- so the expected prompt proves the filter works
+by not containing them. It deliberately does NOT reach for rare branches. Widening it to hit every code path tripled its size and made the diff
 too large to read, which destroys the only thing keeping this test honest.
 
 The fetch stages are not covered at all: mocking their HTTP would test the mock.
@@ -91,20 +92,6 @@ def test_prompt_is_unchanged(tmp_path):
                 f"prompt {g['custom_id']} changed at line {first}:\n"
                 f"  expected: {wl[first] if first < len(wl) else '<end>'}\n"
                 f"  got:      {gl[first] if first < len(gl) else '<end>'}")
-
-
-def test_no_bare_personal_names_are_offered(tmp_path):
-    """The one property worth asserting outright rather than snapshotting."""
-    out = run_pipeline(tmp_path) / "batch.jsonl"
-    bad = []
-    for line in out.read_text().splitlines():
-        for row in json.loads(line)["params"]["messages"][0]["content"].splitlines():
-            if row.lstrip().startswith("- **") and " — " in row:
-                desc = row.split(" — ", 1)[1].split("  _also")[0].strip().lower()
-                if desc in {"family name", "given name", "male name", "female name",
-                            "name", "surname"}:
-                    bad.append(row.strip())
-    assert not bad, f"bare personal-name candidates offered: {bad[:3]}"
 
 
 # ---------------------------------------------------------------------------
