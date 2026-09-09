@@ -16,13 +16,14 @@ NEAR_M, BRIDGE_M, MATERIAL_RATIO, MIN_PLATTED and the era-weight curve.
 import argparse
 import collections
 import json
-import math
 
-from shapely.geometry import LineString
+from shapely.geometry import LineString, MultiPoint
+from shapely.strtree import STRtree
 
 from streetymology import geo
 from streetymology.config import data_path
-from streetymology.geo import PlatIndex, base_name, pretty, to_utm
+from streetymology.geo import (ANALYSED_CLASSES, PlatIndex, base_name, pretty,
+                               to_utm)
 from streetymology.normalize import key, normalize
 
 # `places` merged into geo; both names kept so the phase bodies read unchanged.
@@ -173,23 +174,6 @@ def build_places():
 
 
 OUT_PLATS = "street_plats.json"
-# Analysed classes. Arterials are excluded: they predate the plats they cross,
-# they were not named by developers, and a plat that a highway clips did not
-# name it.
-ANALYSED = {"residential", "unclassified", "tertiary", "living_street"}
-
-
-def length_m(pts):
-    """Polyline length in metres. Shapely works in degrees here, which are not
-    comparable between a north-south and an east-west street."""
-    t = 0.0
-    for a, b in zip(pts, pts[1:]):
-        dy = (b[1] - a[1]) * 111_320.0
-        dx = (b[0] - a[0]) * 111_320.0 * math.cos(math.radians(a[1]))
-        t += math.hypot(dx, dy)
-    return t
-
-
 def assign_plats():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=None)
@@ -215,18 +199,18 @@ def assign_plats():
         shares = pi.share_inside(line)
         keep = {p: s for p, s in shares.items() if s >= a.min_share}
         stats["ways"] += 1
-        stats["analysed" if cls in ANALYSED else "context_only"] += 1
+        stats["analysed" if cls in ANALYSED_CLASSES else "context_only"] += 1
         if keep:
             stats["with_plat"] += 1
-            if cls in ANALYSED:
+            if cls in ANALYSED_CLASSES:
                 stats["analysed_with_plat"] += 1
         out[str(e["id"])] = {
             "name": name, "core": key(name), "highway": cls,
             # Length matters downstream: a place's membership must be weighted
             # by metres, not averaged over ways. Averaging turned a 302 m street
             # 94% inside The Glenn into "0.31 of Chester is in The Glenn".
-            "length_m": round(length_m(pts), 1),
-            "analysed": cls in ANALYSED,
+            "length_m": round(line.length, 1),
+            "analysed": cls in ANALYSED_CLASSES,
             "plats": [{"oid": p.oid, "name": pretty(p.name), "raw": p.name,
                        "base": p.base,
                        "recorded": p.recorded.isoformat() if p.recorded else None,
@@ -419,22 +403,15 @@ def build_context():
             attached[x] |= (pids - {x})
 
     # --- proximity, only used for places in no plat -----------------------
-    unplatted = {pid for pid, pls in place_plats.items() if not pls}
-    grid = collections.defaultdict(list)
-    cell = a.near / 111_320.0
     byid = {p.id: p for p in allp}
-    for pid in unplatted:
-        for pt in P._thin(byid[pid].points, 40.0):
-            grid[(int(pt[0] / cell), int(pt[1] / cell))].append((pid, pt))
+    unplatted = [pid for pid, pls in place_plats.items() if not pls]
+    thinned = {p.id: MultiPoint(P._thin(p.points, 40.0)) for p in allp}
+    tree = STRtree([thinned[pid] for pid in unplatted])
     near_unplatted = collections.defaultdict(set)
     for p in allp:
-        for pt in P._thin(p.points, 40.0):
-            gy, gx = int(pt[0] / cell), int(pt[1] / cell)
-            for dy in (-1, 0, 1):
-                for dx in (-1, 0, 1):
-                    for pid2, pt2 in grid.get((gy + dy, gx + dx), ()):
-                        if pid2 != p.id and P.metres(pt, pt2) <= a.near:
-                            near_unplatted[p.id].add(pid2)
+        for i in tree.query(thinned[p.id], predicate="dwithin", distance=a.near):
+            if unplatted[i] != p.id:
+                near_unplatted[p.id].add(unplatted[i])
 
     out = {}
     for p in allp:

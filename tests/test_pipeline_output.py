@@ -15,6 +15,7 @@ Re-bless an intended change with:
 `build_batch` reads `derived/place_context.json`, so copy it afterwards, not
 before. Read the diff before committing it.
 """
+import collections
 import json
 import os
 import shutil
@@ -45,7 +46,16 @@ def test_place_context_is_unchanged(tmp_path):
     want = json.loads((EXPECTED / "place_context.json").read_text())
     assert set(got) == set(want), "the set of places changed"
     moved = sorted(k for k in want if got[k] != want[k])
-    assert not moved, f"{len(moved)} places changed, first: {moved[:5]}"
+    if moved:
+        # Name the fields, not just the count. A re-bless is only safe if the
+        # reader can see WHAT moved: a projection change once cut near_unplatted
+        # from 16 to 1 and was waved through as "24 places changed".
+        fields = collections.Counter(
+            f for k in moved for f in want[k] if want[k][f] != got[k].get(f))
+        raise AssertionError(
+            f"{len(moved)} places changed. Fields: "
+            + ", ".join(f"{f} x{n}" for f, n in fields.most_common())
+            + f"\nfirst: {moved[:5]}")
 
 
 def test_prompt_is_unchanged(tmp_path):
