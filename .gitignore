@@ -15,3 +15,8 @@ data/*
 .ipynb_checkpoints/
 .pytest_cache/
 *.egg-info/
+
+# golden-test intermediates; only search_unmatched.json is a real input
+tests/fixture/derived/street_places.json
+tests/fixture/derived/street_plats.json
+tests/fixture/derived/place_context.json

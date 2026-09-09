@@ -14,6 +14,8 @@ called Greiner" is true of every such street and tells a reader nothing.
 REJECT_SUBSTRINGS = (
     "family name",
     "given name",
+    "male name",
+    "female name",
     "surname",
     "wikimedia",
     "disambiguation",
