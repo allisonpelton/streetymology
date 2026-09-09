@@ -44,22 +44,9 @@ def _projected(geometry):
 OUT_PLACES = "street_places.json"
 
 
-def build_places():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--link", type=float, default=places.LINK_M)
-    ap.add_argument("--split", type=float, default=places.SPLIT_M)
-    ap.add_argument("--out", default=None)
-    ap.add_argument("--report-dupes", action="store_true",
-                    help="cores occupying more than one place, for eyeballing")
-    ap.add_argument("--report-merges", action="store_true",
-                    help="list places built from alignments that do not touch")
-    a = ap.parse_args()
-
-    doc = json.loads((data_path(WAYS)).read_text())
-    print(f"extract timestamp: {(doc.get('osm3s') or {}).get('timestamp_osm_base')}")
-
+def build_places(a, ways):
     by_core = collections.defaultdict(list)
-    for e in doc["elements"]:
+    for e in ways["elements"]:
         t = e.get("tags", {})
         if not t.get("name") or not e.get("geometry"):
             continue
@@ -161,7 +148,7 @@ def build_places():
                   "ways": [w["id"] for w in p.ways],
                   "n_points": len(p.points)}
            for p in all_places}
-    path = data_path(a.out or OUT_PLACES)
+    path = data_path(OUT_PLACES)
     path.write_text(json.dumps(out))
     path.chmod(0o664)
     print(f"-> {path}")
@@ -174,17 +161,11 @@ def build_places():
 
 
 OUT_PLATS = "street_plats.json"
-def assign_plats():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=None)
-    ap.add_argument("--min-share", type=float, default=0.02,
-                    help="ignore plats holding less than this share of a way")
-    a = ap.parse_args()
-
+def assign_plats(a, ways):
     pi = PlatIndex()
     print(f"{len(pi)} plats")
 
-    els = json.loads((data_path(WAYS)).read_text())["elements"]
+    els = ways["elements"]
     out, stats = {}, collections.Counter()
     for e in els:
         tags = e.get("tags", {})
@@ -218,7 +199,7 @@ def assign_plats():
                       for p, s in sorted(keep.items(), key=lambda kv: -kv[1])],
         }
 
-    path = data_path(a.out or OUT_PLATS)
+    path = data_path(OUT_PLATS)
     path.write_text(json.dumps(out))
     path.chmod(0o664)
 
@@ -305,28 +286,15 @@ def era_weight(year):
     return round(THEME_ERA_FLOOR + f * (1.0 - THEME_ERA_FLOOR), 3)
 
 
-def build_context():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--near", type=float, default=NEAR_M)
-    ap.add_argument("--out", default=None)
-    ap.add_argument("--dump", help="print the context of one street and stop")
-    ap.add_argument("--min-platted", type=float, default=None,
-                    help="fraction of a street that must lie in plats at all")
-    ap.add_argument("--bridge", type=float, default=None,
-                    help="metres of excursion tolerated before a street leaving "
-                         "and re-entering a plat counts as two runs")
-
-    a = ap.parse_args()
-
+def build_context(a, ways):
     global BRIDGE_M, MIN_PLATTED
     if a.bridge is not None:
         BRIDGE_M = a.bridge
     if a.min_platted is not None:
         MIN_PLATTED = a.min_platted
 
-    doc = json.loads((data_path(WAYS)).read_text())
     by_core = collections.defaultdict(list)
-    for e in doc["elements"]:
+    for e in ways["elements"]:
         t = e.get("tags", {})
         k = key(t.get("name") or "")
         if not k or not e.get("geometry"):
@@ -478,7 +446,7 @@ def build_context():
                 print(f"      {out[q]['name']}")
         return
 
-    path = data_path(a.out or OUT_CONTEXT)
+    path = data_path(OUT_CONTEXT)
     path.write_text(json.dumps(out))
     path.chmod(0o664)
 
@@ -533,17 +501,46 @@ PHASES = {"places": build_places, "plats": assign_plats, "context": build_contex
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Build place_context.json.")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--phase", choices=list(PHASES),
                     help="run one phase; default runs all three in order")
-    a, rest = ap.parse_known_args()
-    import sys
-    sys.argv = [sys.argv[0]] + rest
+
+    g = ap.add_argument_group("places")
+    g.add_argument("--link", type=float, default=places.LINK_M,
+                   help="metres within which two ways are one alignment")
+    g.add_argument("--split", type=float, default=places.SPLIT_M,
+                   help="metres beyond which two alignments are separate places")
+    g.add_argument("--report-dupes", action="store_true",
+                   help="cores occupying more than one place, for eyeballing")
+    g.add_argument("--report-merges", action="store_true",
+                   help="list places built from alignments that do not touch")
+
+    g = ap.add_argument_group("plats")
+    g.add_argument("--min-share", type=float, default=0.02,
+                   help="ignore plats holding less than this share of a way")
+
+    g = ap.add_argument_group("context")
+    g.add_argument("--near", type=float, default=NEAR_M,
+                   help="metres within which an unplatted street counts as near")
+    g.add_argument("--dump", help="print the context of one street and stop")
+    g.add_argument("--min-platted", type=float, default=None,
+                   help="fraction of a street that must lie in plats at all")
+    g.add_argument("--bridge", type=float, default=None,
+                   help="metres of excursion tolerated before a street leaving "
+                        "and re-entering a plat counts as two runs")
+    a = ap.parse_args()
+
+    # The extract is 16 MB and all three phases read it. Parse it once.
+    ways = json.loads(data_path(WAYS).read_text())
+    stamp = (ways.get("osm3s") or {}).get("timestamp_osm_base")
+    print(f"extract timestamp: {stamp}")
+
     for name, fn in PHASES.items():
         if a.phase and name != a.phase:
             continue
         print(f"--- {name}")
-        fn()
+        fn(a, ways)
 
 
 if __name__ == "__main__":
