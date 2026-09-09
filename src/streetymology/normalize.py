@@ -45,11 +45,6 @@ def normalize(name: str) -> str:
     return " ".join(toks)
 
 
-def is_reserved(name: str) -> bool:
-    """Assessor marks approved-but-unbuilt street names with a trailing asterisk."""
-    return "*" in name
-
-
 def _compare(text: str) -> str:
     """Lowercase, drop punctuation, collapse whitespace. No word removal."""
     t = re.sub(r"\s*&\s*", " and ", text)
@@ -61,15 +56,6 @@ def key(name: str) -> str:
     return _compare(normalize(name))
 
 
-def entity_key(name: str) -> str:
-    """Comparison key for a WIKIDATA entity label.
-
-    Entity labels are proper names, not addresses. Stripping a leading
-    directional or a trailing post-type from them destroys the name:
-    'North Korea' -> 'korea', 'Blake Run' -> 'blake', 'Charlotte Pass' ->
-    'charlotte'. Those produced spurious matches against unrelated streets.
-    """
-    return _compare(name)
 
 
 # Loading OSM names lives here too: the only thing anyone does with the

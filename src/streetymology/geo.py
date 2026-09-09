@@ -12,14 +12,6 @@ this layer. Three things the assessor has that OSM cannot give:
 Names arrive in assessor shorthand: upper case, with `SUB`, `ADD`, `AMD` and a
 `NO n` phase marker. `base_name()` strips those to the naming act; `pretty()`
 produces something a prompt can show a model.
-
-Two words, kept apart everywhere:
-
-  plat          the recorded document and its polygon. What this code measures
-                against, and what every identifier here is named for.
-  subdivision   the development the plat records. Used only in text a person or
-                a model reads, in `prompt.py`, because a reader should not have
-                to know what a plat is.
 """
 import datetime
 import json
@@ -96,11 +88,6 @@ def pretty(name: str) -> str:
 # an east-west street and a north-south one were being measured on different
 # scales.
 _TO_UTM = Transformer.from_crs("EPSG:4326", "EPSG:32611", always_xy=True)
-
-
-def project(geom):
-    """lon/lat geometry -> UTM 11N metres."""
-    return shapely_transform(lambda xs, ys: _TO_UTM.transform(xs, ys), geom)
 
 
 def to_utm(lon, lat):
@@ -191,13 +178,13 @@ class Plat:
         return f"<Plat {self.name!r} {self.year}>"
 
 
-def _strands(lines):
+def _stretches(lines):
     """A place's ways merged into its continuous stretches.
 
     OSM splits a street wherever an editor stopped, so the ways are merged first
     and only genuine discontinuities survive. Three words are kept apart below:
-    a STRAND is a continuous stretch of the street itself, a PIECE is the part of
-    a strand lying inside one plat, and a RUN is a chain of pieces joined across
+    a STRETCH is an unbroken run of road surface, a PIECE is the part of a
+    stretch lying inside one plat, and a RUN is a chain of pieces joined across
     short excursions outside it.
     """
     merged = linemerge(lines)
@@ -214,7 +201,7 @@ class PlatIndex:
             g = _rings_to_geom(f.get("geometry", {}).get("rings", []))
             if g is None or g.is_empty:
                 continue
-            g = project(g)
+            g = shapely_transform(_TO_UTM.transform, g)
             self.plats.append(Plat(f["attributes"], g))
         self.tree = STRtree([p.geom for p in self.plats])
 
@@ -242,15 +229,15 @@ class PlatIndex:
         long unbroken run of it inside the boundary, and that survives however
         the ways were split.
         """
-        strands = _strands(lines)
+        stretches = _stretches(lines)
         out = {}
         for p in self.covering(linemerge(lines)):
             total, pieces = 0.0, []
-            for strand in strands:
+            for stretch in stretches:
                 try:
-                    inter = strand.intersection(p.geom)
+                    inter = stretch.intersection(p.geom)
                 except Exception:                                 # noqa: BLE001
-                    inter = strand.intersection(p.geom.buffer(0))
+                    inter = stretch.intersection(p.geom.buffer(0))
                 if inter.is_empty:
                     continue
                 for piece in (list(inter.geoms) if hasattr(inter, "geoms")
@@ -274,18 +261,18 @@ class PlatIndex:
         any plat, and that is what distinguishes it from a street a developer
         built.
         """
-        strands = _strands(lines)
-        total = sum(s.length for s in strands)
+        stretches = _stretches(lines)
+        total = sum(s.length for s in stretches)
         covering = [p.geom for p in self.covering(linemerge(lines))]
         if not covering:
             return 0.0, total
         u = unary_union(covering)
         inside = 0.0
-        for strand in strands:
+        for stretch in stretches:
             try:
-                inter = strand.intersection(u)
+                inter = stretch.intersection(u)
             except Exception:                                     # noqa: BLE001
-                inter = strand.intersection(u.buffer(0))
+                inter = stretch.intersection(u.buffer(0))
             if inter.is_empty:
                 continue
             for piece in (list(inter.geoms) if hasattr(inter, "geoms") else [inter]):
@@ -341,11 +328,6 @@ SPLIT_M = 5000.0
 ANALYSED_CLASSES = {"residential", "unclassified", "tertiary", "living_street"}
 
 
-def metres(a, b):
-    """Distance between two projected (x, y) points, in metres."""
-    return math.dist(a, b)
-
-
 def bearing(a, b):
     """Direction of a->b in degrees, folded to 0-180 so it has no compass sense."""
     return math.degrees(math.atan2(b[1] - a[1], b[0] - a[0])) % 180.0
@@ -374,7 +356,7 @@ def continues(a_pts, b_pts, gap, max_angle=30.0):
     """
     for p, ba in _ends(a_pts):
         for q, bb in _ends(b_pts):
-            d = metres(p, q)
+            d = math.dist(p, q)
             if d > gap:
                 continue
             if d < 1.0:
@@ -385,15 +367,6 @@ def continues(a_pts, b_pts, gap, max_angle=30.0):
                     and _angle_gap(bb, bg) <= max_angle):
                 return True
     return False
-
-
-def _min_dist(a_pts, b_pts, stop_at=None):
-    """Closest approach between two projected point sets, in metres.
-
-    `stop_at` is accepted and ignored: shapely indexes both sets, which beats
-    the early exit the hand-rolled double loop needed.
-    """
-    return MultiPoint(list(a_pts)).distance(MultiPoint(list(b_pts)))
 
 
 def _components(items, pts_of, gap, test):
@@ -435,7 +408,8 @@ def _same_alignment(pts, members, gap):
 
 def _same_location(pts, members, gap):
     """Near each other, whatever their heading. Not a claim of alignment."""
-    return any(_min_dist(pts, m, gap) <= gap for m in members)
+    here = MultiPoint(list(pts))
+    return any(here.distance(MultiPoint(list(m))) <= gap for m in members)
 
 
 class Place:

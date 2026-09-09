@@ -104,11 +104,6 @@ def query(sparql: str, tries: int = 3, timeout: int = 300) -> list[dict]:
     raise RuntimeError(f"SPARQL failed after {tries} tries — {last}")
 
 
-def qid(uri: str) -> str:
-    """Strip a Wikidata entity URI down to its QID."""
-    return uri.rsplit("/", 1)[-1]
-
-
 def claims_for(qids):
     """QID -> set of P31 values, fetched in batches."""
     out = {}
