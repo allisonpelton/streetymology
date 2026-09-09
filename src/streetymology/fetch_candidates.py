@@ -16,10 +16,13 @@ Usage:
   python scripts/search_unmatched.py --limit 20     # sample, for timing
   python scripts/search_unmatched.py                # everything
 """
-import argparse, json, time
+import argparse
+import csv
+import io
+import json
+import time
 from streetymology.config import USER_AGENT, data_path
-from streetymology.normalize import osm_cores
-from streetymology.normalize import normalize
+from streetymology.normalize import normalize, osm_cores
 import requests
 
 API = "https://www.wikidata.org/w/api.php"
@@ -94,7 +97,7 @@ def query(sparql: str, tries: int = 3, timeout: int = 300) -> list[dict]:
                 timeout=timeout,
             )
             if r.ok:
-                return list(_csv.DictReader(io.StringIO(r.text)))
+                return list(csv.DictReader(io.StringIO(r.text)))
             last = f"HTTP {r.status_code}: {r.text[:200]}"
         except requests.RequestException as e:
             last = str(e)
