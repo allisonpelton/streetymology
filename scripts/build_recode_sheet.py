@@ -15,7 +15,7 @@ Never writes to a labelling CSV. Output is a new file.
 import argparse, csv
 
 from streetymology import rounds
-from streetymology.config import DELIVERABLES_DIR, LABELS_DIR
+from streetymology.config import DELIVERABLES_DIR
 
 # INVENTED and PERSONAL are the split of the old NOETYM; NONE keeps its
 # 2026-09-07 meaning, a pipeline miss rather than a property of the street.
@@ -28,11 +28,7 @@ def read_round(n):
     R = rounds.Round(n)
     labels = R.labels
     if not labels.exists():
-        # Round 1's labels are version-controlled in the repo, not the data dir.
-        alt = LABELS_DIR / "equal_ground" / labels.name
-        if not alt.exists():
-            return None
-        labels = alt
+        return None
     out = {}
     with labels.open(newline="") as fh:
         for r in csv.DictReader(fh):
@@ -42,7 +38,7 @@ def read_round(n):
                                 "choice": r["choice"].strip().upper(),
                                 "note": r.get("notes", "").strip()}
 
-    for path in (R.adjudication_csv, LABELS_DIR / "equal_ground" / R.adjudication_csv.name):
+    for path in (R.adjudication_csv,):
         if not path.exists():
             continue
         with path.open(newline="") as fh:

@@ -11,7 +11,6 @@ They are version-controlled for that reason.
 | `pass2_relabel.csv` | 28 | focused re-label of `q` rows that became answerable |
 | `labels_merged.csv` | 199 | merged view; pass 2 supersedes pass 1, including changed QIDs |
 | `labels_corrected.csv` | 176 | merged labels after the audit; 174 decided (131 `y`, 43 `n`, 1 `w`, 1 `q`) |
-| `equal_ground/` | 40 | round 1 of the equal-information comparison; see its own README |
 
 ## Verdict codes
 
@@ -34,6 +33,20 @@ decided rows -- human uncertainty strongly predicts incorrectness.
   the change is noted in that row's `notes` field.
 - 3 rows in pass 2 were left blank (`North Stanley Creek Avenue`,
   `North Cherry Creek Place`, `West Summit Peak Drive`) and keep their pass-1 `q`.
+
+## Equal ground, rounds 1 and 2 — moved out 2026-09-09
+
+Round 1 lived here at `equal_ground/`; round 2 was never version-controlled.
+Both were labelled under rules the current pipeline no longer uses — round 1 has
+no `NOETYM`, and its candidate lists predate QID dedupe — so they are reference
+material rather than ground truth for anything now being built. They now live at
+`streetymology-data/deliverables/equal_ground/round{1,2}/`, with the QID keys
+under `artifacts/equal_ground/round{1,2}/`. Git history still holds round 1;
+`git log --diff-filter=D -- data/labels/equal_ground/` finds the removal commit.
+
+The files above stay here. They are the gazetteer-arm labelling passes, they are
+still read by `scripts/merge_labels.py` and `scripts/build_equal_ground.py`, and
+nothing supersedes them.
 
 Regenerate the merged file with `python scripts/merge_labels.py`.
 Never hand-edit `labels_merged.csv` -- edit the pass files and re-merge.
