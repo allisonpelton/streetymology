@@ -397,11 +397,17 @@ def _min_dist(a_pts, b_pts, stop_at=None):
 
 
 def _components(items, pts_of, gap, test):
-    """Single-linkage grouping of `items`.
+    """Group `items` into connected components.
 
-    `test(pts, members, gap)` decides linkage, and there is no default: the two
-    callers mean different things by "connected". `_same_location` is closest
-    approach; `_same_alignment` also demands the pieces be collinear.
+    Graph sense: each item is a node, `test` decides whether two are joined, and
+    a component is a maximal set where every member is reachable from every
+    other. Reachability is the point -- a way joins another it never touches, so
+    long as something links them -- which is how a street that bends around a
+    corner stays one thing.
+
+    There is no default `test`, because the two callers mean different things by
+    joined: `_same_location` is closest approach, `_same_alignment` also demands
+    the two run along one line.
     """
     groups = []
     for it in items:
