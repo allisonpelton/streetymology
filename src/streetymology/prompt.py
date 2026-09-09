@@ -10,11 +10,10 @@ Nothing in this module reads the network or writes a file.
 import json
 import re
 
-from streetymology.candidates import publishable
-from streetymology.config import data_path, ROOT
+from streetymology.config import JUDGEMENT_DIR, data_path
 from streetymology.normalize import key
 
-MERGES = ROOT / "data" / "plat_judgement" / "phase_merges.json"
+MERGES = JUDGEMENT_DIR / "phase_merges.json"
 
 HEADER = """# Street etymology — 240 items
 
@@ -78,40 +77,14 @@ Return a markdown table, one row per item, nothing else:
 ## Items (240)
 """
 
+LETTERS = "ABCDEFGHIJ"
+
 OPTIONS = [
     "    - **NONE.** A real etymology probably exists, but no candidate above is it.",
     "    - **INVENTED.** No referent exists. A developer coined the name.",
     "    - **PERSONAL.** Named for a person or a family. A real referent exists,"
     " but Wikidata does not carry it.",
 ]
-
-
-CAND_RE = re.compile(r"^\s+- \*\*([A-Z])\.\*\* (.+)$")
-LETTERS = "ABCDEFGHIJ"
-
-
-def keep_candidates(lines):
-    """Drop bare personal-name candidates and relabel the survivors A, B, C...
-
-    The round files predate `candidates.publishable`, so they still offer items
-    like "Ulmer - family name". Six of the seven letter answers this run was
-    marked wrong for were the model declining exactly those. Filtering the option
-    out is more reliable than instructing the model to ignore it.
-
-    Letters are reassigned, so a prompt built here can NOT be scored against an
-    answer sheet produced from the round files.
-    """
-    out, dropped = [], 0
-    for line in lines:
-        m = CAND_RE.match(line)
-        if not m:
-            continue
-        body = m.group(2)
-        if not publishable(body.split("  _also")[0].split("—", 1)[-1]):
-            dropped += 1
-            continue
-        out.append(body)
-    return ([f"    - **{LETTERS[i]}.** {b}" for i, b in enumerate(out)], dropped)
 
 
 def load_merges():
@@ -209,12 +182,8 @@ def load_context():
     return ctx, by_core
 
 
-def candidate_lines(cands, describe=lambda c: c.get("description"),
-                    label=lambda c: c.get("label")):
-    """Render Wikidata hits as lettered options, filtered and relabelled."""
-    kept = [c for c in cands if publishable(describe(c))]
-    out = []
-    for i, c in enumerate(kept[:len(LETTERS)]):
-        d = describe(c) or "(no description)"
-        out.append(f"    - **{LETTERS[i]}.** {label(c)} \u2014 {d}")
-    return out, len(cands) - len(kept)
+def candidate_lines(cands):
+    """Render Wikidata hits as lettered options. Input is already filtered."""
+    return [f"    - **{LETTERS[i]}.** {c['label']} \u2014 "
+            f"{c.get('description') or '(no description)'}"
+            for i, c in enumerate(cands[:len(LETTERS)])]

@@ -1,0 +1,685 @@
+{
+ "alger": [
+  {
+   "qid": "Q262",
+   "label": "Algeria",
+   "description": "country in North Africa",
+   "matched": "Algeria",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q18760809",
+   "label": "French cruiser Alger",
+   "description": "1889 Alger-class protected cruiser",
+   "matched": "Alger",
+   "match_type": "alias"
+  },
+  {
+   "qid": "Q315511",
+   "label": "Algernon Charles Swinburne",
+   "description": "English poet, playwright and novelist (1837\u20131909)",
+   "matched": "Algernon Charles Swinburne",
+   "match_type": "label"
+  }
+ ],
+ "antelope flat": [
+  {
+   "qid": "Q31467025",
+   "label": "Antelope Flat",
+   "description": "",
+   "matched": "Antelope Flat",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q49584668",
+   "label": "Antelope Flat",
+   "description": "",
+   "matched": "Antelope Flat",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q49584673",
+   "label": "Antelope Flat",
+   "description": "",
+   "matched": "Antelope Flat",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q49584661",
+   "label": "Antelope Flat",
+   "description": "",
+   "matched": "Antelope Flat",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q49584681",
+   "label": "Antelope Flat",
+   "description": "",
+   "matched": "Antelope Flat",
+   "match_type": "label"
+  }
+ ],
+ "ardell": [
+  {
+   "qid": "Q1075230",
+   "label": "Ardelles",
+   "description": "commune in Eure-et-Loir, France",
+   "matched": "Ardelles",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q64863756",
+   "label": "Rose Elisabeth Ardell",
+   "description": "researcher",
+   "matched": "Ardell RE",
+   "match_type": "alias"
+  },
+  {
+   "qid": "Q100786388",
+   "label": "Ardell England",
+   "description": "basketball player",
+   "matched": "Ardell England",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q134578656",
+   "label": "Ardelle Mills",
+   "description": "",
+   "matched": "Ardelle Mills",
+   "match_type": "label"
+  }
+ ],
+ "bexley": [
+  {
+   "qid": "Q207208",
+   "label": "London Borough of Bexley",
+   "description": "borough in the London Region in England",
+   "matched": "Bexley",
+   "match_type": "alias"
+  },
+  {
+   "qid": "Q146416",
+   "label": "Bexley",
+   "description": "area of southeast London, England, United Kingdom",
+   "matched": "Bexley",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q1857734",
+   "label": "Bexley",
+   "description": "city in Franklin County, Ohio, United States of America",
+   "matched": "Bexley",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q281242",
+   "label": "Bexley",
+   "description": "suburb of Sydney, New South Wales, Australia",
+   "matched": "Bexley",
+   "match_type": "label"
+  }
+ ],
+ "blakehurst": [
+  {
+   "qid": "Q4924569",
+   "label": "Blakehurst",
+   "description": "suburb of Sydney, New South Wales, Australia",
+   "matched": "Blakehurst",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q4924566",
+   "label": "Blakehurst High School",
+   "description": "school in Bankstown, Southern Sydney, New South Wales, Australia",
+   "matched": "Blakehurst High School",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q105780946",
+   "label": "Blakehurst Manor",
+   "description": "former manorial estate in Warningcamp, Sussex",
+   "matched": "Blakehurst Manor",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q56682615",
+   "label": "Blakehurst Ward",
+   "description": "",
+   "matched": "Blakehurst Ward",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q126102899",
+   "label": "Blakehurst Public School",
+   "description": "government primary school in Blakehurst, NSW, Australia",
+   "matched": "Blakehurst Public School",
+   "match_type": "label"
+  }
+ ],
+ "hale canyon": [
+  {
+   "qid": "Q49808248",
+   "label": "Hale Canyon",
+   "description": "valley in Fremont County, Idaho, United States",
+   "matched": "Hale Canyon",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q49808250",
+   "label": "Hale Canyon",
+   "description": "valley in Lincoln County, New Mexico, United States of America",
+   "matched": "Hale Canyon",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q49808252",
+   "label": "Hale Canyon",
+   "description": "valley in Lincoln County, United States of America - Geonames ID = 5470540",
+   "matched": "Hale Canyon",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q49808246",
+   "label": "Hale Canyon",
+   "description": "valley in Cochise County, Arizona, United States of America",
+   "matched": "Hale Canyon",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q49808255",
+   "label": "Hale Canyon",
+   "description": "valley in Lincoln County, United States of America - Geonames ID = 5826880",
+   "matched": "Hale Canyon",
+   "match_type": "label"
+  }
+ ],
+ "hurtsville": [
+  {
+   "qid": "Q14712595",
+   "label": "Hurtsville",
+   "description": "human settlement in Virginia, United States of America",
+   "matched": "Hurtsville",
+   "match_type": "label"
+  }
+ ],
+ "john deere": [
+  {
+   "qid": "Q496302",
+   "label": "Deere & Company",
+   "description": "American agricultural and industrial auto manufacturing corporation",
+   "matched": "John Deere",
+   "match_type": "alias"
+  },
+  {
+   "qid": "Q98642757",
+   "label": "John Deere",
+   "description": "brand of Deere & Company",
+   "matched": "John Deere",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q1776475",
+   "label": "John Deere",
+   "description": "American blacksmith and manufacturer (1804\u20131886)",
+   "matched": "John Deere",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q108371070",
+   "label": "John Deere",
+   "description": "video game series",
+   "matched": "John Deere",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q10540569",
+   "label": "John Deere: American Farmer",
+   "description": "2004 video game",
+   "matched": "John Deere: American Farmer",
+   "match_type": "label"
+  }
+ ],
+ "linmar": [
+  {
+   "qid": "Q114735144",
+   "label": "Linmarie Sikich",
+   "description": "researcher",
+   "matched": "Linmarie Sikich",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q13192724",
+   "label": "Linmargis",
+   "description": "village in Lithuania",
+   "matched": "Linmargis",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q6554486",
+   "label": "Linmark Associates, Inc. v. Willingboro",
+   "description": "United States Supreme Court case",
+   "matched": "Linmark Associates, Inc. v. Willingboro",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q130395446",
+   "label": "Linmarkis",
+   "description": "stream in Lithuania, left tributary of Vilka (Minija basin)",
+   "matched": "Linmarkis",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q20402889",
+   "label": "Linm\u0101rka ezers",
+   "description": "lake in L\u012bksna Parish, Latvia",
+   "matched": "Linm\u0101rka ezers",
+   "match_type": "label"
+  }
+ ],
+ "manly": [
+  {
+   "qid": "Q509716",
+   "label": "Manly",
+   "description": "suburb of Sydney, New South Wales, Australia",
+   "matched": "Manly",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q5355628",
+   "label": "Manly",
+   "description": "state electoral district of New South Wales, Australia",
+   "matched": "Manly",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q1981210",
+   "label": "Manly Wade Wellman",
+   "description": "American writer (1903-1986)",
+   "matched": "Manly Wade Wellman",
+   "match_type": "label"
+  }
+ ],
+ "marietta": [
+  {
+   "qid": "Q985482",
+   "label": "Marietta",
+   "description": "city in and county seat of Washington County, Ohio, United States",
+   "matched": "Marietta",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q17578110",
+   "label": "Marietta",
+   "description": "female given name",
+   "matched": "Marietta",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q4043717",
+   "label": "Marietta",
+   "description": "genus of Hymenoptera",
+   "matched": "Marietta",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q15943994",
+   "label": "Marietta",
+   "description": "musician",
+   "matched": "Marietta",
+   "match_type": "label"
+  }
+ ],
+ "mesa falls": [
+  {
+   "qid": "Q6821064",
+   "label": "Mesa Falls Tuff",
+   "description": "volcanic formation in Idaho, United States",
+   "matched": "Mesa Falls Tuff",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q35950175",
+   "label": "Mesa Falls Scenic Byway",
+   "description": "scenic byway in Idaho, USA",
+   "matched": "Mesa Falls Scenic Byway",
+   "match_type": "label"
+  }
+ ],
+ "misty valley": [
+  {
+   "qid": "Q111053463",
+   "label": "OYO 11493 Hotel Misty Valley",
+   "description": "hotel in Munnar, India",
+   "matched": "Misty Valley",
+   "match_type": "alias"
+  },
+  {
+   "qid": "Q135079208",
+   "label": "Misty Valley: A Cozy Fishing Tale",
+   "description": "video game developed by No Plan Games",
+   "matched": "Misty Valley: A Cozy Fishing Tale",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q111598352",
+   "label": "Misty Valley Productions",
+   "description": "American publisher",
+   "matched": "Misty Valley Productions",
+   "match_type": "label"
+  }
+ ],
+ "mortdale": [
+  {
+   "qid": "Q6914424",
+   "label": "Mortdale",
+   "description": "suburb of Sydney, New South Wales, Australia",
+   "matched": "Mortdale",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q13219851",
+   "label": "Mortdale railway station",
+   "description": "railway station in Sydney, New South Wales, Australia",
+   "matched": "Mortdale railway station",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q16895407",
+   "label": "Mortdale Memorial Park",
+   "description": "park in southern Sydney suburb of Mortdale",
+   "matched": "Mortdale Memorial Park",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q56682660",
+   "label": "Mortdale Ward",
+   "description": "",
+   "matched": "Mortdale Ward",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q14934915",
+   "label": "Mortdale Heights",
+   "description": "New South Wales, Australia",
+   "matched": "Mortdale Heights",
+   "match_type": "label"
+  }
+ ],
+ "padstow": [
+  {
+   "qid": "Q943931",
+   "label": "Padstow",
+   "description": "town and civil parish in Cornwall, England, UK",
+   "matched": "Padstow",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q7123965",
+   "label": "Padstow",
+   "description": "suburb of Sydney, New South Wales, Australia",
+   "matched": "Padstow",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q33159173",
+   "label": "Padstow",
+   "description": "",
+   "matched": "Padstow",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q7123964",
+   "label": "Padstow railway station",
+   "description": "railway station in Sydney, New South Wales, Australia",
+   "matched": "Padstow railway station",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q20870433",
+   "label": "Padstow railway station, Cornwall",
+   "description": "railway station in Cornwall, England, UK, now closed",
+   "matched": "Padstow railway station, Cornwall",
+   "match_type": "label"
+  }
+ ],
+ "profile": [
+  {
+   "qid": "Q4382010",
+   "label": "profile",
+   "description": "orientation to the side, in a two-dimensional depiction",
+   "matched": "profile",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q124626004",
+   "label": "Profile",
+   "description": "car garage chain in the Netherlands",
+   "matched": "Profile",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q132733082",
+   "label": "Profile",
+   "description": "painting by Henrique Bernardelli",
+   "matched": "Profile",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q124339994",
+   "label": "Profile",
+   "description": "Dutch bicycle retail chain",
+   "matched": "Profile",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q104514156",
+   "label": "profile",
+   "description": "description of the characteristics of a subject (person, organism, organization)",
+   "matched": "profile",
+   "match_type": "label"
+  }
+ ],
+ "rockdale": [
+  {
+   "qid": "Q5355905",
+   "label": "Rockdale",
+   "description": "state electoral district of New South Wales, Australia",
+   "matched": "Rockdale",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q981773",
+   "label": "Rockdale",
+   "description": "city in Milam County, Texas, United States",
+   "matched": "Rockdale",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q498621",
+   "label": "Rockdale County",
+   "description": "county in Georgia, United States",
+   "matched": "Rockdale County",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q3400385",
+   "label": "Rockdale",
+   "description": "suburb of Sydney, New South Wales, Australia",
+   "matched": "Rockdale",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q1430843",
+   "label": "City of Rockdale",
+   "description": "former local government area in New South Wales, Australia",
+   "matched": "Rockdale City",
+   "match_type": "alias"
+  }
+ ],
+ "rodeo": [
+  {
+   "qid": "Q20058669",
+   "label": "Rodeo",
+   "description": "2015 debut studio album by Travis Scott",
+   "matched": "Rodeo",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q11350520",
+   "label": "Rodeo",
+   "description": "Japanese company",
+   "matched": "Rodeo",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q7357512",
+   "label": "Rod\u00e9o",
+   "description": "2004 album by Zazie",
+   "matched": "Rod\u00e9o",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q207703",
+   "label": "rodeo",
+   "description": "competitive sport",
+   "matched": "rodeo",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q1997775",
+   "label": "Rodeo Municipality",
+   "description": "municipality in the State of Durango, Mexico",
+   "matched": "Rodeo Municipality",
+   "match_type": "label"
+  }
+ ],
+ "ryde": [
+  {
+   "qid": "Q5355920",
+   "label": "Ryde",
+   "description": "state electoral district of New South Wales, Australia",
+   "matched": "Ryde",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q776556",
+   "label": "Ryde",
+   "description": "town and civil parish on the Isle of Wight, in England, UK",
+   "matched": "Ryde",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q1006309",
+   "label": "Ryde",
+   "description": "suburb of Sydney, New South Wales, Australia",
+   "matched": "Ryde",
+   "match_type": "label"
+  }
+ ],
+ "steens": [
+  {
+   "qid": "Q205863",
+   "label": "Jan Steen",
+   "description": "painter from the Northern Netherlands (1626\u20131679)",
+   "matched": "Steens",
+   "match_type": "alias"
+  },
+  {
+   "qid": "Q36983218",
+   "label": "Steensen",
+   "description": "family name",
+   "matched": "Steensen",
+   "match_type": "label"
+  }
+ ],
+ "stroebel": [
+  {
+   "qid": "Q17291642",
+   "label": "Johannes Anthonie Balthasar Stroebel",
+   "description": "painter from the Netherlands (1821-1905)",
+   "matched": "Stroebel",
+   "match_type": "alias"
+  },
+  {
+   "qid": "Q16357561",
+   "label": "Hegardt Horse",
+   "description": "horse breed",
+   "matched": "Stroebel Horse",
+   "match_type": "alias"
+  }
+ ],
+ "timber trail": [
+  {
+   "qid": "Q16927252",
+   "label": "Timber Trail",
+   "description": "New Zealand cycling and tramping trail",
+   "matched": "Timber Trail",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q21647173",
+   "label": "The Timber Trail",
+   "description": "1948 film by Philip Ford",
+   "matched": "Timber Trail",
+   "match_type": "alias"
+  },
+  {
+   "qid": "Q135066229",
+   "label": "Timber Trails Alpine Puzzle",
+   "description": "2024 video game developed by Boogygames Studios",
+   "matched": "Timber Trails Alpine Puzzle",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q19393702",
+   "label": "timber trailer",
+   "description": "",
+   "matched": "timber trailer",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q7804666",
+   "label": "Timber Trails",
+   "description": "unincorporated community in California",
+   "matched": "Timber Trails",
+   "match_type": "label"
+  }
+ ],
+ "trophy": [
+  {
+   "qid": "Q110193136",
+   "label": "Trophy",
+   "description": "2021 video game",
+   "matched": "Trophy",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q381165",
+   "label": "trophy",
+   "description": "reward for a specific achievement",
+   "matched": "trophy",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q118351911",
+   "label": "Trophy",
+   "description": "top-down arcade racing game",
+   "matched": "Trophy",
+   "match_type": "label"
+  },
+  {
+   "qid": "Q2988681",
+   "label": "achievement",
+   "description": "meta-goal in a video game",
+   "matched": "trophy",
+   "match_type": "alias"
+  },
+  {
+   "qid": "Q927580",
+   "label": "trophy",
+   "description": "in art and architecture is a real or depicted artistically assembled display of weaponry and other militaria",
+   "matched": "trophy",
+   "match_type": "label"
+  }
+ ]
+}

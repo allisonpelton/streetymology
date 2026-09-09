@@ -1,8 +1,8 @@
 """Fixed inputs must produce byte-identical output.
 
 A change detector, not a proof of correctness: a failure means the output moved,
-go look. No network -- `fetch_candidates` is outside the chain under test and
-`derived/search_unmatched.json` is frozen. What the fixture covers, and what it
+go look. No network -- the two fetch stages are outside the chain under test and
+`derived/candidates.json` is frozen. What the fixture covers, and what it
 deliberately does not, is in `fixture/README.md`.
 
 Re-bless an intended change with:

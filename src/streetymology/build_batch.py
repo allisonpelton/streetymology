@@ -9,8 +9,8 @@ answer NONE, INVENTED or PERSONAL. Items are rendered by `streetymology.prompt`,
 the same code that renders the 240-item chat prompt, so the paid run cannot
 quietly diverge from the version that was checked by hand.
 
-Bare personal-name candidates are filtered by `candidates.publishable` before
-lettering, so "Ulmer - family name" is never offered.
+Candidates come from `filter_candidates`, so bare personal names are already
+gone and this stage only letters and renders them.
 
 Output is a .jsonl of request payloads and a CSV index mapping every item back to
 its place id, which is what a result parser needs to write answers home.
@@ -49,12 +49,12 @@ def build_items(limit=None):
     """(place id, street, rendered block) for every place worth asking about."""
     ctx, by_core = load_context()
     merges = load_merges()
-    search = json.loads(data_path("search_unmatched.json").read_text())
+    cands = json.loads(data_path("candidates.json").read_text())
 
     items, skipped_no_cands = [], 0
     for pid, rec in sorted(ctx.items()):
         core = pid.split("#")[0]
-        lines, _ = candidate_lines(search.get(core, []))
+        lines = candidate_lines(cands.get(core, []))
         if not lines:
             skipped_no_cands += 1
             continue
@@ -123,7 +123,7 @@ def main():
                             "place": g["place"], "street": g["street"]})
 
     print(f"places asked about : {len(items)}")
-    print(f"skipped, no publishable candidate : {no_cands}")
+    print(f"skipped, no candidate left : {no_cands}")
     print(f"requests           : {len(reqs)} of up to {a.chunk} items")
     print(f"model              : {a.model}")
     print(f"estimated tokens   : {cost['input_tokens']:,} in, "

@@ -16,7 +16,10 @@ data/*
 .pytest_cache/
 *.egg-info/
 
-# golden-test intermediates; only search_unmatched.json is a real input
-tests/fixture/derived/street_places.json
-tests/fixture/derived/street_plats.json
+# Pipeline data: lives here so the code can find it, but all of it re-downloads
+# or recomputes. Only labels.csv and plat_judgement/ are tracked.
+data/raw/
+data/derived/
+data/artifacts/
 tests/fixture/derived/place_context.json
+tests/fixture/derived/street_*.json
