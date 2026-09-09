@@ -130,12 +130,14 @@ def main():
                 attached[x] |= pids - {x}
 
     # Proximity is only evidence where no plat explains the street at all.
-    thinned = {p.id: MultiPoint(geo._thin(p.points, 40.0)) for p in allp}
+    # Full geometry, not a sample. Thinning to 40 m missed 37 of 2,028 links
+    # because it measured vertex to vertex, and cost 0.8 s of 12 to avoid.
+    pts = {p.id: MultiPoint(p.points) for p in allp}
     unplatted = [pid for pid, v in out.items() if not v["plats"]]
-    tree = STRtree([thinned[pid] for pid in unplatted])
+    tree = STRtree([pts[pid] for pid in unplatted])
     for p in allp:
         near = {unplatted[i] for i in
-                tree.query(thinned[p.id], predicate="dwithin", distance=a.near)}
+                tree.query(pts[p.id], predicate="dwithin", distance=a.near)}
         out[p.id]["attached"] = sorted(attached.get(p.id, ()))
         out[p.id]["near_unplatted"] = sorted(near - {p.id})
 

@@ -309,25 +309,11 @@ SPLIT_M = 5000.0
 # Classes a developer plausibly named. Anything above tertiary is a public road
 # that predates the plats it crosses.
 ANALYSED_CLASSES = {"residential", "unclassified", "tertiary", "living_street"}
-# Thinning for the distance tests only; alignment linking is coarse by nature.
-THIN_M = 100.0
 
 
 def metres(a, b):
     """Distance between two projected (x, y) points, in metres."""
     return math.dist(a, b)
-
-
-def _thin(pts, spacing=THIN_M):
-    if len(pts) <= 2:
-        return list(pts)
-    out, last = [pts[0]], pts[0]
-    for p in pts[1:-1]:
-        if metres(last, p) >= spacing:
-            out.append(p)
-            last = p
-    out.append(pts[-1])
-    return out
 
 
 def bearing(a, b):
@@ -447,8 +433,7 @@ def build(ways_by_core, link_m=LINK_M, split_m=SPLIT_M):
     """core -> [Place]. `ways_by_core` maps core key to way dicts with points."""
     out = {}
     for core, ways in ways_by_core.items():
-        thinned = {id(w): _thin(w["points"]) for w in ways}
-        aligns = _components(ways, lambda w: thinned[id(w)], link_m, _road_test)
+        aligns = _components(ways, lambda w: w["points"], link_m, _road_test)
         # Alignments closer than split_m are one etymology unit: the same
         # developer naming two nearby streets, not two coincidental choices.
         units = _components(aligns, lambda g: g["pts"], split_m, _place_test) \
