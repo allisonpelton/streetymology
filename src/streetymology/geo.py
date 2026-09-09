@@ -100,17 +100,22 @@ def to_utm(lon, lat):
     return _TO_UTM.transform(lon, lat)
 
 
-def _longest_run(pieces, bridge_m=0.0):
-    """Longest chain of pieces, joining any two whose ends are within bridge_m."""
+def longest_run(pieces, bridge_m=0.0):
+    """Longest chain of pieces, joining any two whose ends are within bridge_m.
+
+    `pieces` are (length_m, end, end) tuples rather than geometry, so the
+    measuring stage can write them to disk and the selecting stage can vary
+    bridge_m without touching a polygon again.
+    """
     if not pieces:
         return 0.0
-    lens = [p.length for p in pieces]
+    lens = [pc[0] for pc in pieces]
     if bridge_m <= 0 or len(pieces) == 1:
         return max(lens)
-    ends = [MultiPoint([p.coords[0], p.coords[-1]]) for p in pieces]
+    ends = [(tuple(pc[1]), tuple(pc[2])) for pc in pieces]
 
     def gap(i, j):
-        return ends[i].distance(ends[j])
+        return min(math.dist(a, b) for a in ends[i] for b in ends[j])
 
     seen, best = set(), 0.0
     for i in range(len(pieces)):
@@ -200,13 +205,14 @@ class PlatIndex:
         return [self.plats[i] for i in self.tree.query(geom)
                 if self.plats[i].geom.intersects(geom)]
 
-    def runs_inside(self, lines, bridge_m=0.0):
-        """plat -> (metres inside, longest run, number of separate pieces).
+    def pieces_inside(self, lines):
+        """plat -> (metres inside, [(length, end, end)] per unbroken piece).
 
-        `bridge_m` tolerates a street leaving the plat and coming straight back:
-        two pieces whose ends are within that distance count as one run. A plat
-        boundary detours around a park parcel, a school site or a phase line,
-        and the street that runs through it was still laid out by that plat.
+        Pieces are returned rather than a single run length because whether two
+        of them count as one run is a judgement -- a plat boundary detours
+        around a park parcel or a phase line, and the street through it was
+        still laid out by that plat. `longest_run` applies that judgement, in
+        the stage that owns it.
 
         Takes every way of a place at once and merges them first, because OSM
         splits a street at arbitrary points -- a lane change, a bridge, an
@@ -232,11 +238,11 @@ class PlatIndex:
                               else [inter]):
                     if piece.geom_type != "LineString":
                         continue
-                    m = piece.length
-                    total += m
-                    pieces.append(piece)
+                    total += piece.length
+                    pieces.append((piece.length, piece.coords[0],
+                                   piece.coords[-1]))
             if total > 0:
-                out[p] = (total, _longest_run(pieces, bridge_m), len(pieces))
+                out[p] = (total, pieces)
         return out
 
     def covered_metres(self, lines):

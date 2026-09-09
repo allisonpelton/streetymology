@@ -8,6 +8,7 @@ deliberately does not, is in `fixture/README.md`.
 Re-bless an intended change with:
 
     export STREETYMOLOGY_DATA_DIR=tests/fixture
+    python -m streetymology.measure_streets
     python -m streetymology.build_context
     python -m streetymology.build_batch --out tests/fixture/expected/batch.jsonl
     cp tests/fixture/derived/place_context.json tests/fixture/expected/
@@ -32,7 +33,8 @@ def run_pipeline(tmp_path):
     for sub in ("raw", "derived"):
         shutil.copytree(FIXTURE / sub, tmp_path / sub)
     env = {**os.environ, "STREETYMOLOGY_DATA_DIR": str(tmp_path)}
-    for stage, extra in (("build_context", []),
+    for stage, extra in (("measure_streets", []),
+                         ("build_context", []),
                          ("build_batch", ["--out", str(tmp_path / "batch.jsonl")])):
         r = subprocess.run([sys.executable, "-m", f"streetymology.{stage}", *extra],
                            env=env, capture_output=True, text=True)
