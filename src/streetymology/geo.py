@@ -79,15 +79,25 @@ def pretty(name: str) -> str:
     return b
 
 
+# Ada County spans about 0.6 degrees. Over the few-kilometre distances this file
+# measures, treating a degree as a fixed number of metres and scaling longitude
+# by cos(latitude) lands within a metre or so of a projected calculation. Using a
+# real CRS would be more correct in principle and would change every length the
+# naming-plat error rate was measured against, for no accuracy that matters here.
+_M_PER_DEG = 111_320.0
+
+
+def _metres(lon1, lat1, lon2, lat2):
+    """Distance in metres between two lon/lat points. The only such formula."""
+    dy = (lat2 - lat1) * _M_PER_DEG
+    dx = (lon2 - lon1) * _M_PER_DEG * math.cos(math.radians(lat1))
+    return math.hypot(dx, dy)
+
+
 def _line_metres(line):
     """Length of a lon/lat LineString in metres."""
     cs = list(line.coords)
-    t = 0.0
-    for (x1, y1), (x2, y2) in zip(cs, cs[1:]):
-        dy = (y2 - y1) * 111_320.0
-        dx = (x2 - x1) * 111_320.0 * math.cos(math.radians(y1))
-        t += math.hypot(dx, dy)
-    return t
+    return sum(_metres(x1, y1, x2, y2) for (x1, y1), (x2, y2) in zip(cs, cs[1:]))
 
 
 def _longest_run(pieces, bridge_m=0.0):
@@ -100,13 +110,8 @@ def _longest_run(pieces, bridge_m=0.0):
     ends = [(p.coords[0], p.coords[-1]) for p in pieces]
 
     def gap(i, j):
-        best = float("inf")
-        for a in ends[i]:
-            for b in ends[j]:
-                dy = (b[1] - a[1]) * 111_320.0
-                dx = (b[0] - a[0]) * 111_320.0 * math.cos(math.radians(a[1]))
-                best = min(best, math.hypot(dx, dy))
-        return best
+        return min(_metres(a[0], a[1], b[0], b[1])
+                   for a in ends[i] for b in ends[j])
 
     seen, best = set(), 0.0
     for i in range(len(pieces)):
@@ -305,9 +310,8 @@ THIN_M = 100.0
 
 
 def metres(a, b):
-    dy = (a[0] - b[0]) * 111_320.0
-    dx = (a[1] - b[1]) * 111_320.0 * math.cos(math.radians(a[0]))
-    return math.hypot(dx, dy)
+    """Distance between two (lat, lon) points, as places store them."""
+    return _metres(a[1], a[0], b[1], b[0])
 
 
 def _thin(pts, spacing=THIN_M):
@@ -323,9 +327,9 @@ def _thin(pts, spacing=THIN_M):
 
 
 def bearing(a, b):
-    """Compass-free direction of a->b in degrees, folded to 0-180."""
-    dy = (b[0] - a[0]) * 111_320.0
-    dx = (b[1] - a[1]) * 111_320.0 * math.cos(math.radians(a[0]))
+    """Direction of a->b in degrees, folded to 0-180 so it has no compass sense."""
+    dy = (b[0] - a[0]) * _M_PER_DEG
+    dx = (b[1] - a[1]) * _M_PER_DEG * math.cos(math.radians(a[0]))
     return math.degrees(math.atan2(dy, dx)) % 180.0
 
 
@@ -378,14 +382,13 @@ def _min_dist(a_pts, b_pts, stop_at):
     return best
 
 
-def _components(items, pts_of, gap, test=None):
+def _components(items, pts_of, gap, test):
     """Single-linkage grouping of `items`.
 
-    `test(pts, group_points, gap)` decides linkage; the default is closest
-    approach, which is right for "are these the same PLACE" but wrong for "are
-    these the same ROAD" -- see `continues`.
+    `test(pts, parts, gap)` decides linkage, and there is no default: the two
+    callers mean different things by "connected". `_place_test` is closest
+    approach; `_road_test` also demands the pieces be collinear.
     """
-    test = test or (lambda a, b, g: _min_dist(a, b, g) <= g)
     groups = []
     for it in items:
         pts = pts_of(it)
@@ -448,7 +451,6 @@ def build(ways_by_core, link_m=LINK_M, split_m=SPLIT_M):
     for core, ways in ways_by_core.items():
         thinned = {id(w): _thin(w["points"]) for w in ways}
         aligns = _components(ways, lambda w: thinned[id(w)], link_m, _road_test)
-        # Alignments closer than split_m are one etymology unit after all.
         # Alignments closer than split_m are one etymology unit: the same
         # developer naming two nearby streets, not two coincidental choices.
         units = _components(aligns, lambda g: g["pts"], split_m, _place_test) \
