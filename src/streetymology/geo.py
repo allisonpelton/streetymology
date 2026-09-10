@@ -77,6 +77,8 @@ def pretty(name: str) -> str:
     b = b.title()
     # Lower-case only INTERIOR articles: "The Highlands" keeps its capital.
     b = re.sub(r"(?<!^)\b(Of|The|And|At|In|On)\b", lambda m: m.group(1).lower(), b)
+    # .title() gives "Mcintyres"; the name is McIntyres.
+    b = re.sub(r"\bMc([a-z])", lambda m: "Mc" + m.group(1).upper(), b)
     # "02Nd" -> "2nd". Kept numeric: "52nd Street Condo" is a street name, and
     # "Fifty-Second Street" would be wrong.
     b = _ORDINAL.sub(lambda m: m.group(1) + m.group(2).lower(), b)

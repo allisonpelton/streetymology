@@ -47,6 +47,11 @@ THEME_ERA_START = 1915
 THEME_ERA_FULL = 1965
 THEMELESS_BEFORE = 1950
 
+# Nothing here is ever certain: the assessor's polygons are approximate, OSM's
+# geometry is approximate, and "which plat named this" is an inference from
+# overlap. A bare 1.00 tells the model the answer is settled when it is not.
+CONFIDENCE_CAP = 0.95
+
 
 def era_weight(year):
     if not year:
@@ -191,11 +196,19 @@ def main():
             "naming_share": naming["share"] if naming else None,
             "naming_run_m": naming["run_m"] if naming else None,
             "naming_claim": naming["claim"] if naming else None,
-            # Question 1: how sure are we a plat named this street at all.
-            "confidence": round(laid_out, 3) if naming else None,
-            # Question 1 damped by the plat's era: how much theme it may suggest.
-            "theme_confidence": (round(laid_out * naming["era_weight"], 3)
-                                 if naming else None),
+            # How sure we are this subdivision laid the street out: how much of
+            # the street is platted at all, times how much of the platted part
+            # is THIS plat rather than a rival. West War Eagle Court is fully
+            # platted but its namer holds a third of it against another plat's
+            # two thirds, and reporting that as 1.00 is what let the model take
+            # a theme off the wrong neighbours with medium confidence.
+            "confidence": (round(min(CONFIDENCE_CAP, laid_out * naming["claim"]), 3)
+                           if naming else None),
+            # The same, damped by the plat's era: how much theme it may suggest.
+            "theme_confidence": (
+                round(min(CONFIDENCE_CAP,
+                          laid_out * naming["claim"] * naming["era_weight"]), 3)
+                if naming else None),
             # How many plats could plausibly be the one. 1 is unambiguous.
             "contenders": len(material),
             "platted_share": round(laid_out, 3),
