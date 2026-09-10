@@ -45,14 +45,20 @@ PRICES = {
 CHUNK_DEFAULT = 40
 
 
-def build_items(limit=None):
-    """(place id, street, rendered block) for every place worth asking about."""
+def build_items(limit=None, only=None):
+    """(place id, street, rendered block) for every place worth asking about.
+
+    `only` restricts the run to a list of place ids, which is how a subset gets
+    re-asked after a change to the context.
+    """
     ctx, by_core = load_context()
     merges = load_merges()
     cands = json.loads(data_path("candidates.json").read_text())
 
     items, skipped_no_cands = [], 0
     for pid, rec in sorted(ctx.items()):
+        if only is not None and pid not in only:
+            continue
         core = pid.split("#")[0]
         lines = candidate_lines(cands.get(core, []))
         if not lines:
@@ -97,13 +103,15 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--only", help="JSON file holding a list of place ids")
     ap.add_argument("--model", default=MODEL_DEFAULT)
     ap.add_argument("--chunk", type=int, default=CHUNK_DEFAULT)
     ap.add_argument("--max-tokens", type=int, default=8000)
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
 
-    items, no_cands = build_items(a.limit)
+    only = set(json.loads(pathlib.Path(a.only).read_text())) if a.only else None
+    items, no_cands = build_items(a.limit, only)
     reqs = chunk_requests(items, a.model, a.chunk, a.max_tokens)
     cost = estimate(reqs, len(items), a.model)
 

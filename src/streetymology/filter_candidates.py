@@ -39,6 +39,25 @@ EXCLUDE_TYPES = {
     "Q4167836": "Wikimedia category",
     "Q13406463": "Wikimedia list article",
     "Q17362920": "Wikimedia duplicated page",
+    # Subtypes of name. Wikidata often gives a bare surname a second, more
+    # specific class, and requiring EVERY class to be excludable then kept the
+    # item: Bonnie is {hypocorism, unisex given name} and survived. These are
+    # every non-excluded class found riding alongside a name class across the
+    # whole candidate set, and none of them is a referent.
+    "Q82799": "name",
+    "Q829026": "occupational surname",
+    "Q56219051": "surname prefixed with Mac or Mc",
+    "Q98775491": "family name based on given name",
+    "Q1130279": "hypocorism",
+    "Q11455398": "patronymic family name",
+    "Q333021": "Uebername",
+    "Q17143070": "toponymic surname",
+    "Q1714800": "locational surname",
+    "Q19914123": "Japanese family name",
+    "Q1093580": "Chinese family name",
+    "Q18972207": "feminine family name",
+    "Q108709": "diminutive",
+    "Q8436": "family",
 }
 BATCH = 400          # QIDs per SPARQL query; well inside the 60s budget
 
