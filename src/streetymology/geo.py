@@ -28,8 +28,11 @@ from .config import data_path
 FILE = "assessor_subdivisions.json"
 
 # Assessor shorthand. SUB=subdivision, ADD=addition, AMD=amended plat.
+# UNIT appears both as "UNIT NO 02" and bare, because the assessor writes
+# "A T SORENSEN SUB UNIT NO 02": SUB and NO 02 came off and UNIT was left behind,
+# so the naming act read as "A T Sorensen Unit". Both forms go.
 _TRAIL = re.compile(r"\s+(SUB(DIVISION)?|ADD(ITION)?|AMD|AMENDED|"
-                    r"NO\s+\d+|#\s*\d+|PHASE\s+\d+|UNIT\s+\d+)\b", re.I)
+                    r"NO\s+\d+|#\s*\d+|PHASE\s+\d+|UNIT(\s+\d+)?)\b", re.I)
 # "EAST SIDE ADD TO BOISE" is an addition to a city: the naming act is "East
 # Side", and the city is not part of it.
 _ADD_TO = re.compile(r"\s+ADD(ITION)?\s+TO\s+.*$", re.I)
