@@ -164,9 +164,12 @@ def render(n, street, cand_lines, rec, ctx, by_core, merges):
                  "this street")
         L.append("- **Confidence its name follows a subdivision theme:** low")
     a, b, c, merged = tiers(rec, ctx, by_core, merges)
-    L.append("- **Named by that subdivision:** " + (", ".join(a) or "(none)"))
-    L.append("- **In that subdivision, named by a different one:** "
-             + (", ".join(b) or "(none)"))
+    # With no subdivision there is no "that subdivision", so the two tiers that
+    # refer to one are left out rather than printed empty.
+    if plat:
+        L.append("- **Named by that subdivision:** " + (", ".join(a) or "(none)"))
+        L.append("- **In that subdivision, named by a different one:** "
+                 + (", ".join(b) or "(none)"))
     L.append("- **Nearby, outside it:** " + (", ".join(c) or "(none)"))
     L += ["- **Candidates:**"] + cand_lines + OPTIONS
     return "\n".join(L), merged
