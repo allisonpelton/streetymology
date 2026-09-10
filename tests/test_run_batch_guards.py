@@ -51,15 +51,17 @@ class FakeSession:
     """Records calls and makes none. `posts` is the number under test."""
     request_timeout = 5
 
-    def __init__(self, batches=(), models=(), new_batches=1,
-                 post_status=200, raise_on_post=None):
+    def __init__(self, batches=(), models=(), post_status=200,
+                 raise_on_post=None):
+
         self.batches = [{"id": b, "created_at": "t"} for b in batches]
         self.models = list(models)
-        self.new_batches = new_batches
         self.post_status = post_status
         self.raise_on_post = raise_on_post
         self.posts = 0
         self.gets = []
+        self.sent = []          # (url, body) of every POST, so a test can check
+                                # what went out and not merely that something did
 
     def get(self, url, **kw):
         self.gets.append(url)
@@ -75,10 +77,10 @@ class FakeSession:
 
     def post(self, url, **kw):
         self.posts += 1
+        self.sent.append((url, kw.get("json")))
         if self.raise_on_post:
             raise self.raise_on_post
-        for i in range(self.new_batches):
-            self.batches.insert(0, {"id": f"msgbatch_new{i}", "created_at": "t"})
+        self.batches.insert(0, {"id": "msgbatch_new0", "created_at": "t"})
         return FakeResponse(status_code=self.post_status,
                             payload={"id": "msgbatch_new0",
                                      "request_counts": {"processing": 1}})
@@ -116,7 +118,7 @@ def request_file(tmp_path, n=1, model="claude-sonnet-5"):
     return path
 
 
-def record(env, digest, batch_id="msgbatch_OLD"):
+def record(digest, batch_id="msgbatch_OLD"):
     (run_batch.RUNS_DIR / f"{batch_id}.json").write_text(json.dumps(
         {"batch_id": batch_id, "digest": digest, "model": "claude-sonnet-5",
          "requests": 1, "submitted": "2026-09-10T00:00:00+00:00",
@@ -134,7 +136,7 @@ def test_without_yes_nothing_is_sent(env, monkeypatch):
 def test_a_file_already_sent_is_refused(env, monkeypatch):
     fake = use(monkeypatch, FakeSession())
     path = request_file(env)
-    record(env, run_batch._digest(path))
+    record(run_batch._digest(path))
     with pytest.raises(SystemExit):
         run_batch.submit(path, yes=True)
     assert fake.posts == 0
@@ -160,18 +162,35 @@ def test_more_requests_than_the_ceiling_is_refused(env, monkeypatch):
 def test_again_overrides_the_duplicate_refusal(env, monkeypatch):
     fake = use(monkeypatch, FakeSession())
     path = request_file(env)
-    record(env, run_batch._digest(path))
+    record(run_batch._digest(path))
     run_batch.submit(path, yes=True, again=True)
     assert fake.posts == 1
 
 
 def test_a_clean_submit_posts_once_and_keeps_the_id(env, monkeypatch):
     fake = use(monkeypatch, FakeSession())
-    rec = run_batch.submit(request_file(env), yes=True)
+    path = request_file(env, n=3)
+    rec = run_batch.submit(path, yes=True)
     assert fake.posts == 1
-    assert rec["batch_id"] == "msgbatch_new0"
-    assert (run_batch.RUNS_DIR / "msgbatch_new0.json").exists()
+    assert (run_batch.RUNS_DIR / rec["batch_id"]).with_suffix(".json").exists()
     assert not run_batch.PENDING.exists()
+
+
+def test_what_is_posted_is_the_file_that_was_priced(env, monkeypatch):
+    """Counting POSTs says something was sent, not that the right thing was.
+
+    Without this, `submit` could post an empty list, or post to another host
+    entirely, and every other test here would still pass.
+    """
+    fake = use(monkeypatch, FakeSession())
+    path = request_file(env, n=3)
+    on_disk = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+
+    run_batch.submit(path, yes=True)
+
+    url, body = fake.sent[0]
+    assert url == run_batch.API
+    assert body["requests"] == on_disk
 
 
 # --- the crash window -------------------------------------------------------
@@ -190,13 +209,6 @@ def test_pending_is_cleared_when_the_api_rejects(env, monkeypatch):
     with pytest.raises(SystemExit):
         run_batch.submit(request_file(env), yes=True)
     assert not run_batch.PENDING.exists()
-
-
-def test_two_new_batches_is_reported_as_a_duplicate(env, monkeypatch):
-    fake = use(monkeypatch, FakeSession(new_batches=2))
-    with pytest.raises(SystemExit):
-        run_batch.submit(request_file(env), yes=True)
-    assert fake.posts == 1
 
 
 # --- the three defects of 2026-09-10 ---------------------------------------
@@ -227,7 +239,7 @@ def test_verify_refuses_a_model_the_api_does_not_list(env, monkeypatch):
 
 def test_fetch_does_not_redownload(env, monkeypatch):
     fake = use(monkeypatch, FakeSession())
-    record(env, "d", batch_id="msgbatch_X")
+    record("d", batch_id="msgbatch_X")
     (run_batch.ARTIFACTS_DIR / "msgbatch_X.results.jsonl").write_text("kept\n")
     out = run_batch.fetch("msgbatch_X")
     assert out.read_text() == "kept\n"
@@ -238,17 +250,17 @@ def test_exclude_drops_places_already_answered(tmp_path):
     """The trial's places must not appear in the county file that follows it."""
     for sub in ("raw", "derived"):
         shutil.copytree(FIXTURE / sub, tmp_path / sub)
-    env = {**os.environ, "STREETYMOLOGY_DATA_DIR": str(tmp_path)}
+    child_env = {**os.environ, "STREETYMOLOGY_DATA_DIR": str(tmp_path)}
     for stage in ("measure_streets", "build_context"):
         r = subprocess.run([sys.executable, "-m", f"streetymology.{stage}"],
-                           env=env, capture_output=True, text=True)
+                           env=child_env, capture_output=True, text=True)
         assert r.returncode == 0, r.stderr
 
     def build(*extra):
         out = tmp_path / "b.jsonl"
         r = subprocess.run([sys.executable, "-m", "streetymology.build_batch",
                             "--out", str(out), *extra],
-                           env=env, capture_output=True, text=True)
+                           env=child_env, capture_output=True, text=True)
         assert r.returncode == 0, r.stderr
         rows = (tmp_path / "b.index.csv").read_text().splitlines()[1:]
         return [x.split(",")[2] for x in rows]
