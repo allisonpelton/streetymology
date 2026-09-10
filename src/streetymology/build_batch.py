@@ -23,17 +23,25 @@ import argparse
 import csv
 import json
 import pathlib
+import re
 
 from streetymology.config import data_path, ARTIFACTS_DIR
 from streetymology.prompt import (HEADER, candidate_lines, load_context,
                                   load_merges, render)
 
-MODEL_DEFAULT = "claude-sonnet-4-5"     # feasibility winner; verify exact id at call time
-MODEL_ESCALATE = "claude-opus-4-1"      # for low-confidence rows
+# AP's three runs over labelled streets were answered by Sonnet 5 in the desktop
+# app, not by the 4.5 this file used to name. The measured agreement and
+# confidence calibration describe this model and no other. /v1/models offers no
+# dated snapshot for it, so the moving alias is the only id available.
+MODEL_DEFAULT = "claude-sonnet-5"
+MODEL_ESCALATE = "claude-opus-5"        # for low-confidence rows
 
 # Verify against current pricing before trusting any estimate.
 # USD per million tokens, (input, output).
 PRICES = {
+    # Sonnet 5 from the pricing page on 2026-09-10, base input and output only.
+    # The cache columns do not apply: nothing here sets cache_control.
+    "claude-sonnet-5": (2.0, 10.0),
     "claude-sonnet-4-5": (3.0, 15.0),
     "claude-opus-4-1": (15.0, 75.0),
     "claude-haiku-4-5": (1.0, 5.0),
@@ -95,11 +103,18 @@ def chunk_requests(items, model, chunk, max_tokens):
 
 
 def estimate(requests, n_items, model, out_tokens_per_item=60, discount=0.5):
-    """Rough. 4 chars per token, and Batch API is half price at time of writing."""
+    """Rough. 4 chars per token, and Batch API is half price at time of writing.
+
+    PRICES is keyed by alias, so a dated model id is stripped back to one before
+    the lookup. An unpriced model used to return $0.00, which reads as free
+    rather than as unknown; `priced` says which it is.
+    """
     inp = sum(len(r["params"]["messages"][0]["content"]) for r in requests) / 4
     outp = n_items * out_tokens_per_item
-    pin, pout = PRICES.get(model, (0.0, 0.0))
+    base = re.sub(r"-\d{8}$", "", model)
+    pin, pout = PRICES.get(base, (0.0, 0.0))
     return {"input_tokens": int(inp), "output_tokens": int(outp),
+            "priced": base in PRICES,
             "usd": round((inp / 1e6 * pin + outp / 1e6 * pout) * discount, 2)}
 
 
@@ -151,7 +166,9 @@ def main():
     print(f"model              : {a.model}")
     print(f"estimated tokens   : {cost['input_tokens']:,} in, "
           f"{cost['output_tokens']:,} out")
-    print(f"estimated cost     : ${cost['usd']} at batch pricing")
+    print(f"estimated cost     : ${cost['usd']} at batch pricing"
+          if cost["priced"] else
+          f"estimated cost     : UNKNOWN, no price on file for {a.model}")
     print("\nNOTHING WAS SENT. To send, enable billing and run python -m streetymology.run_batch")
     print(f"wrote {out}\nwrote {idx}")
 

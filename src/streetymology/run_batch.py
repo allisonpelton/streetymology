@@ -37,10 +37,11 @@ import sys
 import time
 
 from streetymology.config import ANTHROPIC_API_KEY, ARTIFACTS_DIR, data_path
-from streetymology.build_batch import estimate
+from streetymology.build_batch import estimate, MODEL_DEFAULT
 from streetymology.prompt import LETTERS
 
 API = "https://api.anthropic.com/v1/messages/batches"
+MODELS_API = "https://api.anthropic.com/v1/models"
 API_VERSION = "2023-06-01"
 
 RUNS_DIR = ARTIFACTS_DIR / "batch_runs"
@@ -157,6 +158,9 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
     print(f"model     : {model}")
     print(f"estimated : ${cost['usd']} at batch pricing "
           f"({cost['input_tokens']:,} in, {cost['output_tokens']:,} out)")
+    if not cost.get("priced"):
+        print(f"            *** no price on file for {model}. The figure above "
+              f"is not an estimate, it is a zero. ***")
 
     if PENDING.exists():
         sys.exit(f"\nREFUSING TO SEND. {PENDING} says an earlier submit never "
@@ -221,6 +225,58 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
         sys.exit("aborting so this is not mistaken for a clean send.")
     print(f"verified : exactly 1 new batch on the account")
     return rec
+
+
+def verify(model=MODEL_DEFAULT):
+    """Prove the key and the model id work, without spending anything.
+
+    Both endpoints return no tokens, so neither bills. This is the only free
+    exercise of `_headers` and of the batch-list call the duplicate guard in
+    `submit` relies on; without it, both are first tried during a paid send.
+
+    The key is never printed, and a failure is diagnosed from the status code
+    and the response body, which do not contain it.
+    """
+    s = _session()
+    ok = True
+
+    r = s.get(MODELS_API, headers=_headers(), params={"limit": 100},
+              timeout=s.request_timeout)
+    if r.status_code == 401:
+        sys.exit("key REJECTED (401). The key the program loaded from .env is not "
+                 "valid. I have not read .env and cannot tell you what is in it.")
+    if r.status_code == 403:
+        sys.exit("key FORBIDDEN (403). It authenticated but lacks permission, or "
+                 "the workspace has no billing enabled.")
+    if r.status_code >= 400:
+        sys.exit(f"models call failed [{r.status_code}]: {r.text[:300]}")
+
+    ids = [m["id"] for m in r.json().get("data", [])]
+    print(f"key            : accepted ({len(ids)} models visible)")
+    if model in ids:
+        print(f"model {model} : present")
+    else:
+        ok = False
+        near = [i for i in ids if i.split("-")[1:2] == model.split("-")[1:2]]
+        print(f"model {model} : *** NOT IN THE LIST ***")
+        print(f"  closest ids : {near or ids[:5]}")
+        print("  A wrong id fails every request in the batch. Fix MODEL_DEFAULT "
+              "in build_batch before sending.")
+
+    r = s.get(API, headers=_headers(), params={"limit": 1},
+              timeout=s.request_timeout)
+    if r.status_code >= 400:
+        ok = False
+        print(f"batch list     : FAILED [{r.status_code}] {r.text[:200]}")
+        print("  submit's duplicate check needs this call. Do not send until it works.")
+    else:
+        n = len(r.json().get("data", []))
+        print(f"batch list     : works ({n} existing batch{'es' if n != 1 else ''})")
+
+    print("\nNothing was billed: neither endpoint returns tokens.")
+    if not ok:
+        sys.exit("verification did not fully pass. Do not send.")
+    return ok
 
 
 def cancel(batch_id):
@@ -476,6 +532,9 @@ def main():
     p.add_argument("--index")
     p.add_argument("--out")
 
+    p = sub.add_parser("verify", help="check the key and model id; bills nothing")
+    p.add_argument("--model", default=MODEL_DEFAULT)
+
     p = sub.add_parser("reconcile", help="batches on the account vs run records here")
 
     p = sub.add_parser("cancel", help="cancel a batch; finished requests still bill")
@@ -489,6 +548,8 @@ def main():
     a = ap.parse_args()
     if a.cmd == "submit":
         submit(a.file, a.yes, a.max_requests, a.again)
+    elif a.cmd == "verify":
+        verify(a.model)
     elif a.cmd == "reconcile":
         reconcile()
     elif a.cmd == "cancel":
