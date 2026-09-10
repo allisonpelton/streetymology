@@ -8,7 +8,6 @@ written to remove.
 Nothing in this module reads the network or writes a file.
 """
 import json
-import re
 
 from streetymology.config import JUDGEMENT_DIR, data_path
 from streetymology.normalize import key

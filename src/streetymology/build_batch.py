@@ -25,7 +25,7 @@ import json
 import pathlib
 
 from streetymology.config import data_path, ARTIFACTS_DIR
-from streetymology.prompt import (HEADER, OPTIONS, candidate_lines, load_context,
+from streetymology.prompt import (HEADER, candidate_lines, load_context,
                                   load_merges, render)
 
 MODEL_DEFAULT = "claude-sonnet-4-5"     # feasibility winner; verify exact id at call time

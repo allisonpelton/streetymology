@@ -17,7 +17,6 @@ import datetime
 import json
 import math
 import re
-from collections import defaultdict
 
 from pyproj import Transformer
 from shapely.geometry import MultiPoint, MultiPolygon, Polygon
@@ -95,40 +94,6 @@ def to_utm(lon, lat):
     return _TO_UTM.transform(lon, lat)
 
 
-def longest_run(pieces, bridge_m=0.0):
-    """Longest chain of pieces, joining any two whose ends are within bridge_m.
-
-    `pieces` are (length_m, end, end) tuples rather than geometry, so the
-    measuring stage can write them to disk and the selecting stage can vary
-    bridge_m without touching a polygon again.
-    """
-    if not pieces:
-        return 0.0
-    lens = [pc[0] for pc in pieces]
-    if bridge_m <= 0 or len(pieces) == 1:
-        return max(lens)
-    ends = [(tuple(pc[1]), tuple(pc[2])) for pc in pieces]
-
-    def gap(i, j):
-        return min(math.dist(a, b) for a in ends[i] for b in ends[j])
-
-    seen, best = set(), 0.0
-    for i in range(len(pieces)):
-        if i in seen:
-            continue
-        stack, total = [i], 0.0
-        seen.add(i)
-        while stack:
-            k = stack.pop()
-            total += lens[k]
-            for j in range(len(pieces)):
-                if j not in seen and gap(k, j) <= bridge_m:
-                    seen.add(j)
-                    stack.append(j)
-        best = max(best, total)
-    return best
-
-
 def _rings_to_geom(rings):
     """ESRI rings -> shapely. Clockwise rings are outer, counter-clockwise holes.
 
@@ -178,6 +143,27 @@ class Plat:
         return f"<Plat {self.name!r} {self.year}>"
 
 
+def _clip(stretches, geom):
+    """The LineString pieces of `stretches` that lie inside `geom`.
+
+    A plat polygon from the assessor is sometimes self-intersecting, so a first
+    attempt can raise; buffer(0) repairs it. Both callers need the same dance,
+    and an intersection can come back as a point or a collection, neither of
+    which has a length worth counting.
+    """
+    out = []
+    for stretch in stretches:
+        try:
+            inter = stretch.intersection(geom)
+        except Exception:                                         # noqa: BLE001
+            inter = stretch.intersection(geom.buffer(0))
+        if inter.is_empty:
+            continue
+        parts = list(inter.geoms) if hasattr(inter, "geoms") else [inter]
+        out.extend(p for p in parts if p.geom_type == "LineString")
+    return out
+
+
 def _stretches(lines):
     """A place's ways merged into its continuous stretches.
 
@@ -219,7 +205,7 @@ class PlatIndex:
         Pieces are returned rather than a single run length because whether two
         of them count as one run is a judgement -- a plat boundary detours
         around a park parcel or a phase line, and the street through it was
-        still laid out by that plat. `longest_run` applies that judgement, in
+        still laid out by that plat. build_context applies that judgement, in
         the stage that owns it.
 
         Takes every way of a place at once and merges them first, because OSM
@@ -232,23 +218,10 @@ class PlatIndex:
         stretches = _stretches(lines)
         out = {}
         for p in self.covering(linemerge(lines)):
-            total, pieces = 0.0, []
-            for stretch in stretches:
-                try:
-                    inter = stretch.intersection(p.geom)
-                except Exception:                                 # noqa: BLE001
-                    inter = stretch.intersection(p.geom.buffer(0))
-                if inter.is_empty:
-                    continue
-                for piece in (list(inter.geoms) if hasattr(inter, "geoms")
-                              else [inter]):
-                    if piece.geom_type != "LineString":
-                        continue
-                    total += piece.length
-                    pieces.append((piece.length, piece.coords[0],
-                                   piece.coords[-1]))
-            if total > 0:
-                out[p] = (total, pieces)
+            pieces = [(x.length, x.coords[0], x.coords[-1])
+                      for x in _clip(stretches, p.geom)]
+            if pieces:
+                out[p] = (sum(m for m, _, _ in pieces), pieces)
         return out
 
     def covered_metres(self, lines):
@@ -266,18 +239,7 @@ class PlatIndex:
         covering = [p.geom for p in self.covering(linemerge(lines))]
         if not covering:
             return 0.0, total
-        u = unary_union(covering)
-        inside = 0.0
-        for stretch in stretches:
-            try:
-                inter = stretch.intersection(u)
-            except Exception:                                     # noqa: BLE001
-                inter = stretch.intersection(u.buffer(0))
-            if inter.is_empty:
-                continue
-            for piece in (list(inter.geoms) if hasattr(inter, "geoms") else [inter]):
-                if piece.geom_type == "LineString":
-                    inside += piece.length
+        inside = sum(x.length for x in _clip(stretches, unary_union(covering)))
         return inside, total
 
     def share_inside(self, line):
@@ -302,39 +264,19 @@ class PlatIndex:
         return out
 
 
-# ----------------------------------------------------------------------
-# Ways, alignments, places, duplicates.
-#
-#   way         what OSM stores: a street cut into pieces at intersections,
-#               bridges, or wherever an editor stopped.
-#   alignment   ways that run along the same line and continue each other. A
-#               purely geometric relation -- collinear, same heading -- with no
-#               claim about who built the street or what it was named after.
-#   place       alignments close enough together to be the same street in one
-#               location. This is the unit everything downstream works in.
-#   duplicate   alignments of the same name too far apart to be one street: the
-#               same word chosen twice in different parts of the county. They
-#               become separate places and share no context.
-# ----------------------------------------------------------------------
-
 # Ada County's grid puts a mile between arterials, so a break shorter than this
 # is one street interrupted rather than two.
 LINK_M = 2000.0
-# Proximity alone, with no alignment: how close two runs of one name must be
-# before they are taken for one street. AP judged every case between 500 m and
-# 5 km; the confirmed duplicates start at Freedom, 2,028 m apart in two cities,
-# and the largest confirmed single street is Linder at 1,916 m, gapped by
-# Interstate 84 and by a development not yet built through. That brackets this
-# number to 112 metres, and 2 km sits in it.
-#
-# It coincides with LINK_M, which is a different rule -- collinear gap rather
-# than bare proximity -- and the two are kept apart because the evidence for
-# each is separate. They are not one constant that happens to be used twice.
+# Proximity alone, no alignment required. AP ruled on every case between 500 m
+# and 5 km: the closest confirmed duplicate is 2,028 m and the widest confirmed
+# single street is 1,916 m, which brackets this to 112 metres. Equal to LINK_M
+# by coincidence, not by definition -- that one is a gap between COLLINEAR runs.
 SPLIT_M = 2000.0
-# Ada County is laid on a section grid, so a street running east-west holds one
-# latitude for its whole length. Two runs of one name sitting in the same band
-# are the same street however far apart they are -- which is what keeps a
-# section-line arterial whole when it is broken by gaps wider than SPLIT_M.
+# Ada County is on a section grid, so an east-west street holds one latitude for
+# its whole length: two runs of one name in the same band are the same street at
+# any separation. Widening this does nothing -- 94% of runs sit inside 150 m and
+# the rest wander past 400 m -- so the streets it misses are the ones aligned to
+# the Boise River rather than to the grid, which no band width reaches.
 GRID_BAND_M = 150.0
 
 # Classes a developer plausibly named. Anything above tertiary is a public road

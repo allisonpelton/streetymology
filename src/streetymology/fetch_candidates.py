@@ -17,12 +17,10 @@ Usage:
   python scripts/search_unmatched.py                # everything
 """
 import argparse
-import csv
-import io
 import json
 import time
 from streetymology.config import data_path, session
-from streetymology.normalize import normalize, osm_cores
+from streetymology.normalize import osm_cores
 
 API = "https://www.wikidata.org/w/api.php"
 OUT = data_path("search_unmatched.json")

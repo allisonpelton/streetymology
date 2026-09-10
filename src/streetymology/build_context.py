@@ -23,9 +23,9 @@ Everything below is a judgement about naming rather than a fact about geometry:
 import argparse
 import collections
 import json
+import math
 
 from streetymology.config import data_path
-from streetymology.geo import longest_run
 from streetymology.normalize import key
 
 MEASURES = "street_measures.json"
@@ -53,6 +53,40 @@ def era_weight(year):
         return THEME_ERA_FLOOR
     span = THEME_ERA_FULL - THEME_ERA_START
     return THEME_ERA_FLOOR + (1 - THEME_ERA_FLOOR) * (year - THEME_ERA_START) / span
+
+
+def longest_run(pieces, bridge_m=0.0):
+    """Longest chain of pieces, joining any two whose ends are within bridge_m.
+
+    `pieces` are (length_m, end, end) tuples rather than geometry, so the
+    measuring stage can write them to disk and the selecting stage can vary
+    bridge_m without touching a polygon again.
+    """
+    if not pieces:
+        return 0.0
+    lens = [pc[0] for pc in pieces]
+    if bridge_m <= 0 or len(pieces) == 1:
+        return max(lens)
+    ends = [(tuple(pc[1]), tuple(pc[2])) for pc in pieces]
+
+    def gap(i, j):
+        return min(math.dist(a, b) for a in ends[i] for b in ends[j])
+
+    seen, best = set(), 0.0
+    for i in range(len(pieces)):
+        if i in seen:
+            continue
+        stack, total = [i], 0.0
+        seen.add(i)
+        while stack:
+            k = stack.pop()
+            total += lens[k]
+            for j in range(len(pieces)):
+                if j not in seen and gap(k, j) <= bridge_m:
+                    seen.add(j)
+                    stack.append(j)
+        best = max(best, total)
+    return best
 
 
 def score_plats(rec, bridge_m, material_ratio):
