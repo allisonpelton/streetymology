@@ -13,8 +13,8 @@ This is the Action API, not WDQS: no SPARQL limits, but the User-Agent policy
 still applies and requests must be serial. Resumable; safe to interrupt.
 
 Usage:
-  python scripts/search_unmatched.py --limit 20     # sample, for timing
-  python scripts/search_unmatched.py                # everything
+  python -m streetymology.fetch_candidates --limit 20   # sample, for timing
+  python -m streetymology.fetch_candidates              # everything
 """
 import argparse
 import json
@@ -58,7 +58,11 @@ def main():
     t0 = time.time()
     for i, k in enumerate(todo, 1):
         try:
-            cache[k] = search(s, unmatched[k])
+            # The core, not unmatched[k], which is the full street name. A
+            # search for "South Jupiter Avenue" finds nothing; "jupiter" finds
+            # the planet. The 1,392 cores searched the wrong way on 2026-09-10
+            # returned 8 hits between them, all of them other cities' streets.
+            cache[k] = search(s, k)
         except Exception as e:                       # noqa: BLE001
             # The session has already retried transport and 5xx errors. Getting
             # here means this one term is bad, so skip it and keep the run going.
