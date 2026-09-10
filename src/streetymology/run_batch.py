@@ -28,6 +28,7 @@ is not currently installed.
 import argparse
 import collections
 import csv
+import hashlib
 import datetime as dt
 import json
 import pathlib
@@ -44,6 +45,15 @@ API_VERSION = "2023-06-01"
 
 RUNS_DIR = ARTIFACTS_DIR / "batch_runs"
 LATEST = RUNS_DIR / "latest.json"
+
+# Written before the POST and removed after the id is safely on disk. Its
+# presence means a submit did not confirm, so a batch may exist on the server
+# that nothing here knows about. `reconcile` is the only way out.
+PENDING = RUNS_DIR / "pending.json"
+
+# A file holding more requests than this will not be sent without raising it.
+# The county is 156; anything larger is a mistake until proven otherwise.
+MAX_REQUESTS = 200
 
 # Answers the prompt offers besides a candidate letter. Anything else is a
 # parse failure, not a new answer class.
@@ -70,6 +80,42 @@ def _session():
     return session()
 
 
+def _post_session():
+    """A session that never repeats a POST.
+
+    `config.session` retries POST on 502/503, which is right for Overpass and
+    wrong here: a batch can be created and its response lost, and the retry then
+    creates a second batch and bills it. An ambiguous submit must fail and be
+    reconciled by hand, not resolved by guessing.
+    """
+    from streetymology.config import session
+    s = session(retries=0)
+    return s
+
+
+def _digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+
+def _records():
+    for f in sorted(RUNS_DIR.glob("*.json")):
+        if f.name in {"latest.json", "pending.json"}:
+            continue
+        try:
+            yield json.loads(f.read_text())
+        except (ValueError, OSError):
+            continue
+
+
+def _list_batches(s, limit=100):
+    """Every batch the account knows about, newest first."""
+    r = s.get(API, headers=_headers(), params={"limit": limit},
+              timeout=s.request_timeout)
+    if r.status_code >= 400:
+        sys.exit(f"list failed [{r.status_code}]: {r.text[:500]}")
+    return r.json().get("data", [])
+
+
 def _record(batch_id=None):
     """The run record for `batch_id`, or the most recently submitted one."""
     path = RUNS_DIR / f"{batch_id}.json" if batch_id else LATEST
@@ -84,8 +130,15 @@ def _write_record(rec):
     LATEST.write_text(json.dumps(rec, indent=2))
 
 
-def submit(path, yes=False):
-    """POST the request file. Prices it and stops unless `yes`."""
+def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
+    """POST the request file. Prices it and stops unless `yes`.
+
+    Four things stand between a mistake and a second charge: an unconfirmed
+    previous submit blocks this one, a file already sent is refused by content
+    hash, a file larger than expected is refused, and the account's batch list is
+    compared before and after so a duplicate is reported while it can still be
+    cancelled.
+    """
     reqs = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
     if not reqs:
         sys.exit(f"{path} holds no requests.")
@@ -94,32 +147,126 @@ def submit(path, yes=False):
     index = path.with_suffix(".index.csv")
     n_items = sum(1 for _ in csv.DictReader(index.open())) if index.exists() else 0
     cost = estimate(reqs, n_items or len(reqs), model)
+    digest = _digest(path)
 
     print(f"file      : {path}")
-    print(f"requests  : {len(reqs)}")
+    print(f"sha256    : {digest}")
+    print(f"HTTP POSTs: 1")
+    print(f"requests  : {len(reqs)}  <- billed model calls")
     print(f"items     : {n_items or 'unknown, no index beside the file'}")
     print(f"model     : {model}")
     print(f"estimated : ${cost['usd']} at batch pricing "
           f"({cost['input_tokens']:,} in, {cost['output_tokens']:,} out)")
+
+    if PENDING.exists():
+        sys.exit(f"\nREFUSING TO SEND. {PENDING} says an earlier submit never "
+                 f"confirmed:\n  {PENDING.read_text()}\n"
+                 "A batch may exist on the server. Run `reconcile` first.")
+
+    prior = next((r for r in _records() if r.get("digest") == digest), None)
+    if prior and not again:
+        sys.exit(f"\nREFUSING TO SEND. This exact file was already submitted as "
+                 f"{prior['batch_id']} at {prior['submitted']}.\n"
+                 "Its results are already paid for; fetch them instead. "
+                 "--again overrides.")
+
+    if len(reqs) > max_requests:
+        sys.exit(f"\nREFUSING TO SEND. {len(reqs)} requests is over the "
+                 f"{max_requests} ceiling. Raise --max-requests if deliberate.")
+
     if not yes:
         print("\nNOTHING WAS SENT. Re-run with --yes to spend the estimate above.")
         return None
 
-    s = _session()
+    s = _post_session()
+    before = {b["id"] for b in _list_batches(s)}
+
+    RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    PENDING.write_text(json.dumps(
+        {"digest": digest, "request_file": str(path), "requests": len(reqs),
+         "attempted": dt.datetime.now(dt.timezone.utc).isoformat()}, indent=2))
+
     r = s.post(API, headers=_headers(), json={"requests": reqs},
                timeout=s.request_timeout)
     if r.status_code >= 400:
+        PENDING.unlink(missing_ok=True)
         sys.exit(f"submit failed [{r.status_code}]: {r.text[:500]}")
     batch = r.json()
 
-    rec = {"batch_id": batch["id"], "model": model, "requests": len(reqs),
-           "items": n_items, "estimate_usd": cost["usd"],
+    rec = {"batch_id": batch["id"], "digest": digest, "model": model,
+           "requests": len(reqs), "items": n_items, "estimate_usd": cost["usd"],
            "request_file": str(path), "index_file": str(index),
            "submitted": dt.datetime.now(dt.timezone.utc).isoformat()}
     _write_record(rec)
+    PENDING.unlink(missing_ok=True)
+
     print(f"\nSENT. batch id {batch['id']}")
     print(f"run record {RUNS_DIR / (batch['id'] + '.json')}")
+
+    counts = batch.get("request_counts", {})
+    total = sum(v for v in counts.values() if isinstance(v, int))
+    if total and total != len(reqs):
+        print(f"WARNING: server counted {total} requests, file held {len(reqs)}.")
+
+    after = _list_batches(s)
+    new = [b for b in after if b["id"] not in before]
+    if len(new) > 1:
+        print("\n*** DUPLICATE SUBMIT. More than one batch appeared: ***")
+        for b in new:
+            print(f"      {b['id']}  {b.get('created_at')}")
+        print("Cancel the ones you did not want, now, before they run:")
+        for b in new:
+            if b["id"] != batch["id"]:
+                print(f"      python -m streetymology.run_batch cancel --id {b['id']}")
+        sys.exit("aborting so this is not mistaken for a clean send.")
+    print(f"verified : exactly 1 new batch on the account")
     return rec
+
+
+def cancel(batch_id):
+    """Cancel a batch. Requests that already finished are still billed."""
+    s = _post_session()
+    r = s.post(f"{API}/{batch_id}/cancel", headers=_headers(),
+               timeout=s.request_timeout)
+    if r.status_code >= 400:
+        sys.exit(f"cancel failed [{r.status_code}]: {r.text[:500]}")
+    b = r.json()
+    print(f"{batch_id} -> {b.get('processing_status')}")
+    print("Requests already completed are billed. Cancelling is not a refund.")
+    return b
+
+
+def reconcile():
+    """Compare batches on the account with run records here.
+
+    The case this exists for: submit died between sending and writing the id,
+    so money is being spent by a batch nothing local refers to.
+    """
+    s = _session()
+    server = _list_batches(s)
+    known = {r["batch_id"]: r for r in _records()}
+
+    print(f"batches on account : {len(server)}")
+    print(f"run records here   : {len(known)}")
+    if PENDING.exists():
+        print(f"\nUNCONFIRMED SUBMIT: {PENDING.read_text()}")
+
+    orphans = [b for b in server if b["id"] not in known]
+    for b in server:
+        mark = " " if b["id"] in known else "?"
+        counts = b.get("request_counts", {})
+        print(f"  {mark} {b['id']}  {b.get('processing_status'):<12} "
+              f"{b.get('created_at', '')}  {counts}")
+    if orphans:
+        print("\n'?' means no run record here. If one is an accidental duplicate, "
+              "cancel it:")
+        for b in orphans:
+            print(f"      python -m streetymology.run_batch cancel --id {b['id']}")
+    else:
+        print("\nno orphans: every batch on the account has a record here.")
+        if PENDING.exists():
+            print(f"Safe to delete {PENDING} once you agree.")
+    return orphans
 
 
 def status(batch_id=None, watch=False, every=60):
@@ -310,6 +457,9 @@ def main():
     p = sub.add_parser("submit", help="price a request file, and send it with --yes")
     p.add_argument("file", type=pathlib.Path)
     p.add_argument("--yes", action="store_true", help="actually spend money")
+    p.add_argument("--max-requests", type=int, default=MAX_REQUESTS)
+    p.add_argument("--again", action="store_true",
+                   help="send a file that was already sent. Pays for it twice.")
 
     p = sub.add_parser("status", help="processing status and per-request counts")
     p.add_argument("--id")
@@ -326,6 +476,11 @@ def main():
     p.add_argument("--index")
     p.add_argument("--out")
 
+    p = sub.add_parser("reconcile", help="batches on the account vs run records here")
+
+    p = sub.add_parser("cancel", help="cancel a batch; finished requests still bill")
+    p.add_argument("--id", required=True)
+
     p = sub.add_parser("all", help="submit, poll to the end, fetch, parse")
     p.add_argument("file", type=pathlib.Path)
     p.add_argument("--yes", action="store_true")
@@ -333,7 +488,11 @@ def main():
 
     a = ap.parse_args()
     if a.cmd == "submit":
-        submit(a.file, a.yes)
+        submit(a.file, a.yes, a.max_requests, a.again)
+    elif a.cmd == "reconcile":
+        reconcile()
+    elif a.cmd == "cancel":
+        cancel(a.id)
     elif a.cmd == "status":
         status(a.id, a.watch, a.every)
     elif a.cmd == "fetch":

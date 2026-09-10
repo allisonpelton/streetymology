@@ -45,11 +45,13 @@ PRICES = {
 CHUNK_DEFAULT = 40
 
 
-def build_items(limit=None, only=None):
+def build_items(limit=None, only=None, exclude=None):
     """(place id, street, rendered block) for every place worth asking about.
 
     `only` restricts the run to a list of place ids, which is how a subset gets
-    re-asked after a change to the context.
+    re-asked after a change to the context. `exclude` drops places that already
+    have an answer, so a trial run is not paid for a second time when the rest of
+    the county goes out.
     """
     ctx, by_core = load_context()
     merges = load_merges()
@@ -58,6 +60,8 @@ def build_items(limit=None, only=None):
     items, skipped_no_cands = [], 0
     for pid, rec in sorted(ctx.items()):
         if only is not None and pid not in only:
+            continue
+        if exclude and pid in exclude:
             continue
         core = pid.split("#")[0]
         lines = candidate_lines(cands.get(core, []))
@@ -104,6 +108,9 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--limit", type=int)
     ap.add_argument("--only", help="JSON file holding a list of place ids")
+    ap.add_argument("--exclude", action="append", default=[],
+                    metavar="ANSWERS.CSV",
+                    help="skip places already answered in this file. Repeatable.")
     ap.add_argument("--model", default=MODEL_DEFAULT)
     ap.add_argument("--chunk", type=int, default=CHUNK_DEFAULT)
     ap.add_argument("--max-tokens", type=int, default=8000)
@@ -111,7 +118,13 @@ def main():
     a = ap.parse_args()
 
     only = set(json.loads(pathlib.Path(a.only).read_text())) if a.only else None
-    items, no_cands = build_items(a.limit, only)
+
+    exclude = set()
+    for f in a.exclude:
+        with open(f, newline="") as fh:
+            exclude |= {r["place"] for r in csv.DictReader(fh) if r.get("place")}
+
+    items, no_cands = build_items(a.limit, only, exclude)
     reqs = chunk_requests(items, a.model, a.chunk, a.max_tokens)
     cost = estimate(reqs, len(items), a.model)
 
@@ -130,6 +143,8 @@ def main():
                 w.writerow({"custom_id": r["custom_id"], "n": g["n"],
                             "place": g["place"], "street": g["street"]})
 
+    if exclude:
+        print(f"already answered, skipped : {len(exclude)}")
     print(f"places asked about : {len(items)}")
     print(f"skipped, no candidate left : {no_cands}")
     print(f"requests           : {len(reqs)} of up to {a.chunk} items")
