@@ -78,10 +78,13 @@ EFFORT_DEFAULT = "high"
 MAX_TOKENS_DEFAULT = 64000
 
 # For pricing only; never sent. Adaptive thinking names no budget, so a run
-# cannot be bounded in advance -- this is measured, not a ceiling. 40 items at
-# effort high on 2026-09-10 spent 8,693 thinking tokens of 11,229 output.
-# Re-measure if the effort level, the chunk size or the prompt changes.
-THINKING_ESTIMATE = 8693
+# cannot be bounded in advance -- this is measured, not a ceiling.
+#
+# Per item, not per request: chunk size barely moves it. Six unlabelled draws on
+# 2026-09-10 gave 208-250 with sd 15. Labelled places came in near 190, which is
+# why this is the unlabelled figure -- the county is 92% unlabelled and AP's
+# labelled streets need about 20% less thinking than ordinary ones.
+THINKING_PER_ITEM = 231
 
 
 def build_items(limit=None, only=None, exclude=None, sample=None, seed=0):
@@ -146,7 +149,7 @@ def chunk_requests(items, model, chunk, max_tokens, effort=None):
 
 
 def estimate(requests, n_items, model, out_tokens_per_item=60, discount=0.5,
-             thinking_per_request=0):
+             thinking_per_item=0):
     """A ceiling, not a forecast. Batch API is half price at time of writing.
 
     Output assumes every request spends its whole thinking budget. It will not:
@@ -159,7 +162,7 @@ def estimate(requests, n_items, model, out_tokens_per_item=60, discount=0.5,
     """
     inp = sum(len(r["params"]["messages"][0]["content"])
               for r in requests) / CHARS_PER_TOKEN
-    think = thinking_per_request * len(requests)
+    think = thinking_per_item * n_items
     outp = n_items * out_tokens_per_item + think
     base = re.sub(r"-\d{8}$", "", model)
     pin, pout = PRICES.get(base, (0.0, 0.0))
@@ -200,7 +203,7 @@ def main():
     items, no_cands = build_items(a.limit, only, exclude, a.sample, a.seed)
     reqs = chunk_requests(items, a.model, a.chunk, a.max_tokens, a.effort)
     cost = estimate(reqs, len(items), a.model,
-                    thinking_per_request=THINKING_ESTIMATE)
+                    thinking_per_item=THINKING_PER_ITEM)
 
     out = pathlib.Path(a.out or (ARTIFACTS_DIR / f"batch_{a.model}.jsonl"))
     out.parent.mkdir(parents=True, exist_ok=True)
