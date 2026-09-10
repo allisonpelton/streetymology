@@ -32,7 +32,11 @@ MEASURES = "street_measures.json"
 OUT = "place_context.json"
 
 BRIDGE_M = 60.0          # excursion tolerated before a re-entry counts as a break
-MATERIAL_RATIO = 0.5     # of the leading plat's metres, to be a candidate
+# Of the leading plat's metres, to be a contender for having named the street.
+# At 0.5 Iron Mountain Ridge held 44 m of West War Eagle Court against Milestone
+# Ranch's 92 and missed the bar by two metres, so a 2023 plat named a 2019
+# street and the model read a Georgia-town theme off the wrong neighbours.
+MATERIAL_RATIO = 0.4
 MIN_PLATTED = 0.25       # below this the street is not a platted street
 
 # Theme by era. Naming a subdivision to a theme is a post-war marketing habit, so
@@ -133,11 +137,22 @@ def main():
         return (rec["covered_m"] / rec["street_m"]) if rec["street_m"] else 0.0
 
     def naming_plat(pid):
-        """The earliest plat with a material claim, if any plat named this at all."""
+        """The earliest plat with a material claim, if any plat named this at all.
+
+        Earliest, because the plat that laid a street out named it and later ones
+        inherited it. But not across the war: a pre-1950 plat subdivided land,
+        while naming streets to a theme is a post-war marketing habit, so when
+        both eras have a material claim the modern plat is the one that named
+        it. Without that guard North Patricia Lane leaves Randall Acres (1953,
+        among Claudia, Edna and Henry) for Meadow Place (1906).
+        """
         material = [p for p in scored[pid] if p["material"]]
         if not material or platted_share(measures[pid]) < a.min_platted:
             return None
-        return min(material, key=lambda p: (p["recorded"] or "9999", -p["inside_m"]))
+        modern = [p for p in material
+                  if p["recorded"] and int(p["recorded"][:4]) >= THEMELESS_BEFORE]
+        return min(modern or material,
+                   key=lambda p: (p["recorded"] or "9999", -p["inside_m"]))
 
     # Settle every naming plat before any peer list is built. Peers are places
     # named by the SAME act, so the test has to be against the other place's
