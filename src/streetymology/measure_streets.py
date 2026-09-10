@@ -130,8 +130,8 @@ def main():
                 attached[x] |= pids - {x}
 
     # Proximity is only evidence where no plat explains the street at all.
-    # Full geometry, not a sample. Thinning to 40 m missed 37 of 2,028 links
-    # because it measured vertex to vertex, and cost 0.8 s of 12 to avoid.
+    # Full geometry rather than a sample: sampling measured vertex to vertex and
+    # lost links, for 0.2 s of 11.
     pts = {p.id: MultiPoint(p.points) for p in allp}
     unplatted = [pid for pid, v in out.items() if not v["plats"]]
     tree = STRtree([pts[pid] for pid in unplatted])
@@ -154,6 +154,8 @@ def main():
         report_dupes(built)
 
 
+# REPORTING ONLY. Nothing downstream reads this; it exists to be read by AP and
+# is safe to delete if it stops earning its keep.
 def report_dupes(built):
     """Every core name used in more than one place, closest pair first.
 

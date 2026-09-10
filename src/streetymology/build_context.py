@@ -123,26 +123,41 @@ def main():
     scored = {pid: score_plats(rec, a.bridge, a.material_ratio)
               for pid, rec in measures.items()}
 
-    # Which places a plat holds, by base name, so peers can be found.
+    # Which places a plat touches, by base name, so peers can be found.
     members = collections.defaultdict(set)
     for pid, pls in scored.items():
         for p in pls:
             members[p["base"]].add(pid)
 
+    def platted_share(rec):
+        return (rec["covered_m"] / rec["street_m"]) if rec["street_m"] else 0.0
+
+    def naming_plat(pid):
+        """The earliest plat with a material claim, if any plat named this at all."""
+        material = [p for p in scored[pid] if p["material"]]
+        if not material or platted_share(measures[pid]) < a.min_platted:
+            return None
+        return min(material, key=lambda p: (p["recorded"] or "9999", -p["inside_m"]))
+
+    # Settle every naming plat before any peer list is built. Peers are places
+    # named by the SAME act, so the test has to be against the other place's
+    # naming plat -- not against its largest, which differs on 9% of places and
+    # silently dropped them from each other's peers.
+    named = {pid: naming_plat(pid) for pid in measures}
+
     out = {}
     for pid, rec in measures.items():
         pls = scored[pid]
-        laid_out = (rec["covered_m"] / rec["street_m"]) if rec["street_m"] else 0.0
+        laid_out = platted_share(rec)
         material = [p for p in pls if p["material"]]
-        naming = (min(material, key=lambda p: (p["recorded"] or "9999", -p["inside_m"]))
-                  if material and laid_out >= a.min_platted else None)
+        naming = named[pid]
 
         shared = set()
         for p in pls:
             shared |= members[p["base"]]
         shared -= {pid}
         peers = {q for q in shared
-                 if scored[q] and scored[q][0]["base"] == naming["base"]} \
+                 if named[q] and named[q]["base"] == naming["base"]} \
             if naming else set()
 
         out[pid] = {
@@ -170,6 +185,7 @@ def main():
             "near_unplatted": sorted(set(rec["near_unplatted"]) - shared),
         }
 
+    # REPORTING ONLY. --dump prints one street for AP and stops without writing.
     if a.dump:
         pid = next((q for q, v in out.items() if key(a.dump) == v["core"]), None)
         if not pid:
