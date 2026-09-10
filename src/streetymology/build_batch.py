@@ -23,6 +23,7 @@ import argparse
 import csv
 import json
 import pathlib
+import random
 import re
 
 from streetymology.config import data_path, ARTIFACTS_DIR
@@ -34,7 +35,6 @@ from streetymology.prompt import (HEADER, candidate_lines, load_context,
 # confidence calibration describe this model and no other. /v1/models offers no
 # dated snapshot for it, so the moving alias is the only id available.
 MODEL_DEFAULT = "claude-sonnet-5"
-MODEL_ESCALATE = "claude-opus-5"        # for low-confidence rows
 
 # Verify against current pricing before trusting any estimate.
 # USD per million tokens, (input, output).
@@ -42,51 +42,93 @@ PRICES = {
     # Sonnet 5 from the pricing page on 2026-09-10, base input and output only.
     # The cache columns do not apply: nothing here sets cache_control.
     "claude-sonnet-5": (2.0, 10.0),
+    # Kept only because a test asserts a dated id resolves to its alias.
     "claude-sonnet-4-5": (3.0, 15.0),
-    "claude-opus-4-1": (15.0, 75.0),
-    "claude-haiku-4-5": (1.0, 5.0),
 }
 
 
-# 40 items per request is what the feasibility test validated. Bigger chunks are
-# untested, and a chunk that overruns max_tokens loses every item in it.
+# 40 is not a validated figure, whatever this comment used to claim. AP: Claude
+# picked it last session to fit a fresh chat window. She has run 240 items in one
+# desktop prompt with no degradation down the output, so the ceiling is higher
+# than this and unmeasured. Chunk size moves input cost by cents -- the header is
+# 6.1% of input here -- so the only real question is whether a request carries
+# fixed thinking overhead that fewer, larger requests would amortise.
 CHUNK_DEFAULT = 40
 
+# Measured on the 2026-09-10 trial: 44,501 prompt chars came back as 18,763
+# input tokens. The 4.0 rule of thumb this file used undercounts by 1.69x.
+CHARS_PER_TOKEN = 2.37
 
-def build_items(limit=None, only=None, exclude=None):
+# Sonnet 5 thinks by default, and rejects the explicit `budget_tokens` form that
+# earlier models take: it wants adaptive thinking with an effort level. The API
+# said so itself after the second trial errored --
+#   "thinking.type.enabled is not supported for this model. Use
+#    thinking.type.adaptive and output_config.effort"
+# -- and named the levels: low, medium, high, xhigh, max. AP's desktop runs,
+# which is what the labels and the calibration were measured against, were high.
+EFFORTS = ("low", "medium", "high", "xhigh", "max")
+EFFORT_DEFAULT = "high"
+
+# max_tokens covers thinking and answer together. The first trial set 8,000, the
+# model spent all of it reasoning, and no table came back at all -- a success by
+# the API's reckoning and worthless here. Unspent headroom is never generated and
+# never billed, and a batch request has no client-side timeout to hit, so there is
+# nothing to trade off: this sits well above any plausible need. The model's
+# ceiling is 128,000.
+MAX_TOKENS_DEFAULT = 64000
+
+# For pricing only; never sent. Adaptive thinking names no budget, so a run
+# cannot be bounded in advance -- this is measured, not a ceiling. 40 items at
+# effort high on 2026-09-10 spent 8,693 thinking tokens of 11,229 output.
+# Re-measure if the effort level, the chunk size or the prompt changes.
+THINKING_ESTIMATE = 8693
+
+
+def build_items(limit=None, only=None, exclude=None, sample=None, seed=0):
     """(place id, street, rendered block) for every place worth asking about.
 
     `only` restricts the run to a list of place ids, which is how a subset gets
     re-asked after a change to the context. `exclude` drops places that already
     have an answer, so a trial run is not paid for a second time when the rest of
-    the county goes out.
+    the county goes out. `sample` takes a reproducible random subset, which is
+    how token usage gets measured on inputs that look like the county rather
+    than on whichever places happen to sort first.
+
+    Selection happens before rendering, so item numbers always run 1..N and a
+    sampled batch is indistinguishable in shape from a whole one.
     """
     ctx, by_core = load_context()
     merges = load_merges()
     cands = json.loads(data_path("candidates.json").read_text())
 
-    items, skipped_no_cands = [], 0
+    eligible, skipped_no_cands = [], 0
     for pid, rec in sorted(ctx.items()):
         if only is not None and pid not in only:
             continue
         if exclude and pid in exclude:
             continue
-        core = pid.split("#")[0]
-        lines = candidate_lines(cands.get(core, []))
+        lines = candidate_lines(cands.get(pid.split("#")[0], []))
         if not lines:
             skipped_no_cands += 1
             continue
-        n = len(items) + 1
+        eligible.append((pid, rec, lines))
+
+    if sample and sample < len(eligible):
+        chosen = random.Random(seed).sample(eligible, sample)
+        eligible = sorted(chosen, key=lambda e: e[0])
+    if limit:
+        eligible = eligible[:limit]
+
+    items = []
+    for n, (pid, rec, lines) in enumerate(eligible, 1):
         block, _ = render(n, rec.get("name") or rec["display"], lines,
                           rec, ctx, by_core, merges)
         items.append({"place": pid, "street": rec.get("name"), "n": n,
                       "block": block})
-        if limit and len(items) >= limit:
-            break
     return items, skipped_no_cands
 
 
-def chunk_requests(items, model, chunk, max_tokens):
+def chunk_requests(items, model, chunk, max_tokens, effort=None):
     out = []
     for start in range(0, len(items), chunk):
         group = items[start:start + chunk]
@@ -94,23 +136,31 @@ def chunk_requests(items, model, chunk, max_tokens):
         prompt = (HEADER.replace("240 items", f"{len(group)} items")
                   .replace("## Items (240)", f"## Items ({len(group)})")
                   + "\n" + body + "\n")
-        out.append({
-            "custom_id": f"batch-{start // chunk:04d}",
-            "params": {"model": model, "max_tokens": max_tokens,
-                       "messages": [{"role": "user", "content": prompt}]},
-        })
+        params = {"model": model, "max_tokens": max_tokens,
+                  "messages": [{"role": "user", "content": prompt}]}
+        if effort:
+            params["thinking"] = {"type": "adaptive"}
+            params["output_config"] = {"effort": effort}
+        out.append({"custom_id": f"batch-{start // chunk:04d}", "params": params})
     return out
 
 
-def estimate(requests, n_items, model, out_tokens_per_item=60, discount=0.5):
-    """Rough. 4 chars per token, and Batch API is half price at time of writing.
+def estimate(requests, n_items, model, out_tokens_per_item=60, discount=0.5,
+             thinking_per_request=0):
+    """A ceiling, not a forecast. Batch API is half price at time of writing.
+
+    Output assumes every request spends its whole thinking budget. It will not:
+    the model stops reasoning when it is done, and unspent budget is never
+    generated or billed. Read `usd` as the most this can cost.
 
     PRICES is keyed by alias, so a dated model id is stripped back to one before
     the lookup. An unpriced model used to return $0.00, which reads as free
     rather than as unknown; `priced` says which it is.
     """
-    inp = sum(len(r["params"]["messages"][0]["content"]) for r in requests) / 4
-    outp = n_items * out_tokens_per_item
+    inp = sum(len(r["params"]["messages"][0]["content"])
+              for r in requests) / CHARS_PER_TOKEN
+    think = thinking_per_request * len(requests)
+    outp = n_items * out_tokens_per_item + think
     base = re.sub(r"-\d{8}$", "", model)
     pin, pout = PRICES.get(base, (0.0, 0.0))
     return {"input_tokens": int(inp), "output_tokens": int(outp),
@@ -126,9 +176,17 @@ def main():
     ap.add_argument("--exclude", action="append", default=[],
                     metavar="ANSWERS.CSV",
                     help="skip places already answered in this file. Repeatable.")
+    ap.add_argument("--sample", type=int,
+                    help="a random subset of eligible places, for measurement")
+    ap.add_argument("--seed", type=int, default=0,
+                    help="sample seed. Change it to draw a different subset.")
     ap.add_argument("--model", default=MODEL_DEFAULT)
     ap.add_argument("--chunk", type=int, default=CHUNK_DEFAULT)
-    ap.add_argument("--max-tokens", type=int, default=8000)
+    ap.add_argument("--max-tokens", type=int, default=MAX_TOKENS_DEFAULT)
+    ap.add_argument("--effort", choices=EFFORTS, default=EFFORT_DEFAULT,
+                    help="how hard the model thinks. There is no way to turn it "
+                         "off: Sonnet 5 thinks whether or not the parameter is "
+                         "sent, as the first trial found out.")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
 
@@ -139,9 +197,10 @@ def main():
         with open(f, newline="") as fh:
             exclude |= {r["place"] for r in csv.DictReader(fh) if r.get("place")}
 
-    items, no_cands = build_items(a.limit, only, exclude)
-    reqs = chunk_requests(items, a.model, a.chunk, a.max_tokens)
-    cost = estimate(reqs, len(items), a.model)
+    items, no_cands = build_items(a.limit, only, exclude, a.sample, a.seed)
+    reqs = chunk_requests(items, a.model, a.chunk, a.max_tokens, a.effort)
+    cost = estimate(reqs, len(items), a.model,
+                    thinking_per_request=THINKING_ESTIMATE)
 
     out = pathlib.Path(a.out or (ARTIFACTS_DIR / f"batch_{a.model}.jsonl"))
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -160,13 +219,17 @@ def main():
 
     if exclude:
         print(f"already answered, skipped : {len(exclude)}")
+    if a.sample:
+        print(f"random sample      : {a.sample} at seed {a.seed}")
     print(f"places asked about : {len(items)}")
     print(f"skipped, no candidate left : {no_cands}")
     print(f"requests           : {len(reqs)} of up to {a.chunk} items")
+    print(f"thinking           : {a.effort}, adaptive, "
+          f"max_tokens {a.max_tokens:,}")
     print(f"model              : {a.model}")
     print(f"estimated tokens   : {cost['input_tokens']:,} in, "
           f"{cost['output_tokens']:,} out")
-    print(f"estimated cost     : ${cost['usd']} at batch pricing"
+    print(f"estimated cost     : ${cost['usd']} at batch pricing, GUESS"
           if cost["priced"] else
           f"estimated cost     : UNKNOWN, no price on file for {a.model}")
     print("\nNOTHING WAS SENT. To send, enable billing and run python -m streetymology.run_batch")

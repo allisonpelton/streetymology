@@ -23,7 +23,6 @@ is not currently installed.
   python -m streetymology.run_batch status --watch
   python -m streetymology.run_batch fetch
   python -m streetymology.run_batch parse
-  python -m streetymology.run_batch all <file> --yes         # submit to answers
 """
 import argparse
 import collections
@@ -134,11 +133,16 @@ def _write_record(rec):
 def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
     """POST the request file. Prices it and stops unless `yes`.
 
-    Four things stand between a mistake and a second charge: an unconfirmed
+    Three things stand between a mistake and a second charge: an unconfirmed
     previous submit blocks this one, a file already sent is refused by content
-    hash, a file larger than expected is refused, and the account's batch list is
-    compared before and after so a duplicate is reported while it can still be
-    cancelled.
+    hash, and a file larger than expected is refused. All three run before any
+    network call, so tripping one costs nothing.
+
+    A fourth compared the account's batch list before and after the POST. It was
+    written against POST retries, which `_post_session` now makes impossible, so
+    it could no longer fire for its own reason; it cost two API calls per send
+    and would false-positive on any concurrent account activity. `reconcile`
+    makes the same comparison on demand, outside the spend path.
     """
     reqs = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
     if not reqs:
@@ -183,8 +187,6 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
         return None
 
     s = _post_session()
-    before = {b["id"] for b in _list_batches(s)}
-
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
     PENDING.write_text(json.dumps(
         {"digest": digest, "request_file": str(path), "requests": len(reqs),
@@ -212,18 +214,6 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
     if total and total != len(reqs):
         print(f"WARNING: server counted {total} requests, file held {len(reqs)}.")
 
-    after = _list_batches(s)
-    new = [b for b in after if b["id"] not in before]
-    if len(new) > 1:
-        print("\n*** DUPLICATE SUBMIT. More than one batch appeared: ***")
-        for b in new:
-            print(f"      {b['id']}  {b.get('created_at')}")
-        print("Cancel the ones you did not want, now, before they run:")
-        for b in new:
-            if b["id"] != batch["id"]:
-                print(f"      python -m streetymology.run_batch cancel --id {b['id']}")
-        sys.exit("aborting so this is not mistaken for a clean send.")
-    print(f"verified : exactly 1 new batch on the account")
     return rec
 
 
@@ -395,7 +385,11 @@ def parse_table(text):
 
 
 def _text(result):
-    """The assistant text of one result line, or None if it did not succeed."""
+    """The assistant text of one result line, or None if it did not succeed.
+
+    Thinking blocks are dropped: only the table is wanted, and the reasoning is
+    billed whether or not anything reads it.
+    """
     if result.get("type") != "succeeded":
         return None
     blocks = result.get("message", {}).get("content", [])
@@ -428,7 +422,8 @@ def parse(batch_id=None, results=None, index=None, out=None):
         want[row["custom_id"]].append(row)
 
     letters = _letter_qids()
-    answers, missing, errored, usage = [], [], [], collections.Counter()
+    answers, missing, errored = [], [], []
+    truncated, usage = [], collections.Counter()
 
     for line in results.read_text().splitlines():
         if not line.strip():
@@ -440,9 +435,17 @@ def parse(batch_id=None, results=None, index=None, out=None):
             errored.append((cid, result.get("type"),
                             str(result.get("error"))[:200]))
             continue
-        u = result.get("message", {}).get("usage", {})
+        msg = result.get("message", {})
+        u = msg.get("usage", {})
         usage["input"] += u.get("input_tokens", 0)
         usage["output"] += u.get("output_tokens", 0)
+        usage["thinking"] += u.get("output_tokens_details", {}).get("thinking_tokens", 0)
+        # A request that hit max_tokens is a success by the API's reckoning: the
+        # limit was ours, so honouring it is correct behaviour. Only the caller
+        # knows a truncated table is worthless, so say so here.
+        if msg.get("stop_reason") == "max_tokens":
+            truncated.append((cid, u.get("output_tokens", 0),
+                              u.get("output_tokens_details", {}).get("thinking_tokens", 0)))
 
         table = parse_table(text)
         for row in want.get(cid, []):
@@ -491,7 +494,14 @@ def parse(batch_id=None, results=None, index=None, out=None):
     if off:
         print(f"OFF-MENU confidence, kept verbatim: {off}")
     if usage:
-        print(f"actual tokens: {usage['input']:,} in, {usage['output']:,} out")
+        print(f"actual tokens: {usage['input']:,} in, {usage['output']:,} out "
+              f"({usage['thinking']:,} of it thinking)")
+    if truncated:
+        print(f"\n*** {len(truncated)} REQUEST(S) HIT max_tokens AND WERE CUT OFF ***")
+        print("    Billed in full, and everything after the cut is lost.")
+        for cid, out_t, think_t in truncated[:5]:
+            print(f"      {cid}: {out_t:,} output tokens, {think_t:,} thinking")
+        print("    Raise --max-tokens above the thinking budget, or lower --thinking.")
     if errored:
         print("\nFAILED REQUESTS -- these items were paid for and produced nothing:")
         for cid, kind, err in errored[:5]:
@@ -540,11 +550,6 @@ def main():
     p = sub.add_parser("cancel", help="cancel a batch; finished requests still bill")
     p.add_argument("--id", required=True)
 
-    p = sub.add_parser("all", help="submit, poll to the end, fetch, parse")
-    p.add_argument("file", type=pathlib.Path)
-    p.add_argument("--yes", action="store_true")
-    p.add_argument("--every", type=int, default=60)
-
     a = ap.parse_args()
     if a.cmd == "submit":
         submit(a.file, a.yes, a.max_requests, a.again)
@@ -560,13 +565,6 @@ def main():
         fetch(a.id, a.force)
     elif a.cmd == "parse":
         parse(a.id, a.results, a.index, a.out)
-    elif a.cmd == "all":
-        rec = submit(a.file, a.yes)
-        if rec is None:
-            return
-        status(rec["batch_id"], watch=True, every=a.every)
-        fetch(rec["batch_id"])
-        parse(rec["batch_id"])
 
 
 if __name__ == "__main__":
