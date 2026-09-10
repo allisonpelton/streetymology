@@ -141,18 +141,26 @@ def main():
 
         Earliest, because the plat that laid a street out named it and later ones
         inherited it. But not across the war: a pre-1950 plat subdivided land,
-        while naming streets to a theme is a post-war marketing habit, so when
-        both eras have a material claim the modern plat is the one that named
-        it. Without that guard North Patricia Lane leaves Randall Acres (1953,
-        among Claudia, Edna and Henry) for Meadow Place (1906).
+        while naming streets to a theme is a post-war habit. Without that guard
+        North Patricia Lane leaves Randall Acres (1953, among Claudia, Edna and
+        Henry) for Meadow Place (1906).
+
+        The guard only applies where the modern plat holds at least as much of
+        the street. A townsite really did name its own grid: South 8th Street is
+        23% inside Boise City Original Townsite of 1867 and 12% inside a 1986
+        subdivision, and North Center Street is 55% inside the Townsite of Star.
+        Where the old plat holds more, it keeps its claim.
         """
         material = [p for p in scored[pid] if p["material"]]
         if not material or platted_share(measures[pid]) < a.min_platted:
             return None
-        modern = [p for p in material
-                  if p["recorded"] and int(p["recorded"][:4]) >= THEMELESS_BEFORE]
-        return min(modern or material,
-                   key=lambda p: (p["recorded"] or "9999", -p["inside_m"]))
+        old = [p for p in material
+               if p["recorded"] and int(p["recorded"][:4]) < THEMELESS_BEFORE]
+        modern = [p for p in material if p not in old]
+        if modern and (not old or max(p["inside_m"] for p in modern)
+                       >= max(p["inside_m"] for p in old)):
+            material = modern
+        return min(material, key=lambda p: (p["recorded"] or "9999", -p["inside_m"]))
 
     # Settle every naming plat before any peer list is built. Peers are places
     # named by the SAME act, so the test has to be against the other place's
