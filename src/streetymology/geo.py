@@ -17,6 +17,7 @@ import datetime
 import json
 import math
 import re
+from collections import defaultdict
 
 from pyproj import Transformer
 from shapely.geometry import MultiPoint, MultiPolygon, Polygon
@@ -128,7 +129,7 @@ def _rings_to_geom(rings):
 
 
 class Plat:
-    __slots__ = ("oid", "name", "base", "recorded", "tax_year", "geom")
+    __slots__ = ("oid", "name", "base", "family", "recorded", "tax_year", "geom")
 
     def __init__(self, attrs, geom):
         self.oid = attrs["OBJECTID"]
@@ -182,6 +183,42 @@ def _stretches(lines):
     return list(merged.geoms) if merged.geom_type == "MultiLineString" else [merged]
 
 
+# Two plats of one name are one naming act only if they are in one place. Home
+# Acres is ten polygons scattered over 7 km and Randall Acres seventeen over 15,
+# one landowner's name reused across the city rather than one development. Left
+# ungrouped, every street in any Randall Acres parcel was a peer of every other,
+# 44 of them spanning 15 km.
+FAMILY_M = 1000.0
+
+
+def _families(plats, gap=FAMILY_M):
+    """Split each base name into geographically connected families."""
+    out = {}
+    by_base = defaultdict(list)
+    for p in plats:
+        by_base[p.base].append(p)
+    for base, group in by_base.items():
+        if len(group) == 1:
+            out[group[0].oid] = base
+            continue
+        clusters = []
+        for p in group:
+            hit = [c for c in clusters
+                   if any(p.geom.distance(q.geom) <= gap for q in c)]
+            if not hit:
+                clusters.append([p])
+                continue
+            first = hit[0]
+            first.append(p)
+            for other in hit[1:]:
+                first.extend(other)
+                clusters.remove(other)
+        for i, c in enumerate(sorted(clusters, key=lambda c: -len(c))):
+            for p in c:
+                out[p.oid] = base if i == 0 else f"{base} #{i + 1}"
+    return out
+
+
 class PlatIndex:
     """Every recorded plat, searchable by geometry."""
 
@@ -195,6 +232,9 @@ class PlatIndex:
             g = shapely_transform(_TO_UTM.transform, g)
             self.plats.append(Plat(f["attributes"], g))
         self.tree = STRtree([p.geom for p in self.plats])
+        fams = _families(self.plats)
+        for p in self.plats:
+            p.family = fams[p.oid]
 
     def __len__(self):
         return len(self.plats)

@@ -59,8 +59,10 @@ def load_places(ways, link_m, split_m):
 def plats_for(place, index):
     """(street metres, metres in any plat, per-plat measurements).
 
-    Phases of one plat are one naming act, so they are accumulated by base name:
-    metres add up, pieces are concatenated, and the earliest date wins.
+    Phases of one plat are one naming act, so they are accumulated together:
+    metres add up, pieces are concatenated, and the earliest date wins. Grouped
+    by family rather than by base name, so the scattered parcels one landowner
+    filed under a single name stay apart -- see geo._families.
     """
     lines = [LineString(w["points"]) for w in place.ways if len(w["points"]) > 1]
     if not lines:
@@ -70,8 +72,8 @@ def plats_for(place, index):
     acc = {}
     for plat, (inside_m, pieces) in index.pieces_inside(lines).items():
         rec = plat.recorded.isoformat() if plat.recorded else None
-        cur = acc.setdefault(plat.base, {
-            "base": plat.base, "name": pretty(plat.name), "recorded": rec,
+        cur = acc.setdefault(plat.family, {
+            "base": plat.family, "name": pretty(plat.name), "recorded": rec,
             "inside_m": 0.0, "pieces": []})
         cur["inside_m"] += inside_m
         # Full precision: build_context divides by these, and rounding here
