@@ -320,8 +320,17 @@ class PlatIndex:
 # Ada County's grid puts a mile between arterials, so a break shorter than this
 # is one street interrupted rather than two.
 LINK_M = 2000.0
-# Beyond this, two alignments of one name are duplicates, not one street.
-SPLIT_M = 5000.0
+# Proximity alone, with no alignment: how close two runs of one name must be
+# before they are taken for one street. AP judged every case between 500 m and
+# 5 km; the confirmed duplicates start at Freedom, 2,028 m apart in two cities,
+# and the largest confirmed single street is Linder at 1,916 m, gapped by
+# Interstate 84 and by a development not yet built through. That brackets this
+# number to 112 metres, and 2 km sits in it.
+#
+# It coincides with LINK_M, which is a different rule -- collinear gap rather
+# than bare proximity -- and the two are kept apart because the evidence for
+# each is separate. They are not one constant that happens to be used twice.
+SPLIT_M = 2000.0
 # Ada County is laid on a section grid, so a street running east-west holds one
 # latitude for its whole length. Two runs of one name sitting in the same band
 # are the same street however far apart they are -- which is what keeps a
