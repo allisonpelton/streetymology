@@ -40,6 +40,11 @@ PRECISION = 5
 # the model's own sentence, shown as its justification, not as fact.
 FIELDS = ("street", "choice", "qid", "label", "confidence", "theme", "reasoning")
 
+# `choice` is the raw answer and for an entity pick it is a candidate LETTER --
+# meaningless outside the prompt that produced it, and useless to style on. It
+# is kept for fidelity; `category` is the field a map should colour by.
+CATEGORIES = ("ENTITY", "PERSONAL", "INVENTED", "NONE", "NOT_ASKED")
+
 
 def load_answers(paths):
     """place id -> answer row. Later files win, so a recheck can supersede."""
@@ -80,6 +85,10 @@ def features(answers):
                 continue
             props = {k: (row or {}).get(k, "") for k in FIELDS}
             props["status"] = "answered" if row else "not_asked"
+            # Every feature carries every key. Emitting a key only sometimes
+            # makes an expression read null on one feature and "" on another,
+            # which is a branch nobody remembers to write.
+            props["not_asked_because"] = ""
             if row is None:
                 # Two different silences. One means the pipeline found nothing
                 # to ask about; the other means the question was never put.
@@ -98,6 +107,9 @@ def features(answers):
             # A letter answer resolved to a QID; the three others did not, and
             # the map needs to say which without the reader knowing the codes.
             props["has_entity"] = bool((row or {}).get("qid"))
+            props["category"] = ("NOT_ASKED" if row is None
+                                 else "ENTITY" if props["has_entity"]
+                                 else props["choice"])
             feats.append({"type": "Feature",
                           "properties": props,
                           "geometry": {"type": "MultiLineString",
@@ -129,11 +141,12 @@ def main():
 
     mix = {}
     for f in feats:
-        if f["properties"]["status"] != "answered":
-            continue
-        c = f["properties"]["choice"]
-        k = c if c in ("NONE", "INVENTED", "PERSONAL") else "entity"
+        k = f["properties"]["category"]
         mix[k] = mix.get(k, 0) + 1
+    unknown = {k for k in mix} - set(CATEGORIES)
+    if unknown:
+        print(f"*** categories not in CATEGORIES: {unknown} — a map styling on "
+              f"them would drop these features to a fallback colour ***")
     asked = sum(1 for f in feats if f["properties"]["status"] == "answered")
     print(f"answers read     : {len(answers):,}")
     print(f"features written : {len(feats):,}  ({asked:,} answered, "
