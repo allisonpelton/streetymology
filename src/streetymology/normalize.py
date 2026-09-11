@@ -25,6 +25,14 @@ SUFFIXES = {
     "hts","heights","est","estates","cres","crescent","spur","cutoff","connector",
 }
 
+# Post-types in order of how much street they usually describe. A place whose
+# ways carry several -- 2,076 of 8,567 do -- should be named for the biggest,
+# not for whichever way sorted first: Ustick is a multi-mile arterial and was
+# being displayed as "North Ustick Court" after a tiny offshoot.
+POST_RANK = ("highway", "hwy", "boulevard", "blvd", "parkway", "pkwy",
+             "road", "rd", "avenue", "ave", "av", "street", "st",
+             "way", "wy", "drive", "dr", "court", "ct", "place", "pl")
+
 _WS = re.compile(r"\s+")
 _TOK = re.compile(r"[^a-z0-9]")
 
@@ -46,6 +54,45 @@ def normalize(name: str) -> str:
     if len(toks) > 1 and _bare(toks[-1]) in SUFFIXES:
         toks = toks[:-1]
     return " ".join(toks)
+
+
+def parts(name: str):
+    """(directional, core, post-type) with original casing preserved.
+
+    Splitting rather than stripping, so a display name can be recomposed with a
+    different post-type than the one this particular way carried.
+    """
+    if not name:
+        return "", "", ""
+    toks = _WS.sub(" ", name.strip()).split(" ")
+    direction = ""
+    if len(toks) > 1 and _bare(toks[0]) in DIRECTIONALS:
+        direction, toks = toks[0], toks[1:]
+    post = ""
+    if len(toks) > 1 and _bare(toks[-1]) in SUFFIXES:
+        post, toks = toks[-1], toks[:-1]
+    return direction, " ".join(toks), post
+
+
+def post_rank(name: str) -> int:
+    """Lower is more important. Anything unlisted sorts last, in no order."""
+    post = _bare(parts(name)[2])
+    return POST_RANK.index(post) if post in POST_RANK else len(POST_RANK)
+
+
+def axis(name: str) -> str:
+    """Which grid axis a name's directional puts it on, if any.
+
+    North and East halves of one core are different streets on a grid, and
+    grouping them produced places spanning both -- Broadway, and Garden City's
+    numbered streets. Unprefixed names belong to no axis and may join either.
+    """
+    d = _bare(parts(name)[0])
+    if d in ("n", "north", "s", "south"):
+        return "NS"
+    if d in ("e", "east", "w", "west"):
+        return "EW"
+    return ""
 
 
 def _compare(text: str) -> str:

@@ -17,11 +17,14 @@ import datetime
 import json
 import math
 import re
+import collections
 from collections import defaultdict
 
 from pyproj import Transformer
 from shapely.geometry import MultiPoint, MultiPolygon, Polygon
 from shapely.ops import linemerge, transform as shapely_transform, unary_union
+
+from streetymology import normalize
 from shapely.strtree import STRtree
 
 from .config import data_path
@@ -329,6 +332,10 @@ GRID_BAND_M = 150.0
 ANALYSED_CLASSES = {"residential", "unclassified", "tertiary", "living_street"}
 
 
+def _length(pts):
+    return sum(math.dist(pts[i], pts[i + 1]) for i in range(len(pts) - 1))
+
+
 def bearing(a, b):
     """Direction of a->b in degrees, folded to 0-180 so it has no compass sense."""
     return math.degrees(math.atan2(b[1] - a[1], b[0] - a[0])) % 180.0
@@ -434,7 +441,28 @@ class Place:
 
     @property
     def name(self):
-        return self.ways[0]["name"]
+        """The display name: most important post-type, directional only if one.
+
+        Was `ways[0]["name"]`, i.e. whichever way happened to sort first, which
+        showed the Ustick arterial as "North Ustick Court" after a short
+        offshoot. Now the best post-type present wins, and among ways carrying
+        it the longest total run decides the wording.
+
+        The directional is dropped when the place carries more than one, since
+        "East Carol Street" is a claim about a place that also runs north.
+        """
+        best = min(normalize.post_rank(w["name"]) for w in self.ways)
+        run = collections.Counter()
+        for w in self.ways:
+            if normalize.post_rank(w["name"]) == best:
+                run[w["name"]] += _length(w["points"])
+        winner = max(run, key=run.get)
+        direction, core, post = normalize.parts(winner)
+        dirs = {normalize.parts(w["name"])[0] for w in self.ways}
+        dirs.discard("")
+        if len(dirs) != 1:
+            direction = ""
+        return " ".join(x for x in (direction, core, post) if x)
 
     def __repr__(self):
         return (f"<Place {self.id} {len(self.ways)} ways "
@@ -487,6 +515,39 @@ def _merge_bands(groups, band_m=GRID_BAND_M):
     return out
 
 
+def _split_axes(places, core):
+    """Separate a place that holds both north-south and east-west ways.
+
+    On a grid these are different streets that share a word. Joining them made
+    Broadway one place spanning East, South and West, and put Garden City's
+    West 41st Street with the numbered streets of the other grid. 109 of 8,567
+    places were affected.
+
+    Ways with no directional belong to no axis, so they follow the longer half
+    rather than forcing a third place.
+    """
+    out = []
+    for place in places:
+        groups = collections.defaultdict(list)
+        for w in place.ways:
+            groups[normalize.axis(w["name"])].append(w)
+        if not ({"NS", "EW"} <= set(groups)):
+            out.append(place)
+            continue
+        loose = groups.pop("", [])
+        longer = max(("NS", "EW"), key=lambda a: sum(_length(w["points"])
+                                                     for w in groups[a]))
+        groups[longer].extend(loose)
+        for axis in sorted(groups):
+            ways = groups[axis]
+            if ways:
+                out.append(Place(core, 0, ways,
+                                 [pt for w in ways for pt in w["points"]]))
+    for i, place in enumerate(out):
+        place.index = i
+    return out
+
+
 def build(ways_by_core, link_m=LINK_M, split_m=SPLIT_M):
     """core name -> [Place], in two steps.
 
@@ -511,8 +572,8 @@ def build(ways_by_core, link_m=LINK_M, split_m=SPLIT_M):
                                _same_location)
                    if len(alignments) > 1
                    else [{"items": alignments, "pts": alignments[0]["pts"]}])
-        out[core] = [
-            Place(core, i, [w for g in loc["items"] for w in g["items"]],
-                  loc["pts"])
-            for i, loc in enumerate(located)]
+        out[core] = _split_axes(
+            [Place(core, i, [w for g in loc["items"] for w in g["items"]],
+                   loc["pts"])
+             for i, loc in enumerate(located)], core)
     return out

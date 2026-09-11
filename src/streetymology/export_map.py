@@ -102,6 +102,10 @@ def features(answers):
                 continue
             props = {k: (row or {}).get(k, "") for k in FIELDS}
             props["status"] = "answered" if row else "not_asked"
+            # Always the place's own name, never the answers CSV's copy. That
+            # copy is the label as it stood when the prompt was rendered, and it
+            # goes stale the moment naming changes -- which it just did.
+            props["street"] = place.name
             # Every feature carries every key. Emitting a key only sometimes
             # makes an expression read null on one feature and "" on another,
             # which is a branch nobody remembers to write.
@@ -109,7 +113,6 @@ def features(answers):
             if row is None:
                 # Two different silences. One means the pipeline found nothing
                 # to ask about; the other means the question was never put.
-                props["street"] = place.name
                 props["not_asked_because"] = ("no_wikidata_candidate"
                                               if not cands.get(place.core)
                                               else "not_in_a_run_yet")
