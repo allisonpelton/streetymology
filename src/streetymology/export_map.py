@@ -27,6 +27,7 @@ import pathlib
 
 from streetymology.config import data_path, ARTIFACTS_DIR
 from streetymology.measure_streets import load_places
+from streetymology.prompt import load_context
 from streetymology.geo import LINK_M, SPLIT_M
 
 WAYS = "osm_ways_geom.json"
@@ -44,6 +45,21 @@ FIELDS = ("street", "choice", "qid", "label", "confidence", "theme", "reasoning"
 # meaningless outside the prompt that produced it, and useless to style on. It
 # is kept for fidelity; `category` is the field a map should colour by.
 CATEGORIES = ("ENTITY", "PERSONAL", "INVENTED", "NONE", "NOT_ASKED")
+
+# A second way to colour the map, owing nothing to the model being right: when
+# the subdivision that named the street was recorded. 95% of places have a year,
+# and the buckets are chosen to be roughly comparable in size on Ada County
+# rather than to be round numbers. Five, because five is what a line legend can
+# carry.
+ERAS = ((1940, "pre-1940"), (1970, "1940-1969"), (1990, "1970-1989"),
+        (2010, "1990-2009"), (9999, "2010-"))
+
+
+def era_of(year):
+    for cutoff, label in ERAS:
+        if year < cutoff:
+            return label
+    return ""
 
 
 def load_answers(paths):
@@ -74,6 +90,7 @@ def features(answers):
     built, _ = load_places(ways_raw, LINK_M, SPLIT_M)
 
     cands = json.loads(data_path("candidates.json").read_text())
+    ctx, _ = load_context()
     per_core = {c: len(ps) for c, ps in built.items()}
     feats, no_geom = [], 0
     for places in built.values():
@@ -107,6 +124,10 @@ def features(answers):
             # A letter answer resolved to a QID; the three others did not, and
             # the map needs to say which without the reader knowing the codes.
             props["has_entity"] = bool((row or {}).get("qid"))
+            rec = ctx.get(place.id, {})
+            raw = str(rec.get("naming_recorded") or "")[:4]
+            props["plat_year"] = int(raw) if raw.isdigit() else ""
+            props["plat_era"] = era_of(props["plat_year"]) if raw.isdigit() else ""
             props["category"] = ("NOT_ASKED" if row is None
                                  else "ENTITY" if props["has_entity"]
                                  else props["choice"])
@@ -154,6 +175,11 @@ def main():
     if no_geom:
         print(f"answered but no geometry in the extract : {no_geom}")
     print(f"mix              : {sorted(mix.items(), key=lambda kv: -kv[1])}")
+    eras = {}
+    for f in feats:
+        e = f["properties"]["plat_era"] or "(no year)"
+        eras[e] = eras.get(e, 0) + 1
+    print(f"plat era         : {sorted(eras.items())}")
     print(f"size             : {out.stat().st_size / 1e6:.1f} MB")
     print(f"wrote {out}")
 
