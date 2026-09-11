@@ -36,7 +36,7 @@ import sys
 import time
 
 from streetymology.config import ANTHROPIC_API_KEY, ARTIFACTS_DIR, data_path
-from streetymology.build_batch import estimate, MODEL_DEFAULT
+from streetymology.build_batch import estimate, MODEL_DEFAULT, THINKING_PER_ITEM
 from streetymology.prompt import LETTERS
 
 API = "https://api.anthropic.com/v1/messages/batches"
@@ -151,7 +151,12 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
     model = reqs[0]["params"]["model"]
     index = path.with_suffix(".index.csv")
     n_items = sum(1 for _ in csv.DictReader(index.open())) if index.exists() else 0
-    cost = estimate(reqs, n_items or len(reqs), model)
+    # Must match what build_batch printed. Omitting thinking_per_item counts
+    # only the ~60 answer tokens an item needs and silently drops the thinking,
+    # which is most of the bill: the county priced at $5.38 here against $13.64
+    # there, at the exact moment the money is committed.
+    cost = estimate(reqs, n_items or len(reqs), model,
+                    thinking_per_item=THINKING_PER_ITEM)
     digest = _digest(path)
 
     print(f"file      : {path}")

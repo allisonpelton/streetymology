@@ -228,6 +228,29 @@ def test_an_unpriced_model_is_not_reported_as_free():
     assert build_batch.estimate(reqs, 40, "claude-sonnet-4-5-20250929")["usd"] > 0
 
 
+def test_submit_prices_a_file_the_same_way_build_batch_did(env, monkeypatch, capsys):
+    """The figure shown when money is committed must match the one approved.
+
+    submit called estimate() without thinking_per_item, so it counted only the
+    ~60 answer tokens per item and dropped the thinking that is most of the
+    bill. The county printed $5.38 here against $13.64 from build_batch.
+    """
+    use(monkeypatch, FakeSession())
+    path = request_file(env, n=2)
+    reqs = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+    want = build_batch.estimate(reqs, 1, "claude-sonnet-5",
+                                thinking_per_item=build_batch.THINKING_PER_ITEM)
+
+    run_batch.submit(path, yes=False)
+
+    out = capsys.readouterr().out
+    # Assert the token count, not the dollars: on a fixture this small both
+    # variants round to $0.0, which is how the first version of this test
+    # passed with the bug reinstated.
+    assert f"{want['output_tokens']:,} out" in out
+    assert want["output_tokens"] > 60, "fixture too small to tell the two apart"
+
+
 def test_verify_refuses_a_model_the_api_does_not_list(env, monkeypatch):
     use(monkeypatch, FakeSession(models=["claude-sonnet-5"]))
     with pytest.raises(SystemExit):
