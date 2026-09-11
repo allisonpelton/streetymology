@@ -74,6 +74,12 @@ def parts(name: str):
     return direction, " ".join(toks), post
 
 
+def post_rank_token(post: str) -> int:
+    """Rank a bare post-type token. Lower is more important."""
+    b = _bare(post)
+    return POST_RANK.index(b) if b in POST_RANK else len(POST_RANK)
+
+
 def post_rank(name: str) -> int:
     """Lower is more important. Anything unlisted sorts last, in no order."""
     post = _bare(parts(name)[2])

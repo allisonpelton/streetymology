@@ -441,28 +441,36 @@ class Place:
 
     @property
     def name(self):
-        """The display name: most important post-type, directional only if one.
+        """Every post-type the place carries, in order of importance.
 
         Was `ways[0]["name"]`, i.e. whichever way happened to sort first, which
         showed the Ustick arterial as "North Ustick Court" after a short
-        offshoot. Now the best post-type present wins, and among ways carrying
-        it the longest total run decides the wording.
+        offshoot. A place that is part Drive and part Court is both, so it says
+        both: "West Largo Drive/Court". Order is POST_RANK, never alphabetical.
 
         The directional is dropped when the place carries more than one, since
-        "East Carol Street" is a claim about a place that also runs north.
+        "East Carol Street" is a claim about a street that also runs north.
         """
-        best = min(normalize.post_rank(w["name"]) for w in self.ways)
         run = collections.Counter()
         for w in self.ways:
-            if normalize.post_rank(w["name"]) == best:
-                run[w["name"]] += _length(w["points"])
-        winner = max(run, key=run.get)
-        direction, core, post = normalize.parts(winner)
+            run[w["name"]] += _length(w["points"])
+        longest = max(run, key=run.get)
+
+        posts, seen = [], set()
+        for w in sorted(self.ways, key=lambda w: -run[w["name"]]):
+            post = normalize.parts(w["name"])[2]
+            bare = normalize._bare(post)
+            if post and bare not in seen:
+                seen.add(bare)
+                posts.append(post)
+        posts.sort(key=normalize.post_rank_token)
+
+        direction, core, _ = normalize.parts(longest)
         dirs = {normalize.parts(w["name"])[0] for w in self.ways}
         dirs.discard("")
         if len(dirs) != 1:
             direction = ""
-        return " ".join(x for x in (direction, core, post) if x)
+        return " ".join(x for x in (direction, core, "/".join(posts)) if x)
 
     def __repr__(self):
         return (f"<Place {self.id} {len(self.ways)} ways "
