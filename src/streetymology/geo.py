@@ -128,6 +128,8 @@ _UNIT_N = re.compile(r"\bUNIT\b(\s+(\d+)\s*([A-Z])?(?![A-Z]))?", re.I)
 _AREA_X = re.compile(r"\bAREA\s+(\d+|[A-Z])(?![A-Z])", re.I)
 _BLOCK_N = re.compile(r"\bBLOCKS?\s+(\d+(?:\s+AND\s+\d+)?)", re.I)
 _ROMAN = re.compile(r"^(?:I{1,3}|IV|VI{0,3}|IX|XI{0,3})$")
+# A base ending in an ordinal: "DUNDEE 03RD", "HIDDEN SPRINGS 06TH".
+_ORD_BASE = re.compile(r"^(.*\S)\s+0*\d+(?:ST|ND|RD|TH)$", re.I)
 
 # Type words, so "Alscott Rocking A Ranch" and "B Bar B Acres" keep their bare
 # letter: a single letter sitting in front of one of these is part of the name,
@@ -372,6 +374,32 @@ def _cluster(plats, gap=FAMILY_M):
     return sorted(clusters, key=lambda c: -len(c))
 
 
+def _cluster_label(cluster, judged, plain_taken, alone):
+    """What to call one cluster of a merged group.
+
+    A cluster the distance rule cut off has to say which one it is, or the map
+    draws two polygons with the same caption -- Seaman's 5.6 km from Seaman's.
+    The founding filing keeps the plain name; a cluster holding only ordinal
+    filings names itself from its earliest, and one with neither from its year.
+    """
+    bases = {q.base for q in cluster}
+    stems = {(_ORD_BASE.match(b).group(1).strip() if _ORD_BASE.match(b) else b)
+             for b in bases}
+    head = judged or pretty(stems.pop() if len(stems) == 1
+                            else min(bases, key=len))
+    if alone:
+        return head, plain_taken
+    if any(not _ORD_BASE.match(b) for b in bases) and not plain_taken:
+        return head, True
+    ords = sorted(b[len(_ORD_BASE.match(b).group(1)):].strip()
+                  for b in bases if _ORD_BASE.match(b))
+    if ords:
+        return head + " " + _ORDINAL.sub(
+            lambda m: m.group(1) + m.group(2).lower(), ords[0]), plain_taken
+    yrs = sorted(q.recorded.year for q in cluster if q.recorded)
+    return (f"{head} ({yrs[0]})" if yrs else head), plain_taken
+
+
 def _families(plats, gap=FAMILY_M):
     """Split each base name into geographically connected families."""
     out = {}
@@ -431,6 +459,20 @@ class PlatIndex:
         present = {p.base for p in self.plats}
         groups = [(e["label"], [b for b in e["bases"] if b in present])
                   for e in doc.get("merge", ())]
+        # Ordinal filings are phases of one development: Dundee 1st, 2nd and
+        # 3rd, Hidden Springs 1st through 9th. They merge at the family level
+        # while the phase layer keeps the ordinal visible, which is what AP
+        # wanted preserved. Distance still splits them afterwards.
+        ordinal_stem = defaultdict(set)
+        for b in present:
+            m = _ORD_BASE.match(b)
+            if m:
+                ordinal_stem[m.group(1).strip()].add(b)
+        for stem, bs in ordinal_stem.items():
+            group = sorted(bs | ({stem} if stem in present else set()))
+            if len(group) > 1:
+                groups.append((None, group))
+
         d = doc.get("directional", {})
         if d.get("enabled"):
             skip = set(d.get("skip", ()))
@@ -468,12 +510,14 @@ class PlatIndex:
             # Name the family for its shortest base, not the union-find root,
             # which is whichever name the merge list happened to start from.
             stem = min((q.base for q in ps), key=len)
-            for i, cluster in enumerate(_cluster(ps)):
+            clusters = _cluster(ps)
+            plain_taken = False
+            for i, cluster in enumerate(clusters):
                 fam = f"{stem} MERGED" + (f" #{i + 1}" if i else "")
-                label = label_of.get(root) or pretty(min((q.base for q in cluster), key=len))
                 for q in cluster:
                     q.family = fam
-                self.merged_label[fam] = label
+                self.merged_label[fam], plain_taken = _cluster_label(
+                    cluster, label_of.get(root), plain_taken, len(clusters) == 1)
 
     def merged_label_for(self, plat):
         """The judged label for a merged family, or None if it was not judged."""
