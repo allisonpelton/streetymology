@@ -19,3 +19,8 @@ data/derived/
 data/artifacts/
 tests/fixture/derived/place_context.json
 tests/fixture/derived/street_*.json
+
+# Local-only: working notes and Claude Code project config. Untracked
+# deliberately; their history lives outside this repo. Do not re-add.
+CLAUDE.md
+.claude/
