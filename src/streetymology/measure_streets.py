@@ -76,7 +76,7 @@ def plats_for(place, index):
         # follow the earliest date below, so the phase reported is the earliest
         # one clipping the street -- even slightly, which is the whole rule.
         cur = acc.setdefault(plat.family, {
-            "base": plat.family, "name": pretty(plat.name), "recorded": rec,
+            "base": plat.family, "name": index.family_name(plat), "recorded": rec,
             "phase": index.label(plat), "phase_recorded": plat.name,
             "judged": index.merged_label_for(plat),
             "inside_m": 0.0, "pieces": []})
@@ -87,7 +87,7 @@ def plats_for(place, index):
                              for m, a, b in pieces)
         if rec and (not cur["recorded"] or rec < cur["recorded"]):
             cur["recorded"] = rec
-            cur["name"] = pretty(plat.name)
+            cur["name"] = index.family_name(plat)
             cur["phase"] = index.label(plat)
             cur["phase_recorded"] = plat.name
     # A judged merge names itself; without one the family takes the name of its

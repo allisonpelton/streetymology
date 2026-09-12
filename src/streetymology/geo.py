@@ -59,7 +59,7 @@ _BARE_PHASE = re.compile(r"\s+0\d*[A-Z]?\d*$", re.I)
 _STRAND = re.compile(r"\s+(AND|OR)$", re.I)
 # "EAST SIDE ADD TO BOISE" is an addition to a city: the naming act is "East
 # Side", and the city is not part of it.
-_ADD_TO = re.compile(r"\s+ADD(ITION)?\s+TO\s+.*$", re.I)
+_ADD_TO = re.compile(r"\s+ADD(ITION)?(\s+NO\s+\d+)?\s+TO\s+.*$", re.I)
 # "COUNTRY CLUB THE" is the assessor's filing order for "The Country Club".
 _TRAILING_THE = re.compile(r"^(.*?),?\s+THE$", re.I)
 _WS = re.compile(r"\s+")
@@ -209,7 +209,39 @@ def designation(name):
     return out
 
 
-def display_name(name, scattered=False):
+_POSSESSIVE = None
+
+
+def _possessive_map():
+    global _POSSESSIVE
+    if _POSSESSIVE is None:
+        _POSSESSIVE = {}
+        if SUBDIVISIONS.exists():
+            doc = json.loads(SUBDIVISIONS.read_text())
+            _POSSESSIVE = {k: v for k, v in doc.get("possessive", {}).items()
+                           if not k.startswith("_")}
+    return _POSSESSIVE
+
+
+_NUMBER_STYLE = None
+
+
+def _number_style():
+    global _NUMBER_STYLE
+    if _NUMBER_STYLE is None:
+        _NUMBER_STYLE = {}
+        if SUBDIVISIONS.exists():
+            doc = json.loads(SUBDIVISIONS.read_text())
+            _NUMBER_STYLE = {k: v for k, v in doc.get("number_style", {}).items()
+                             if not k.startswith("_")}
+    return _NUMBER_STYLE
+
+
+# An ordinal sitting in the stem: "MCCARTYS 02ND ADDITION TO BOISE".
+_ORD_IN = re.compile(r"\s+0*(\d+)(ST|ND|RD|TH)\b(?=\s+ADDITION|\s*$)", re.I)
+
+
+def display_name(name, scattered=False, designated=True):
     """A recorded plat name as a reader should see it.
 
     `scattered` comes from the contiguity test: where a name's numbered plats
@@ -240,8 +272,45 @@ def display_name(name, scattered=False):
         s = _BARE_PHASE.sub("", s.strip())
         s = _STRAND.sub("", s.strip())
     s = _WS.sub(" ", s).strip()
-    out = _titlecase(_dot_initials(s))
-    if levels:
+    # An ordinal filing is usually a family platting its own land, so it reads
+    # as a possessive -- "McCarty's 1st Addition to Boise". The assessor is not
+    # consistent about the apostrophe, or even the S, so the judgement lives in
+    # subdivisions.json. A name that is not a person takes a comma instead:
+    # "South Boise, 2nd Addition".
+    om = _ORD_IN.search(s)
+    if om:
+        ordinal = om.group(1) + om.group(2).lower()
+        rest = _WS.sub(" ", (s[:om.start()] + " " + s[om.end():])).strip()
+        stem, sep, city = rest.partition(" ADDITION")
+        stem = stem.strip()
+        tail = _titlecase("ADDITION" + city) if sep else ""
+        poss = _possessive_map().get(stem)
+        head = poss or _titlecase(_dot_initials(stem))
+        # A name AP has standardised to one numbered sequence reads its
+        # ordinals as numbers: Blaser #1, #2, #3, however each was filed.
+        canon = _number_style().get(stem)
+        if canon:
+            # A standardised sequence always shows its number: AP asked for
+            # Blaser #1 through #9 whatever each filing was called.
+            out = canon + " #" + om.group(1).lstrip("0")
+            if sep:
+                out += " " + tail
+            return _WS.sub(" ", out).strip()
+        # A comma only earns its place in front of "Addition"; "Dundee, 3rd"
+        # on its own reads as a typo.
+        if not designated:
+            out = head
+        else:
+            out = f"{head}, {ordinal}" if (not poss and tail) else f"{head} {ordinal}"
+        if tail:
+            out += " " + tail
+    else:
+        canon = _number_style().get(s)
+        out = canon or _titlecase(_dot_initials(s))
+        # A standardised name is a numbered sequence by definition, whatever
+        # the contiguity test would have said.
+        scattered = scattered or bool(canon)
+    if levels and designated:
         joined = ".".join(levels)
         # No comma before "#": "Randall Acres, #15" reads worse than without.
         out += (" #" + joined) if scattered else (", Phase " + joined)
@@ -374,30 +443,54 @@ def _cluster(plats, gap=FAMILY_M):
     return sorted(clusters, key=lambda c: -len(c))
 
 
-def _cluster_label(cluster, judged, plain_taken, alone):
-    """What to call one cluster of a merged group.
+def _cluster_suffix(plat):
+    """What distinguishes one filing from its siblings: ordinal, then type.
 
-    A cluster the distance rule cut off has to say which one it is, or the map
-    draws two polygons with the same caption -- Seaman's 5.6 km from Seaman's.
-    The founding filing keeps the plain name; a cluster holding only ordinal
-    filings names itself from its earliest, and one with neither from its year.
+    Ada County does not allow two plats to carry the same name, so a merged
+    group that splits on distance can always be told apart by what the record
+    already says. Randall Sub and Randall Addition are different filings, which
+    is the distinction AP drew on Stein.
     """
-    bases = {q.base for q in cluster}
+    m = _ORD_BASE.match(plat.base)
+    out = ""
+    if m:
+        out = " " + _ORDINAL.sub(lambda x: x.group(1) + x.group(2).lower(),
+                                 plat.base[len(m.group(1)):].strip())
+    for w in ("NORTH", "SOUTH", "EAST", "WEST"):
+        if plat.base.endswith(" " + w):
+            out += " " + w.title()
+    a = _ADD_W.search(plat.name.upper())
+    if a:
+        out += " Addition"
+        if a.group("city"):
+            out += " to " + a.group("city").strip().title()
+    return out
+
+
+def _label_clusters(clusters, judged):
+    """Label every cluster of a merged group, and flag any that collide."""
+    bases = {q.base for c in clusters for q in c}
     stems = {(_ORD_BASE.match(b).group(1).strip() if _ORD_BASE.match(b) else b)
              for b in bases}
-    head = judged or pretty(stems.pop() if len(stems) == 1
-                            else min(bases, key=len))
-    if alone:
-        return head, plain_taken
-    if any(not _ORD_BASE.match(b) for b in bases) and not plain_taken:
-        return head, True
-    ords = sorted(b[len(_ORD_BASE.match(b).group(1)):].strip()
-                  for b in bases if _ORD_BASE.match(b))
-    if ords:
-        return head + " " + _ORDINAL.sub(
-            lambda m: m.group(1) + m.group(2).lower(), ords[0]), plain_taken
-    yrs = sorted(q.recorded.year for q in cluster if q.recorded)
-    return (f"{head} ({yrs[0]})" if yrs else head), plain_taken
+    head = judged or pretty(stems.pop() if len(stems) == 1 else min(bases, key=len))
+    if len(clusters) == 1:
+        live = [q for q in clusters[0]
+                if not _AMD_ANY.search(" " + q.name.upper() + " ")] or clusters[0]
+        earliest = min(live, key=lambda q: str(q.recorded or "9999"))
+        return [judged or display_name(earliest.name, designated=False)]
+    labels = []
+    for c in clusters:
+        live = [q for q in c if not _AMD_ANY.search(" " + q.name.upper() + " ")] or c
+        earliest = min(live, key=lambda q: str(q.recorded or "9999"))
+        labels.append(display_name(earliest.name, scattered=True))
+    dupes = {l for l in labels if labels.count(l) > 1}
+    if dupes:
+        # Not a duplicate plat name -- those are not permitted -- so this is an
+        # artifact: a stray polygon, or geometry that split a family wrongly.
+        print(f"*** cluster labels collide for {sorted(dupes)}: two filings of one "
+              f"name that the record does not distinguish. Check for a stray "
+              f"polygon rather than labelling around it ***")
+    return labels
 
 
 def _families(plats, gap=FAMILY_M):
@@ -436,11 +529,10 @@ class PlatIndex:
         # one family is a phased development; one spread across families is a
         # name that was reused -- Randall Acres over four, Home Acres over three.
         self._apply_merges()
-        numbered = defaultdict(set)
+        spread = defaultdict(set)
         for p in self.plats:
-            if _NO_N.search(p.name):
-                numbered[p.base].add(p.family)
-        self.scattered = {b for b, f in numbered.items() if len(f) > 1}
+            spread[p.base].add(p.family)
+        self.scattered = {b for b, f in spread.items() if len(f) > 1}
 
 
     def _apply_merges(self):
@@ -511,17 +603,31 @@ class PlatIndex:
             # which is whichever name the merge list happened to start from.
             stem = min((q.base for q in ps), key=len)
             clusters = _cluster(ps)
-            plain_taken = False
-            for i, cluster in enumerate(clusters):
+            for i, (cluster, label) in enumerate(
+                    zip(clusters, _label_clusters(clusters, label_of.get(root)))):
                 fam = f"{stem} MERGED" + (f" #{i + 1}" if i else "")
                 for q in cluster:
                     q.family = fam
-                self.merged_label[fam], plain_taken = _cluster_label(
-                    cluster, label_of.get(root), plain_taken, len(clusters) == 1)
+                self.merged_label[fam] = label
 
     def merged_label_for(self, plat):
         """The judged label for a merged family, or None if it was not judged."""
         return self.merged_label.get(plat.family)
+
+    def family_name(self, plat):
+        """What to call the naming act this plat belongs to.
+
+        A judged merge names itself. Otherwise the filing names it, with its
+        phase designation dropped but its type kept -- Ellis Addition to
+        Meridian and Ellis Addition to Boise are different developments fifty
+        years and one town apart, and `pretty` discarded what separated them.
+        """
+        # A scattered name -- Randall Acres over four families, Home Acres over
+        # three -- keeps its number, because the number is the only thing
+        # separating one of them from the next.
+        return (self.merged_label.get(plat.family)
+                or display_name(plat.name, scattered=True,
+                                designated=plat.base in self.scattered))
 
     def label(self, plat):
         """A plat as a reader should see it: phase preserved, not collapsed."""
