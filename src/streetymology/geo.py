@@ -57,6 +57,10 @@ _TRAIL = re.compile(r"\s+(SUB(DIVISION)?|ADD(ITION)?|AMD|AMENDED|"
 _BARE_PHASE = re.compile(r"\s+0\d*[A-Z]?\d*$", re.I)
 # "LANCASTER TERRACE SUB UNIT NO 01 AND 02 AMD" strips down to a dangling AND.
 _STRAND = re.compile(r"\s+(AND|OR)$", re.I)
+# "PROJ" is Project Amendment: "AURORA SKY CONDO PROJ AMD NO 01" amends AURORA
+# SKY CONDO. Without stripping it the amendment lands on a base of its own and
+# reads as a development nobody ever filed.
+_PROJ = re.compile(r"\s+PROJ(ECT)?\b", re.I)
 # "EAST SIDE ADD TO BOISE" is an addition to a city: the naming act is "East
 # Side", and the city is not part of it.
 _ADD_TO = re.compile(r"\s+ADD(ITION)?(\s+NO\s+\d+)?\s+TO\s+.*$", re.I)
@@ -71,7 +75,7 @@ def base_name(name: str) -> str:
     'SUTTERS MILL SUB NO 3' and 'SUTTERS MILL SUB NO 4' are one theme.
     """
     prev = None
-    out = _ADD_TO.sub("", (name or "").strip())
+    out = _PROJ.sub("", _ADD_TO.sub("", (name or "").strip()))
     while out != prev:
         prev = out
         out = _TRAIL.sub("", out).strip()
@@ -279,6 +283,7 @@ def display_name(name, scattered=False, designated=True):
     s = _ADD_W.sub(lambda m: " ADDITION" + (" TO " + m.group("city").strip()
                                             if m.group("city") else "") + " ", s)
     s = _SUB_W.sub(" ", s)
+    s = _PROJ.sub(" ", s)
     prev = None
     while s != prev:                 # "UNIT NO 01 AND 02" strands an "AND 02"
         prev = s
