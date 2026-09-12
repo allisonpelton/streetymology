@@ -78,6 +78,7 @@ def plats_for(place, index):
         cur = acc.setdefault(plat.family, {
             "base": plat.family, "name": pretty(plat.name), "recorded": rec,
             "phase": index.label(plat), "phase_recorded": plat.name,
+            "judged": index.merged_label_for(plat),
             "inside_m": 0.0, "pieces": []})
         cur["inside_m"] += inside_m
         # Full precision: build_context divides by these, and rounding here
@@ -89,6 +90,12 @@ def plats_for(place, index):
             cur["name"] = pretty(plat.name)
             cur["phase"] = index.label(plat)
             cur["phase_recorded"] = plat.name
+    # A judged merge names itself; without one the family takes the name of its
+    # earliest plat, which is the rule above.
+    for v in acc.values():
+        judged = v.pop("judged", None)
+        if judged:
+            v["name"] = judged
     return street_m, covered_m, sorted(acc.values(), key=lambda v: -v["inside_m"])
 
 

@@ -27,7 +27,7 @@ from shapely.ops import linemerge, transform as shapely_transform, unary_union
 from streetymology import normalize
 from shapely.strtree import STRtree
 
-from .config import data_path
+from .config import data_path, SUBDIVISIONS
 
 FILE = "assessor_subdivisions.json"
 
@@ -355,6 +355,23 @@ def _stretches(lines):
 FAMILY_M = 1000.0
 
 
+def _cluster(plats, gap=FAMILY_M):
+    """Single-linkage grouping of plats within `gap`, biggest cluster first."""
+    clusters = []
+    for p in plats:
+        hit = [c for c in clusters
+               if any(p.geom.distance(q.geom) <= gap for q in c)]
+        if not hit:
+            clusters.append([p])
+            continue
+        first = hit[0]
+        first.append(p)
+        for other in hit[1:]:
+            first.extend(other)
+            clusters.remove(other)
+    return sorted(clusters, key=lambda c: -len(c))
+
+
 def _families(plats, gap=FAMILY_M):
     """Split each base name into geographically connected families."""
     out = {}
@@ -365,19 +382,7 @@ def _families(plats, gap=FAMILY_M):
         if len(group) == 1:
             out[group[0].oid] = base
             continue
-        clusters = []
-        for p in group:
-            hit = [c for c in clusters
-                   if any(p.geom.distance(q.geom) <= gap for q in c)]
-            if not hit:
-                clusters.append([p])
-                continue
-            first = hit[0]
-            first.append(p)
-            for other in hit[1:]:
-                first.extend(other)
-                clusters.remove(other)
-        for i, c in enumerate(sorted(clusters, key=lambda c: -len(c))):
+        for i, c in enumerate(_cluster(group, gap)):
             for p in c:
                 out[p.oid] = base if i == 0 else f"{base} #{i + 1}"
     return out
@@ -402,11 +407,77 @@ class PlatIndex:
         # Contiguity, for the display name. A name whose numbered plats sit in
         # one family is a phased development; one spread across families is a
         # name that was reused -- Randall Acres over four, Home Acres over three.
+        self._apply_merges()
         numbered = defaultdict(set)
         for p in self.plats:
             if _NO_N.search(p.name):
                 numbered[p.base].add(p.family)
         self.scattered = {b for b, f in numbered.items() if len(f) > 1}
+
+
+    def _apply_merges(self):
+        """Fold hand-judged merges into the families computed above.
+
+        Judgement joins names; geometry still splits them. A merge lists base
+        names that are one naming act, and the family distance is re-applied
+        across the union -- so a listed base sitting far from the rest comes out
+        on its own anyway. That is why Seamans 02nd stays out of Seaman's
+        without anyone having to say so twice.
+        """
+        self.merged_label = {}
+        doc = {}
+        if SUBDIVISIONS.exists():
+            doc = json.loads(SUBDIVISIONS.read_text())
+        present = {p.base for p in self.plats}
+        groups = [(e["label"], [b for b in e["bases"] if b in present])
+                  for e in doc.get("merge", ())]
+        d = doc.get("directional", {})
+        if d.get("enabled"):
+            skip = set(d.get("skip", ()))
+            for b in sorted(present):
+                for w in ("NORTH", "SOUTH", "EAST", "WEST"):
+                    if b.endswith(" " + w):
+                        stem = b[:-(len(w) + 1)]
+                        if stem in present and stem not in skip:
+                            groups.append((None, [stem, b]))
+        if not groups:
+            return
+
+        parent = {}
+
+        def find(x):
+            parent.setdefault(x, x)
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        for _, bs in groups:
+            for b in bs[1:]:
+                parent[find(bs[0])] = find(b)
+        label_of = {}
+        for lab, bs in groups:
+            if lab and bs:
+                label_of[find(bs[0])] = lab
+
+        members = defaultdict(list)
+        for p in self.plats:
+            if p.base in parent:
+                members[find(p.base)].append(p)
+        for root, ps in members.items():
+            # Name the family for its shortest base, not the union-find root,
+            # which is whichever name the merge list happened to start from.
+            stem = min((q.base for q in ps), key=len)
+            for i, cluster in enumerate(_cluster(ps)):
+                fam = f"{stem} MERGED" + (f" #{i + 1}" if i else "")
+                label = label_of.get(root) or pretty(min((q.base for q in cluster), key=len))
+                for q in cluster:
+                    q.family = fam
+                self.merged_label[fam] = label
+
+    def merged_label_for(self, plat):
+        """The judged label for a merged family, or None if it was not judged."""
+        return self.merged_label.get(plat.family)
 
     def label(self, plat):
         """A plat as a reader should see it: phase preserved, not collapsed."""
