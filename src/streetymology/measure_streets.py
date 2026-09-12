@@ -72,8 +72,12 @@ def plats_for(place, index):
     acc = {}
     for plat, (inside_m, pieces) in index.pieces_inside(lines).items():
         rec = plat.recorded.isoformat() if plat.recorded else None
+        # `name` is the naming act, `phase` is this particular filing. Both
+        # follow the earliest date below, so the phase reported is the earliest
+        # one clipping the street -- even slightly, which is the whole rule.
         cur = acc.setdefault(plat.family, {
             "base": plat.family, "name": pretty(plat.name), "recorded": rec,
+            "phase": index.label(plat), "phase_recorded": plat.name,
             "inside_m": 0.0, "pieces": []})
         cur["inside_m"] += inside_m
         # Full precision: build_context divides by these, and rounding here
@@ -83,6 +87,8 @@ def plats_for(place, index):
         if rec and (not cur["recorded"] or rec < cur["recorded"]):
             cur["recorded"] = rec
             cur["name"] = pretty(plat.name)
+            cur["phase"] = index.label(plat)
+            cur["phase_recorded"] = plat.name
     return street_m, covered_m, sorted(acc.values(), key=lambda v: -v["inside_m"])
 
 

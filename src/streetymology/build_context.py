@@ -107,6 +107,7 @@ def score_plats(rec, bridge_m, material_ratio):
     for p in rec["plats"]:
         out.append({
             "base": p["base"], "name": p["name"], "recorded": p["recorded"],
+            "phase": p.get("phase"), "phase_recorded": p.get("phase_recorded"),
             "inside_m": round(p["inside_m"]), "street_m": round(street_m),
             "run_m": round(longest_run(p["pieces"], bridge_m)),
             "pieces": len(p["pieces"]),
@@ -194,6 +195,10 @@ def main():
             "core": rec["core"], "name": rec["name"], "analysed": rec["analysed"],
             "display": rec["display"], "plats": pls,
             "naming_plat": naming["name"] if naming else None,
+            # The merged act names the etymology; the phase says when this
+            # street specifically was laid out. Different questions, both kept.
+            "naming_phase": naming.get("phase") if naming else None,
+            "naming_phase_recorded": naming.get("phase_recorded") if naming else None,
             "naming_recorded": naming["recorded"] if naming else None,
             "naming_share": naming["share"] if naming else None,
             "naming_run_m": naming["run_m"] if naming else None,
