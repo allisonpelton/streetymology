@@ -50,7 +50,7 @@
       "why": "F B Smith Senior Estate (1923) is effectively the first; the estate then filed 2nd through 5th"
     },
     {
-      "label": "Scott's",
+      "label": "Scott's Subdivision",
       "bases": [
         "SCOTTS 01ST",
         "SCOTTS 02ND",
@@ -61,7 +61,7 @@
       "why": "one estate filing five times, 1895-1906. No standalone SCOTTS plat exists; the 1st survives only as a 1950 amendment"
     },
     {
-      "label": "Seaman's",
+      "label": "Seaman's Subdivision",
       "bases": [
         "SEAMAN",
         "SEAMANS 02ND",
@@ -87,7 +87,7 @@
       "why": "singular and plural of one name. AP chose the plural, which appears only in the amended plat"
     },
     {
-      "label": "Willson's",
+      "label": "Willson's Addition to Boise",
       "bases": [
         "WILLSON",
         "WILLSONS"
@@ -160,10 +160,10 @@
     "VAILS": "Vail's",
     "VAUGHANS": "Vaughan's",
     "WAYLANDS": "Wayland's",
-    "_uncertain": "the five below could be surnames that already end in S, where the possessive would be Bowers' not Bower's. Left non-possessive pending AP.",
-    "BOWERS": null,
+    "_uncertain": "resolved by AP 2026-09-12: Humphreys and Bell are not possessive; Bower's, Sety's, Georgianna Milk's and Mrs. A. M. Wilson's are.",
+    "BOWERS": "Bower's",
     "HUMPHREYS": null,
-    "GEORGIANNA MILKS": null,
+    "GEORGIANNA MILKS": "Georgianna Milk's",
     "BELL": null,
     "_not_people": "place or compound names, and personal names with no trailing S -- these take the comma form",
     "BROSE": null,
@@ -177,17 +177,25 @@
     "LONDONER": null,
     "MARKO": null,
     "MIKE MILLER": null,
-    "MRS A M WILSON": null,
+    "MRS A M WILSON": "Mrs. A. M. Wilson's",
     "ORA DELL": null,
     "RANDALL": null,
     "SMITH ESTATE": null,
     "SOUTH BOISE": null,
     "STRAWBERRY GLENN": null,
-    "THOMAS DAVIS": null
+    "THOMAS DAVIS": null,
+    "WILLSON": "Willson's",
+    "WILLSONS": "Willson's"
   },
   "number_style": {
     "_about": "Names whose filings read as one numbered sequence regardless of how the assessor wrote each. The value is the canonical head. Blaser ran 1st, 2nd, then NO 03-09 across four locations, dropping the possessive partway; AP: standardise to Blaser #1, #2 and so forth. This is labelling only -- the geographic split into four subdivisions stands.",
     "BLASER": "Blaser",
     "BLASERS": "Blaser"
+  },
+  "exclude": {
+    "_about": "Plats that are not a development of their own. AP 2026-09-12: HYDE PARK ADD LIGHTS ADD modifies part of the two additions it names rather than adding anything, and is being removed from OpenStreetMap for the same reason.",
+    "names": [
+      "HYDE PARK ADD LIGHTS ADD"
+    ]
   }
 }

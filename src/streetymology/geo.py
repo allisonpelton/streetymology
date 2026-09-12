@@ -223,6 +223,19 @@ def _possessive_map():
     return _POSSESSIVE
 
 
+_EXCLUDED = None
+
+
+def _excluded():
+    global _EXCLUDED
+    if _EXCLUDED is None:
+        _EXCLUDED = set()
+        if SUBDIVISIONS.exists():
+            doc = json.loads(SUBDIVISIONS.read_text())
+            _EXCLUDED = {n.upper() for n in doc.get("exclude", {}).get("names", ())}
+    return _EXCLUDED
+
+
 _NUMBER_STYLE = None
 
 
@@ -306,7 +319,11 @@ def display_name(name, scattered=False, designated=True):
             out += " " + tail
     else:
         canon = _number_style().get(s)
-        out = canon or _titlecase(_dot_initials(s))
+        stem_only, sep2, city2 = s.partition(" ADDITION")
+        out = (canon or _possessive_map().get(stem_only.strip())
+               or _titlecase(_dot_initials(s)))
+        if not canon and _possessive_map().get(stem_only.strip()) and sep2:
+            out += " " + _titlecase("ADDITION" + city2)
         # A standardised name is a numbered sequence by definition, whatever
         # the contiguity test would have said.
         scattered = scattered or bool(canon)
@@ -314,6 +331,9 @@ def display_name(name, scattered=False, designated=True):
         joined = ".".join(levels)
         # No comma before "#": "Randall Acres, #15" reads worse than without.
         out += (" #" + joined) if scattered else (", Phase " + joined)
+    # "Scott's 4th" dangles. Every possessive ends in its filing type.
+    if out.replace("\u2019", "'").count("'") and " Addition" not in out:
+        out += " Subdivision"
     if block:
         out += " Block " + _WS.sub(" ", block.group(1).strip()).lower().replace(" and ", " and ")
     if area:
@@ -520,7 +540,10 @@ class PlatIndex:
             if g is None or g.is_empty:
                 continue
             g = shapely_transform(_TO_UTM.transform, g)
-            self.plats.append(Plat(f["attributes"], g))
+            plat = Plat(f["attributes"], g)
+            if plat.name.upper() in _excluded():
+                continue
+            self.plats.append(plat)
         self.tree = STRtree([p.geom for p in self.plats])
         fams = _families(self.plats)
         for p in self.plats:
