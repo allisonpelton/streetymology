@@ -19,6 +19,7 @@ Blake five kilometres away. 8,382 core names make 8,577 places; 161 names split.
   python -m streetymology.measure_streets --report-dupes
 """
 import argparse
+import re
 import collections
 import json
 
@@ -28,6 +29,8 @@ from shapely.strtree import STRtree
 from streetymology import geo
 from streetymology.config import data_path
 from streetymology.geo import PlatIndex, pretty, to_utm
+
+_AMD = re.compile(r"\bAMD\b|\bAMENDED\b", re.I)
 from streetymology.normalize import key, normalize
 
 WAYS = "osm_ways_geom.json"
@@ -79,20 +82,33 @@ def plats_for(place, index):
             "base": plat.family, "name": index.family_name(plat), "recorded": rec,
             "phase": index.label(plat), "phase_recorded": plat.name,
             "judged": index.merged_label_for(plat),
+            "phase_amended": bool(_AMD.search(plat.name)),
             "inside_m": 0.0, "pieces": []})
         cur["inside_m"] += inside_m
         # Full precision: build_context divides by these, and rounding here
         # moved shares and claims in the third decimal.
         cur["pieces"].extend([m, [round(c, 2) for c in a], [round(c, 2) for c in b]]
                              for m, a, b in pieces)
-        if rec and (not cur["recorded"] or rec < cur["recorded"]):
-            cur["recorded"] = rec
+        # An amendment re-files a plat that already exists; it is not a phase of
+        # its own, so it only names the street when nothing unamended here does.
+        # 85 bases have no unamended plat at all, and there the amendment is the
+        # record.
+        amended = bool(_AMD.search(plat.name))
+        better = (cur["phase_amended"] and not amended) or (
+            amended == cur["phase_amended"]
+            and rec and (not cur["recorded"] or rec < cur["recorded"]))
+        if better:
             cur["name"] = index.family_name(plat)
             cur["phase"] = index.label(plat)
             cur["phase_recorded"] = plat.name
+            cur["phase_amended"] = amended
+        # The family's own date still takes the earliest of anything touching.
+        if rec and (not cur["recorded"] or rec < cur["recorded"]):
+            cur["recorded"] = rec
     # A judged merge names itself; without one the family takes the name of its
     # earliest plat, which is the rule above.
     for v in acc.values():
+        v.pop("phase_amended", None)
         judged = v.pop("judged", None)
         if judged:
             v["name"] = judged
