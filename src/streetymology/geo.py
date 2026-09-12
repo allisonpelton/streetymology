@@ -35,8 +35,28 @@ FILE = "assessor_subdivisions.json"
 # UNIT appears both as "UNIT NO 02" and bare, because the assessor writes
 # "A T SORENSEN SUB UNIT NO 02": SUB and NO 02 came off and UNIT was left behind,
 # so the naming act read as "A T Sorensen Unit". Both forms go.
+# Phase numbers carry a letter suffix often enough to matter: "SUB NO 04A",
+# "PHASE 01A1", "UNIT NO 02A". `\d+` followed by `\b` cannot match those --
+# there is no boundary between "4" and "A" -- so the marker survived and every
+# lettered phase read as its own naming act. "PHASE A" has no digits at all.
+# A phase letter is written both ways -- "NO 04A" and "NO 03 A" -- so each
+# marker accepts an adjacent suffix or a standalone letter token. The `\b` on
+# the standalone branch is what stops it eating the S of a following SUB: in
+# "NO 01 SUB" there is no boundary between S and U, so the branch fails and
+# only "NO 01" comes off. AREA is the same kind of marker: "06TH ADD AREA C".
 _TRAIL = re.compile(r"\s+(SUB(DIVISION)?|ADD(ITION)?|AMD|AMENDED|"
-                    r"NO\s+\d+|#\s*\d+|PHASE\s+\d+|UNIT(\s+\d+)?)\b", re.I)
+                    r"NO\s+\d+(?:\s+[A-Z]\b|[A-Z]?\d*)|"
+                    r"#\s*\d+(?:\s+[A-Z]\b|[A-Z]?\d*)|"
+                    r"PHASE\s+(?:\d+(?:\s+[A-Z]\b|[A-Z]?\d*)|[A-Z]\b)|"
+                    r"AREA\s+(?:\d+(?:\s+[A-Z]\b|[A-Z]?\d*)|[A-Z]\b)|"
+                    r"UNIT(\s+\d+(?:\s+[A-Z]\b|[A-Z]?\d*))?)\b", re.I)
+# A trailing phase with no marker word in front of it: "PARKCENTER POINTE 01A",
+# "CAMELBACK 02". Only zero-padded, which is how the assessor writes phases and
+# is what separates them from a number that is part of the name -- CONCEPT 500,
+# PINE 43, EDSONS LOT 18, CLOVERDALE RIDGE ESTATES BLOCK 1 all keep theirs.
+_BARE_PHASE = re.compile(r"\s+0\d*[A-Z]?\d*$", re.I)
+# "LANCASTER TERRACE SUB UNIT NO 01 AND 02 AMD" strips down to a dangling AND.
+_STRAND = re.compile(r"\s+(AND|OR)$", re.I)
 # "EAST SIDE ADD TO BOISE" is an addition to a city: the naming act is "East
 # Side", and the city is not part of it.
 _ADD_TO = re.compile(r"\s+ADD(ITION)?\s+TO\s+.*$", re.I)
@@ -55,6 +75,8 @@ def base_name(name: str) -> str:
     while out != prev:
         prev = out
         out = _TRAIL.sub("", out).strip()
+        out = _BARE_PHASE.sub("", out).strip()
+        out = _STRAND.sub("", out).strip()
     m = _TRAILING_THE.match(out)
     if m:
         out = f"THE {m.group(1)}"
@@ -87,6 +109,145 @@ def pretty(name: str) -> str:
     # "Fifty-Second Street" would be wrong.
     b = _ORDINAL.sub(lambda m: m.group(1) + m.group(2).lower(), b)
     return b
+
+
+# ---------------------------------------------------------------- display ---
+# `pretty` collapses a plat to its naming act. These render a plat as itself,
+# phase and all, for a reader of the map. The two answer different questions:
+# the merged name asserts a likely common etymology, the phase name says when
+# specifically a street was named.
+
+_AMD_ANY = re.compile(r"\s*\bAM(D|ENDED)\b(\s+NO\s+\d+)?", re.I)
+_SUB_W = re.compile(r"\s*\bSUB(DIVISION)?\b", re.I)
+# ADD is kept and spelled out, because "Stein's Addition" and "Stein's" are
+# different filings and the map has to be able to say which.
+_ADD_W = re.compile(r"\bADD(ITION)?\b(\s+TO\s+(?P<city>[A-Z ]+?))?(?=\s|$)", re.I)
+_NO_N = re.compile(r"\bNO\s+(\d+)\s*([A-Z])?(?![A-Z])", re.I)
+_PHASE_N = re.compile(r"\bPHASE\s+(\d+)\s*([A-Z])?(?![A-Z])|\bPHASE\s+([A-Z])(?![A-Z])", re.I)
+_UNIT_N = re.compile(r"\bUNIT\b(\s+(\d+)\s*([A-Z])?(?![A-Z]))?", re.I)
+_AREA_X = re.compile(r"\bAREA\s+(\d+|[A-Z])(?![A-Z])", re.I)
+_BLOCK_N = re.compile(r"\bBLOCKS?\s+(\d+(?:\s+AND\s+\d+)?)", re.I)
+_ROMAN = re.compile(r"^(?:I{1,3}|IV|VI{0,3}|IX|XI{0,3})$")
+
+# Type words, so "Alscott Rocking A Ranch" and "B Bar B Acres" keep their bare
+# letter: a single letter sitting in front of one of these is part of the name,
+# not an initial.
+_TYPE_WORDS = {"RANCH", "RANCHES", "ACRES", "TOWNHOUSES", "ESTATES", "ESTATE",
+               "TRACT", "TRACTS", "HAVEN", "PARK", "PLACE", "ADDITION", "SUB",
+               "CONDO", "VILLAS", "MANOR", "GARDENS", "HEIGHTS", "VIEW",
+               "VILLAGE", "COURT", "ANNEX", "HOME", "HOMES"}
+
+# Names where the initials rule is wrong and no general rule saves it. Ada
+# County only; this list would mean nothing on another dataset.
+_NOT_INITIALS = ("TOYS R US", "L AND W", "R AND A LEWIS SURVEY",
+                 "CHARLES P O RORKE", "VIGNE D AQUILA")
+
+
+def _dot_initials(s):
+    """A. T. Sorensen, not A T Sorensen. Leading runs and middle runs only."""
+    if s.startswith(_NOT_INITIALS):
+        return s
+    w = s.split()
+    i = 0
+    while i < len(w) and len(w[i]) == 1 and w[i].isalpha():
+        i += 1
+    if i >= 2:                      # a lone leading letter is too ambiguous
+        w[:i] = [x + "." for x in w[:i]]
+    j = 0
+    while j < len(w):
+        if (len(w[j]) == 1 and w[j].isalpha() and j > 0
+                and len(w[j - 1].rstrip(".")) > 1):
+            k = j
+            while k < len(w) and len(w[k]) == 1 and w[k].isalpha():
+                k += 1
+            # a trailing letter is not an initial: Circle C, Bobs Point A
+            if k < len(w) and w[k].upper() not in _TYPE_WORDS:
+                w[j:k] = [x + "." for x in w[j:k]]
+                j = k
+                continue
+        j += 1
+    return " ".join(w)
+
+
+def _titlecase(s):
+    m = _TRAILING_THE.match(s)
+    if m:
+        s = "THE " + m.group(1)
+    s = _ORDINAL.sub(lambda m: m.group(1) + m.group(2).lower(), s)
+    out = [w if (len(w) > 1 and w.isupper() and _ROMAN.match(w)) else
+           (w.title() if w.isupper() else w) for w in s.split()]
+    s = " ".join(out)
+    s = re.sub(r"(?<!^)\b(Of|The|And|At|In|On|To)\b",
+               lambda m: m.group(1).lower(), s)
+    return re.sub(r"\bMc([a-z])", lambda m: "Mc" + m.group(1).upper(), s)
+
+
+def designation(name):
+    """The phase levels of a recorded name, outermost first. ["13","B","3"]."""
+    s = _AMD_ANY.sub(" ", " " + (name or "").upper().strip() + " ")
+    out = []
+    m = _NO_N.search(s)
+    u = _UNIT_N.search(s)
+    if m:
+        out.append(m.group(1).lstrip("0") or "0")
+        if m.group(2):
+            out.append(m.group(2).upper())
+    elif u and u.group(2):
+        out.append(u.group(2).lstrip("0") or "0")
+        if u.group(3):
+            out.append(u.group(3).upper())
+    p = _PHASE_N.search(s)
+    if p:
+        if p.group(3):
+            out.append(p.group(3).upper())
+        else:
+            out.append(p.group(1).lstrip("0") or "0")
+            if p.group(2):
+                out.append(p.group(2).upper())
+    return out
+
+
+def display_name(name, scattered=False):
+    """A recorded plat name as a reader should see it.
+
+    `scattered` comes from the contiguity test: where a name's numbered plats
+    sit in one family they are phases of one development and read as "Phase n";
+    where they are spread across families the name was simply reused, and
+    "Randall Acres #15" is the fifteenth subdivision called that, not its
+    fifteenth phase.
+
+    Levels join with a dot, so a spaced letter and an attached one render the
+    same -- the assessor writes both "NO 03 A" and "NO 04A" and means one thing.
+    """
+    s = " " + (name or "").upper().strip() + " "
+    s = _AMD_ANY.sub(" ", s)
+    levels = designation(name)
+    s = _NO_N.sub(" ", s)
+    s = _PHASE_N.sub(" ", s)
+    s = _UNIT_N.sub(" ", s)
+    area = _AREA_X.search(s)
+    block = _BLOCK_N.search(s)
+    s = _AREA_X.sub(" ", s)
+    s = _BLOCK_N.sub(" ", s)
+    s = _ADD_W.sub(lambda m: " ADDITION" + (" TO " + m.group("city").strip()
+                                            if m.group("city") else "") + " ", s)
+    s = _SUB_W.sub(" ", s)
+    prev = None
+    while s != prev:                 # "UNIT NO 01 AND 02" strands an "AND 02"
+        prev = s
+        s = _BARE_PHASE.sub("", s.strip())
+        s = _STRAND.sub("", s.strip())
+    s = _WS.sub(" ", s).strip()
+    out = _titlecase(_dot_initials(s))
+    if levels:
+        joined = ".".join(levels)
+        # No comma before "#": "Randall Acres, #15" reads worse than without.
+        out += (" #" + joined) if scattered else (", Phase " + joined)
+    if block:
+        out += " Block " + _WS.sub(" ", block.group(1).strip()).lower().replace(" and ", " and ")
+    if area:
+        out += " Area " + area.group(1).upper()
+    return _WS.sub(" ", out).strip()
 
 
 # Ada County sits in UTM zone 11N. Geometry is projected once, on the way in, so
@@ -238,6 +399,18 @@ class PlatIndex:
         fams = _families(self.plats)
         for p in self.plats:
             p.family = fams[p.oid]
+        # Contiguity, for the display name. A name whose numbered plats sit in
+        # one family is a phased development; one spread across families is a
+        # name that was reused -- Randall Acres over four, Home Acres over three.
+        numbered = defaultdict(set)
+        for p in self.plats:
+            if _NO_N.search(p.name):
+                numbered[p.base].add(p.family)
+        self.scattered = {b for b, f in numbered.items() if len(f) > 1}
+
+    def label(self, plat):
+        """A plat as a reader should see it: phase preserved, not collapsed."""
+        return display_name(plat.name, plat.base in self.scattered)
 
     def __len__(self):
         return len(self.plats)
