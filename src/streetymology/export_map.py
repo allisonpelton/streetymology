@@ -128,6 +128,31 @@ def features(answers):
             # the map needs to say which without the reader knowing the codes.
             props["has_entity"] = bool((row or {}).get("qid"))
             rec = ctx.get(place.id, {})
+            # Three views of one answer, because they answer different
+            # questions. `subdivision` is the earliest phase clipping this
+            # street -- when it was specifically named. `subdivision_merged`
+            # is the naming act those phases belong to, which is what asserts
+            # a common etymology. `subdivision_recorded` is the assessor's
+            # string, kept because the friendly form deliberately does not
+            # match the legal description.
+            #
+            # "" is a finding, not missing data: no plat held enough of the
+            # street to claim it. That is the same street the prompt describes
+            # as "no subdivision appears to have named this street". It does
+            # not distinguish that from a street absent from the plat data
+            # altogether -- if the map ever needs to say which, that is a
+            # second key, not a second meaning for this one.
+            props["subdivision"] = rec.get("naming_phase") or ""
+            props["subdivision_merged"] = rec.get("naming_plat") or ""
+            props["subdivision_recorded"] = rec.get("naming_phase_recorded") or ""
+            # Every subdivision the place falls inside, most metres first. A
+            # street can run through several; only one of them named it.
+            seen, falls = set(), []
+            for pl in sorted(rec.get("plats", ()), key=lambda q: -q["inside_m"]):
+                if pl["name"] and pl["name"] not in seen:
+                    seen.add(pl["name"])
+                    falls.append(pl["name"])
+            props["subdivisions"] = falls
             raw = str(rec.get("naming_recorded") or "")[:4]
             props["plat_year"] = int(raw) if raw.isdigit() else ""
             props["plat_era"] = era_of(props["plat_year"]) if raw.isdigit() else ""
@@ -183,6 +208,10 @@ def main():
         e = f["properties"]["plat_era"] or "(no year)"
         eras[e] = eras.get(e, 0) + 1
     print(f"plat era         : {sorted(eras.items())}")
+    named = sum(1 for f in feats if f["properties"]["subdivision"])
+    multi = sum(1 for f in feats if len(f["properties"]["subdivisions"]) > 1)
+    print(f"subdivision      : {named:,} named, {len(feats)-named:,} none")
+    print(f"falls inside >1  : {multi:,}")
     print(f"size             : {out.stat().st_size / 1e6:.1f} MB")
     print(f"wrote {out}")
 
