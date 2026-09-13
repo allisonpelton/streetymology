@@ -32,6 +32,7 @@ from streetymology.config import data_path, ARTIFACTS_DIR
 from streetymology.geo import PlatIndex, LINK_M, SPLIT_M
 from streetymology.measure_streets import load_places
 
+_VACATED = re.compile(r"\bVACATED\b|\bRESCINDED\b", re.I)
 _TO_WGS = Transformer.from_crs("EPSG:32611", "EPSG:4326", always_xy=True)
 
 # Same reasoning as export_map: five decimals is about a metre, on data whose
@@ -165,9 +166,19 @@ def main():
             if pl["name"] and pl["name"] != namer:
                 through_family[pl["name"]].add(pid)
 
+    # A vacated or rescinded plat is not a subdivision anyone can visit, so it
+    # is not drawn. It stays in the naming data: AP confirmed Syringa Park was
+    # vacated in 1908 and Syringa Avenue is still on it, so a vacated plat can
+    # be why a street is called what it is.
     fams = collections.defaultdict(list)
+    drawn = 0
     for p in idx.plats:
+        if _VACATED.search(p.name):
+            continue
+        drawn += 1
         fams[p.family].append(p)
+    print(f"plats drawn: {drawn:,} of {len(idx.plats):,} "
+          f"({len(idx.plats) - drawn} vacated or rescinded, kept for naming)")
 
     merged, phases = [], []
     for fam, plats in fams.items():
