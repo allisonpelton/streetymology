@@ -213,5 +213,10 @@
     "names": [
       "HYDE PARK ADD LIGHTS ADD"
     ]
+  },
+  "subtitle": {
+    "_about": "A marketing subtitle filed after the phase number, lifted out so it sits after the designation instead of inside the development's name. Keyed by base. A regex cannot find these: 'DE MEYER ESTATES SUB NO 03 THE REDWOODS' is a subtitle while 'WOODS NO 02 AT RIVERSIDE THE SUB' is a name the designation interrupts, and they are the same shape.",
+    "DE MEYER ESTATES THE REDWOODS": "The Redwoods",
+    "LAKEHARBOR VILLAGE AT SILVER LAKE": "Village at Silver Lake"
   }
 }

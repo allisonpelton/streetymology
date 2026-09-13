@@ -135,13 +135,18 @@ _ROMAN = re.compile(r"^(?:I{1,3}|IV|VI{0,3}|IX|XI{0,3})$")
 # A marketing subtitle filed after the phase number: "DE MEYER ESTATES SUB NO 03
 # THE REDWOODS". It belongs to the phase, not the development, so it is lifted
 # out and set after the designation rather than left glued to the stem.
-_SUBTITLE = re.compile(r"\b(?:NO|UNIT|PHASE)\s+\d+[A-Z]?\s+(.+?)\s*$", re.I)
-_NOT_SUBTITLE = re.compile(r"^(?:AMD|AMENDED|SUB|SUBDIVISION|ADD|ADDITION|AND|TO|NO|"
-                           r"PHASE|UNIT|AREA|BLOCK)\b", re.I)
-# A bare trailing THE is the assessor's filing order -- "PLANTATION NO 01 THE"
-# is The Plantation -- but "THE REDWOODS" is a name. Same for a lone letter,
-# which is a phase suffix.
-_BARE_TAIL = re.compile(r"^(?:THE|[A-Z])$", re.I)
+_SUBTITLES = None
+
+
+def _subtitles():
+    global _SUBTITLES
+    if _SUBTITLES is None:
+        _SUBTITLES = {}
+        if SUBDIVISIONS.exists():
+            doc = json.loads(SUBDIVISIONS.read_text())
+            _SUBTITLES = {k: v for k, v in doc.get("subtitle", {}).items()
+                          if not k.startswith("_")}
+    return _SUBTITLES
 # A base ending in an ordinal: "DUNDEE 03RD", "HIDDEN SPRINGS 06TH".
 _ORD_BASE = re.compile(r"^(.*\S)\s+0*\d+(?:ST|ND|RD|TH)$", re.I)
 
@@ -282,13 +287,9 @@ def display_name(name, scattered=False, designated=True):
     """
     s = " " + (name or "").upper().strip() + " "
     s = _AMD_ANY.sub(" ", s)
-    subtitle = ""
-    m = _SUBTITLE.search(s)
-    if (m and not _NOT_SUBTITLE.match(m.group(1))
-            and not _BARE_TAIL.match(m.group(1).strip())
-            and "(" not in m.group(1)):
-        subtitle = m.group(1).strip()
-        s = s[:m.start(1)] + " "
+    subtitle = _subtitles().get(base_name(name), "")
+    if subtitle:
+        s = re.sub(r"\s+" + re.escape(subtitle.upper()) + r"\b", " ", s, flags=re.I)
     levels = designation(name)
     s = _NO_N.sub(" ", s)
     s = _PHASE_N.sub(" ", s)
@@ -580,6 +581,7 @@ class PlatIndex:
         for p in self.plats:
             spread[p.base].add(p.family)
         self.scattered = {b for b, f in spread.items() if len(f) > 1}
+        self._name_families()
 
 
     def _apply_merges(self):
@@ -661,20 +663,37 @@ class PlatIndex:
         """The judged label for a merged family, or None if it was not judged."""
         return self.merged_label.get(plat.family)
 
-    def family_name(self, plat):
-        """What to call the naming act this plat belongs to.
+    def _name_families(self):
+        """One name per family, settled once.
 
-        A judged merge names itself. Otherwise the filing names it, with its
-        phase designation dropped but its type kept -- Ellis Addition to
-        Meridian and Ellis Addition to Boise are different developments fifty
-        years and one town apart, and `pretty` discarded what separated them.
+        It has to be a property of the family, not of whichever plat is in hand.
+        Deriving it per plat gave a street "Randall Acres #10" -- the earliest
+        filing touching that street -- while the polygon for the same family
+        said "#3", its earliest filing overall.
+
+        A judged merge names itself. Otherwise the family's earliest unamended
+        filing names it, phase designation dropped but type kept: Ellis Addition
+        to Meridian and Ellis Addition to Boise are different developments fifty
+        years and one town apart. A scattered name keeps its number, because the
+        number is the only thing separating one from the next.
         """
-        # A scattered name -- Randall Acres over four families, Home Acres over
-        # three -- keeps its number, because the number is the only thing
-        # separating one of them from the next.
-        return (self.merged_label.get(plat.family)
-                or display_name(plat.name, scattered=True,
-                                designated=plat.base in self.scattered))
+        members = defaultdict(list)
+        for p in self.plats:
+            members[p.family].append(p)
+        self.family_label = {}
+        for fam, ps in members.items():
+            if fam in self.merged_label:
+                self.family_label[fam] = self.merged_label[fam]
+                continue
+            live = [q for q in ps if not _AMD_ANY.search(" " + q.name.upper() + " ")] or ps
+            first = min(live, key=lambda q: str(q.recorded or "9999"))
+            self.family_label[fam] = display_name(
+                first.name, scattered=True,
+                designated=first.base in self.scattered)
+
+    def family_name(self, plat):
+        """What to call the naming act this plat belongs to."""
+        return self.family_label[plat.family]
 
     def label(self, plat):
         """A plat as a reader should see it: phase preserved, not collapsed."""
