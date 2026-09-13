@@ -23,6 +23,7 @@ Everything below is a judgement about naming rather than a fact about geometry:
 import argparse
 import collections
 import json
+import re
 import math
 
 from streetymology.config import data_path
@@ -38,6 +39,12 @@ BRIDGE_M = 60.0          # excursion tolerated before a re-entry counts as a bre
 # street and the model read a Georgia-town theme off the wrong neighbours.
 MATERIAL_RATIO = 0.4
 MIN_PLATTED = 0.25       # below this the street is not a platted street
+# A plat holding a sliver of a long road did not name it. Ustick Road runs
+# 18.8 km and its earliest material plat held 1% of it; Linder 28.9 km at 4%.
+# These are section-line roads that predate every subdivision on them. The
+# guard costs 79 places, all of which already scored 0.15 confidence or less,
+# and they cross a median of nine plats against one for the streets kept.
+MIN_NAMING_SHARE = 0.15
 
 # Theme by era. Naming a subdivision to a theme is a post-war marketing habit, so
 # an old plat is weak evidence of a theme even when it certainly laid the street
@@ -98,6 +105,30 @@ def longest_run(pieces, bridge_m=0.0):
     return best
 
 
+# Words too common to carry evidence: Clear Ridge matching Painted Ridge says
+# nothing, while Avimor matching Avimor says everything.
+_GENERIC = {"ridge", "creek", "park", "hill", "hills", "meadow", "meadows",
+            "view", "estates", "place", "court", "village", "valley", "heights",
+            "acres", "springs", "glen", "grove", "lake", "lakes", "river",
+            "wood", "woods", "point", "crest", "vista", "terrace", "garden",
+            "gardens", "farm", "ranch", "mill", "stone", "brook", "north",
+            "south", "east", "west", "new", "old", "the", "sub", "addition"}
+
+
+def _words(s):
+    return {w for w in re.sub(r"[^a-z ]", " ", (s or "").lower()).split()
+            if len(w) > 3 and w not in _GENERIC}
+
+
+def _name_match(core, plat_name):
+    """Does this plat's name appear in the street's, or nearly?"""
+    a, b = _words(core), _words(plat_name)
+    if a & b:
+        return True
+    return any(x[:5] == y[:5] for x in a for y in b
+               if len(x) >= 5 and len(y) >= 5)
+
+
 def score_plats(rec, bridge_m, material_ratio):
     """Add run length, share, claim, materiality and era weight to each plat."""
     street_m = rec["street_m"] or 1
@@ -125,6 +156,8 @@ def main():
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--bridge", type=float, default=BRIDGE_M)
     ap.add_argument("--min-platted", type=float, default=MIN_PLATTED)
+    ap.add_argument("--min-naming-share", type=float, default=MIN_NAMING_SHARE,
+                    help="a plat holding less of the street than this did not name it")
     ap.add_argument("--material-ratio", type=float, default=MATERIAL_RATIO)
     ap.add_argument("--dump", help="print the context of one street and stop")
     a = ap.parse_args()
@@ -160,6 +193,18 @@ def main():
         material = [p for p in scored[pid] if p["material"]]
         if not material or platted_share(measures[pid]) < a.min_platted:
             return None
+        # Whether anyone named it. A road no plat holds a share of was there
+        # first: Linder, Overland, Victory and Meridian top out at 0.09, and
+        # the subdivisions along them are named after the road, not the
+        # reverse -- Linderwood Estates, Overland Square, Victory View Acres.
+        if not any(p["share"] >= a.min_naming_share for p in material):
+            return None
+        # Which one named it. A plat whose name is in the street's is better
+        # evidence than a few points of share: Abram Place holds 0.13 of West
+        # Abram Street where Dawson Meadows holds 0.19 and shares nothing.
+        matched = [p for p in material if _name_match(measures[pid]["core"], p["name"])]
+        if matched:
+            return max(matched, key=lambda p: p["inside_m"])
         old = [p for p in material
                if p["recorded"] and int(p["recorded"][:4]) < THEMELESS_BEFORE]
         modern = [p for p in material if p not in old]
