@@ -132,6 +132,16 @@ _UNIT_N = re.compile(r"\bUNIT\b(\s+(\d+)\s*([A-Z])?(?![A-Z]))?", re.I)
 _AREA_X = re.compile(r"\bAREA\s+(\d+|[A-Z])(?![A-Z])", re.I)
 _BLOCK_N = re.compile(r"\bBLOCKS?\s+(\d+(?:\s+AND\s+\d+)?)", re.I)
 _ROMAN = re.compile(r"^(?:I{1,3}|IV|VI{0,3}|IX|XI{0,3})$")
+# A marketing subtitle filed after the phase number: "DE MEYER ESTATES SUB NO 03
+# THE REDWOODS". It belongs to the phase, not the development, so it is lifted
+# out and set after the designation rather than left glued to the stem.
+_SUBTITLE = re.compile(r"\b(?:NO|UNIT|PHASE)\s+\d+[A-Z]?\s+(.+?)\s*$", re.I)
+_NOT_SUBTITLE = re.compile(r"^(?:AMD|AMENDED|SUB|SUBDIVISION|ADD|ADDITION|AND|TO|NO|"
+                           r"PHASE|UNIT|AREA|BLOCK)\b", re.I)
+# A bare trailing THE is the assessor's filing order -- "PLANTATION NO 01 THE"
+# is The Plantation -- but "THE REDWOODS" is a name. Same for a lone letter,
+# which is a phase suffix.
+_BARE_TAIL = re.compile(r"^(?:THE|[A-Z])$", re.I)
 # A base ending in an ordinal: "DUNDEE 03RD", "HIDDEN SPRINGS 06TH".
 _ORD_BASE = re.compile(r"^(.*\S)\s+0*\d+(?:ST|ND|RD|TH)$", re.I)
 
@@ -272,6 +282,13 @@ def display_name(name, scattered=False, designated=True):
     """
     s = " " + (name or "").upper().strip() + " "
     s = _AMD_ANY.sub(" ", s)
+    subtitle = ""
+    m = _SUBTITLE.search(s)
+    if (m and not _NOT_SUBTITLE.match(m.group(1))
+            and not _BARE_TAIL.match(m.group(1).strip())
+            and "(" not in m.group(1)):
+        subtitle = m.group(1).strip()
+        s = s[:m.start(1)] + " "
     levels = designation(name)
     s = _NO_N.sub(" ", s)
     s = _PHASE_N.sub(" ", s)
@@ -343,6 +360,8 @@ def display_name(name, scattered=False, designated=True):
         out += " Block " + _WS.sub(" ", block.group(1).strip()).lower().replace(" and ", " and ")
     if area:
         out += " Area " + area.group(1).upper()
+    if subtitle:
+        out += " \u2014 " + _titlecase(subtitle)
     return _WS.sub(" ", out).strip()
 
 
