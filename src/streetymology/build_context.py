@@ -120,13 +120,30 @@ def _words(s):
             if len(w) > 3 and w not in _GENERIC}
 
 
+# Plat-type words, dropped before comparing. "Hulbe Tract" is Hulbe.
+_TYPE = {"estates", "place", "court", "village", "sub", "addition", "acres",
+         "condo", "tract", "tracts", "park", "manor", "villas", "commons",
+         "cove", "ranch", "farms", "the", "at", "crossing", "hollow", "glenn",
+         "glen", "shopping", "center", "business"}
+
+
 def _name_match(core, plat_name):
-    """Does this plat's name appear in the street's, or nearly?"""
-    a, b = _words(core), _words(plat_name)
-    if a & b:
-        return True
-    return any(x[:5] == y[:5] for x in a for y in b
-               if len(x) >= 5 and len(y) >= 5)
+    """Is this plat's distinctive name the street's name?
+
+    Not merely a shared word. A shared word is usually the subdivision's theme
+    rather than its identity: Cloverdale Ridge Estates names barrel horse, cow
+    horse, cutting horse and reining horse, so matching "horse" hands Cutting
+    Horse Drive to Bucking Horse Ranch. "eagle" appears in 27 street cores,
+    "silver" in 23. Requiring the whole distinctive name keeps Abbs, Wichita
+    and Workland, which appear in one core each.
+    """
+    a = [w for w in _plain(core) if w not in _TYPE]
+    b = [w for w in _plain(plat_name) if w not in _TYPE]
+    return bool(a) and a == b
+
+
+def _plain(s):
+    return re.sub(r"[^a-z ]", " ", (s or "").lower()).split()
 
 
 def score_plats(rec, bridge_m, material_ratio):
@@ -202,7 +219,12 @@ def main():
         # Which one named it. A plat whose name is in the street's is better
         # evidence than a few points of share: Abram Place holds 0.13 of West
         # Abram Street where Dawson Meadows holds 0.19 and shares nothing.
-        matched = [p for p in material if _name_match(measures[pid]["core"], p["name"])]
+        # Over every plat touching the street, not just the material ones. A
+        # namesake holding almost nothing still named it -- Abbs Sub against
+        # South Abbs Street -- and the floor above has already established that
+        # somebody here did the naming, so a stranger cannot win by default.
+        matched = [p for p in scored[pid]
+                   if _name_match(measures[pid]["core"], p["name"])]
         if matched:
             return max(matched, key=lambda p: p["inside_m"])
         old = [p for p in material

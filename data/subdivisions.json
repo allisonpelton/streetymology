@@ -122,6 +122,22 @@
         "PARAMOUNT VILLAGE CENTER"
       ],
       "why": "one development, all seven at 0 m. The streets carry an actor theme throughout"
+    },
+    {
+      "label": "De Meyer Estates",
+      "bases": [
+        "DE MEYER ESTATES",
+        "DE MEYER ESTATES THE REDWOODS"
+      ],
+      "why": "No 3 and No 4 were filed as 'De Meyer Estates Sub No 03 The Redwoods'. The subtitle sits after the phase number, so stripping the number left it glued to the stem and split the family in two"
+    },
+    {
+      "label": "Lakeharbor",
+      "bases": [
+        "LAKEHARBOR",
+        "LAKEHARBOR VILLAGE AT SILVER LAKE"
+      ],
+      "why": "same shape: 'Lakeharbor No 06 Village at Silver Lake' is phase 6 with a subtitle"
     }
   ],
   "possessive": {
