@@ -28,7 +28,7 @@ import re
 
 from streetymology.config import data_path, ARTIFACTS_DIR
 from streetymology.prompt import (HEADER, candidate_lines, load_context,
-                                  load_merges, render)
+                                  render)
 
 # AP's three runs over labelled streets were answered by Sonnet 5 in the desktop
 # app, not by the 4.5 this file used to name. The measured agreement and
@@ -101,7 +101,6 @@ def build_items(limit=None, only=None, exclude=None, sample=None, seed=0):
     sampled batch is indistinguishable in shape from a whole one.
     """
     ctx, by_core = load_context()
-    merges = load_merges()
     cands = json.loads(data_path("candidates.json").read_text())
 
     eligible, skipped_no_cands = [], 0
@@ -124,8 +123,8 @@ def build_items(limit=None, only=None, exclude=None, sample=None, seed=0):
 
     items = []
     for n, (pid, rec, lines) in enumerate(eligible, 1):
-        block, _ = render(n, rec.get("name") or rec["display"], lines,
-                          rec, ctx, by_core, merges)
+        block = render(n, rec.get("name") or rec["display"], lines,
+                       rec, ctx, by_core)
         items.append({"place": pid, "street": rec.get("name"), "n": n,
                       "block": block})
     return items, skipped_no_cands

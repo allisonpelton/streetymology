@@ -9,10 +9,9 @@ Nothing in this module reads the network or writes a file.
 """
 import json
 
-from streetymology.config import JUDGEMENT_DIR, data_path
+from streetymology.config import data_path
 from streetymology.normalize import key
 
-MERGES = JUDGEMENT_DIR / "phase_merges.json"
 
 HEADER = """# Street etymology — 240 items
 
@@ -86,21 +85,6 @@ OPTIONS = [
 ]
 
 
-def load_merges():
-    """base name -> the set of base names it is one naming act with."""
-    doc = json.loads(MERGES.read_text())
-    fam = {}
-    for entry in doc["merge"]:
-        members = set(entry["family"])
-        for m in members:
-            fam[m] = members
-    return fam
-
-
-def upper_base(name):
-    return (name or "").upper().strip()
-
-
 def pick(street, by_core):
     places = by_core.get(key(street))
     if not places:
@@ -112,22 +96,13 @@ def pick(street, by_core):
     return max(pool, key=lambda r: len(r.get("peers", ())))
 
 
-def tiers(rec, ctx, by_core, merges):
+def tiers(rec, ctx, by_core):
     """The three tiers, deduped so a street appears once at its strongest."""
     def nm(pid):
         r = ctx.get(pid)
         return r["display"] if r else None
 
     peers = [nm(p) for p in rec.get("peers", ()) if nm(p)]
-
-    # Phase merge: pull in places whose naming plat is in the same judged family.
-    plat = upper_base(rec.get("naming_plat"))
-    family = merges.get(plat)
-    if family:
-        for pid, other in ctx.items():
-            if upper_base(other.get("naming_plat")) in family and nm(pid):
-                peers.append(nm(pid))
-
     same = [nm(p) for p in rec.get("same_plat", ()) if nm(p)]
     near = sorted({nm(p) for b in ("attached", "near_unplatted")
                    for p in rec.get(b, ()) if nm(p)})
@@ -142,15 +117,15 @@ def tiers(rec, ctx, by_core, merges):
                 out.append(x)
         return out
 
-    return dedupe(sorted(set(peers))), dedupe(same), dedupe(near), bool(family)
+    return dedupe(sorted(set(peers))), dedupe(same), dedupe(near)
 
 
-def render(n, street, cand_lines, rec, ctx, by_core, merges):
+def render(n, street, cand_lines, rec, ctx, by_core):
     L = [f"### {n}. {street}"]
     if rec is None:
         L.append("- **Subdivision:** unknown — this street is not in the plat data")
         L += ["- **Candidates:**"] + cand_lines + OPTIONS
-        return "\n".join(L), False
+        return "\n".join(L)
     plat = rec.get("naming_plat")
     if plat:
         yr = (rec.get("naming_recorded") or "")[:4]
@@ -163,7 +138,7 @@ def render(n, street, cand_lines, rec, ctx, by_core, merges):
         L.append("- **Subdivision:** none — no subdivision appears to have named "
                  "this street")
         L.append("- **Confidence its name follows a subdivision theme:** low")
-    a, b, c, merged = tiers(rec, ctx, by_core, merges)
+    a, b, c = tiers(rec, ctx, by_core)
     # With no subdivision there is no "that subdivision", so the two tiers that
     # refer to one are left out rather than printed empty.
     if plat:
@@ -172,7 +147,7 @@ def render(n, street, cand_lines, rec, ctx, by_core, merges):
                  + (", ".join(b) or "(none)"))
     L.append("- **Nearby, outside it:** " + (", ".join(c) or "(none)"))
     L += ["- **Candidates:**"] + cand_lines + OPTIONS
-    return "\n".join(L), merged
+    return "\n".join(L)
 
 
 def load_context():

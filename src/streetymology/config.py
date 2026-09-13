@@ -18,9 +18,8 @@ RAW_DIR = DATA_DIR / "raw"                  # downloaded sources
 DERIVED_DIR = DATA_DIR / "derived"          # computed intermediates
 ARTIFACTS_DIR = DATA_DIR / "artifacts"      # run output
 
-# Tracked, because neither can be regenerated.
+# Tracked, because it cannot be regenerated.
 LABELS = ROOT / "data" / "labels.csv"
-JUDGEMENT_DIR = ROOT / "data" / "plat_judgement"
 # Anchored to ROOT, not DATA_DIR, so no pipeline stage can reach it by writing
 # into its own output directory.
 SUBDIVISIONS = ROOT / "data" / "subdivisions.json"
