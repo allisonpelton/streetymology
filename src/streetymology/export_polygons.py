@@ -25,12 +25,12 @@ import re
 
 from pyproj import Transformer
 from shapely.geometry import LineString
-from shapely.ops import transform as shapely_transform, unary_union
+from shapely.ops import transform as shapely_transform
+from shapely.ops import unary_union
 from shapely.strtree import STRtree
 
-from streetymology.config import (data_path, log_to_stderr, write_json,
-                                  ARTIFACTS_DIR)
-from streetymology.geo import PlatIndex, LINK_M, SPLIT_M
+from streetymology.config import ARTIFACTS_DIR, data_path, log_to_stderr, write_json
+from streetymology.geo import LINK_M, SPLIT_M, PlatIndex
 from streetymology.measure_streets import load_places
 
 _VACATED = re.compile(r"\bVACATED\b|\bRESCINDED\b", re.I)
@@ -151,7 +151,6 @@ def main():
                     theme_of[row["place"]] = row.get("theme", "")
 
     ids, geoms, tree = street_index()
-    by_id = dict(zip(ids, geoms))
 
     # what each family and each phase named
     named_by_family = collections.defaultdict(list)
@@ -182,7 +181,7 @@ def main():
           f"({len(idx.plats) - drawn} vacated or rescinded, kept for naming)")
 
     merged, phases = [], []
-    for fam, plats in fams.items():
+    for plats in fams.values():
         label = idx.family_name(min(plats, key=lambda q: str(q.recorded or "9999")))
         geom = unary_union([p.geom for p in plats])
         # phases: plats rendering to one name are one filing, amendments included

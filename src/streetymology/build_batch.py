@@ -26,9 +26,8 @@ import pathlib
 import random
 import re
 
-from streetymology.config import data_path, ARTIFACTS_DIR
-from streetymology.prompt import (HEADER, candidate_lines, load_context,
-                                  render)
+from streetymology.config import ARTIFACTS_DIR, data_path
+from streetymology.prompt import HEADER, candidate_lines, load_context, render
 
 # AP's three runs over labelled streets were answered by Sonnet 5 in the desktop
 # app. The measured agreement and confidence calibration describe this model and

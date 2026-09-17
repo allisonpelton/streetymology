@@ -19,9 +19,9 @@ Blake five kilometres away. 8,382 core names make 8,577 places; 161 names split.
   python -m streetymology.measure_streets --report-dupes
 """
 import argparse
-import re
 import collections
 import json
+import re
 
 from shapely.geometry import LineString, MultiPoint
 from shapely.strtree import STRtree
@@ -29,10 +29,9 @@ from shapely.strtree import STRtree
 from streetymology import geo
 from streetymology.config import data_path, log_to_stderr, write_json
 from streetymology.geo import PlatIndex, to_utm
-from streetymology.platnames import pretty
+from streetymology.normalize import key, normalize
 
 _AMD = re.compile(r"\bAMD\b|\bAMENDED\b", re.I)
-from streetymology.normalize import key, normalize
 
 WAYS = "osm_ways_geom.json"
 OUT = "street_measures.json"

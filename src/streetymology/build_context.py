@@ -23,8 +23,8 @@ Everything below is a judgement about naming rather than a fact about geometry:
 import argparse
 import collections
 import json
-import re
 import math
+import re
 
 from streetymology.config import data_path, log_to_stderr, write_json
 from streetymology.normalize import key

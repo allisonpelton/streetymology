@@ -14,7 +14,6 @@ and WGS84 rings. Raw download, no interpretation.
 """
 import argparse
 import functools
-import json
 import time
 
 from streetymology.config import data_path, session, write_json

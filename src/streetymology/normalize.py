@@ -111,13 +111,8 @@ def key(name: str) -> str:
     """Comparison key for a STREET name: directional and post-type removed."""
     return _compare(normalize(name))
 
-
-
-
-# Loading OSM names lives here too: the only thing anyone does with the
-# extract is turn it into core keys, which is this module's job.
-import json
-
+# Loading OSM names lives here too: the only thing anyone does with the extract
+# is turn it into core keys, which is this module's job.
 EXCLUDED_HIGHWAYS = {"trunk"}
 
 

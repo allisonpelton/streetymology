@@ -23,14 +23,23 @@ import logging
 import math
 
 from pyproj import Transformer
+from shapely.errors import ShapelyError
 from shapely.geometry import MultiPoint, MultiPolygon, Polygon
-from shapely.ops import linemerge, transform as shapely_transform, unary_union
+from shapely.ops import linemerge, unary_union
+from shapely.ops import transform as shapely_transform
 from shapely.strtree import STRtree
 
 from streetymology import normalize
-from streetymology.platnames import (ADD_W, AMD_ANY, ORD_BASE, ORDINAL,
-                                     base_name, display_name, excluded,
-                                     judgement, pretty)
+from streetymology.platnames import (
+    ADD_W,
+    AMD_ANY,
+    ORD_BASE,
+    ORDINAL,
+    base_name,
+    display_name,
+    excluded,
+    judgement,
+)
 
 from .config import data_path
 
@@ -90,7 +99,7 @@ class Plat:
         # The assessor stores RecordedDate as epoch milliseconds UTC.
         ms = attrs.get("RecordedDate")
         self.recorded = (
-            datetime.datetime.fromtimestamp(ms / 1000, datetime.timezone.utc).date()
+            datetime.datetime.fromtimestamp(ms / 1000, datetime.UTC).date()
             if ms is not None else None)
         self.tax_year = attrs.get("InitialTaxYear")
         self.geom = geom
@@ -115,7 +124,7 @@ def _clip(stretches, geom):
     for stretch in stretches:
         try:
             inter = stretch.intersection(geom)
-        except Exception:                                         # noqa: BLE001
+        except ShapelyError:
             inter = stretch.intersection(geom.buffer(0))
         if inter.is_empty:
             continue
@@ -217,10 +226,6 @@ def _cluster_suffix(plat):
 
 def _label_clusters(clusters, judged):
     """Label every cluster of a merged group, and flag any that collide."""
-    bases = {q.base for c in clusters for q in c}
-    stems = {(ORD_BASE.match(b).group(1).strip() if ORD_BASE.match(b) else b)
-             for b in bases}
-    head = judged or pretty(stems.pop() if len(stems) == 1 else min(bases, key=len))
     if len(clusters) == 1:
         live = [q for q in clusters[0]
                 if not AMD_ANY.search(" " + q.name.upper() + " ")] or clusters[0]
@@ -466,7 +471,7 @@ class PlatIndex:
         for p in self.covering(line):
             try:
                 inside = line.intersection(p.geom).length
-            except Exception:                                 # noqa: BLE001
+            except ShapelyError:
                 inside = line.intersection(p.geom.buffer(0)).length
             if inside > 0:
                 out[p] = inside / total

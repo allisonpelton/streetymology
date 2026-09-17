@@ -26,11 +26,10 @@ import json
 import logging
 import pathlib
 
-from streetymology.config import (data_path, log_to_stderr, write_json,
-                                  ARTIFACTS_DIR)
+from streetymology.config import ARTIFACTS_DIR, data_path, log_to_stderr, write_json
+from streetymology.geo import LINK_M, SPLIT_M
 from streetymology.measure_streets import load_places
 from streetymology.prompt import load_context
-from streetymology.geo import LINK_M, SPLIT_M
 
 log = logging.getLogger(__name__)
 
@@ -195,7 +194,7 @@ def main():
     for f in feats:
         k = f["properties"]["category"]
         mix[k] = mix.get(k, 0) + 1
-    unknown = {k for k in mix} - set(CATEGORIES)
+    unknown = set(mix) - set(CATEGORIES)
     if unknown:
         log.warning("categories not in CATEGORIES: %s — a map styling on them "
                     "would drop these features to a fallback colour", unknown)

@@ -15,10 +15,33 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+# Every rule here sits at zero violations, so a hit is a regression rather than
+# a backlog. F is the one that earns its keep: it caught an undefined name left
+# behind by a refactor that the tests did not reach.
+#
+# Deliberately NOT selected:
+#   T201  `print` -- 114 hits. A stage reporting its own numbers to stdout is
+#         the intended output of this pipeline; warnings go through `logging`,
+#         and no linter can tell the two apart.
+#   ARG, B, E7, RET  non-zero today. Adopt one at a time, after clearing it.
+select = ["F", "E4", "E9", "W", "I", "UP", "C4", "SIM", "BLE", "PLC0415"]
+
+[tool.ruff.lint.per-file-ignores]
+# The prompt is frozen: its wording and its line breaks are what the agreement
+# and confidence calibration were measured against, and the trailing spaces in
+# it are markdown line-break syntax. Stripping them moves every rendered item,
+# which the golden test catches. Only the whitespace rules are waived -- F still
+# applies, so a genuine error here is still caught.
+"src/streetymology/prompt.py" = ["W291", "W293", "E501"]

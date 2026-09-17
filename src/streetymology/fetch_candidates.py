@@ -19,6 +19,9 @@ Usage:
 import argparse
 import json
 import time
+
+import requests
+
 from streetymology.config import data_path, session, write_json
 from streetymology.normalize import osm_cores
 
@@ -63,7 +66,7 @@ def main():
             # the planet. The 1,392 cores searched the wrong way on 2026-09-10
             # returned 8 hits between them, all of them other cities' streets.
             cache[k] = search(s, k)
-        except Exception as e:                       # noqa: BLE001
+        except (requests.RequestException, ValueError) as e:
             # The session has already retried transport and 5xx errors. Getting
             # here means this one term is bad, so skip it and keep the run going.
             print(f"  {k}: {str(e)[:60]}", flush=True)

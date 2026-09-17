@@ -27,17 +27,23 @@ is not currently installed.
 import argparse
 import collections
 import csv
-import hashlib
 import datetime as dt
+import hashlib
 import json
 import pathlib
 import re
 import sys
 import time
 
-from streetymology.config import (ANTHROPIC_API_KEY, ARTIFACTS_DIR, atomic_write,
-                                  data_path, session, write_json)
-from streetymology.build_batch import estimate, MODEL_DEFAULT, THINKING_PER_ITEM
+from streetymology.build_batch import MODEL_DEFAULT, THINKING_PER_ITEM, estimate
+from streetymology.config import (
+    ANTHROPIC_API_KEY,
+    ARTIFACTS_DIR,
+    atomic_write,
+    data_path,
+    session,
+    write_json,
+)
 from streetymology.prompt import LETTERS
 
 API = "https://api.anthropic.com/v1/messages/batches"
@@ -155,7 +161,7 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
 
     print(f"file      : {path}")
     print(f"sha256    : {digest}")
-    print(f"HTTP POSTs: 1")
+    print("HTTP POSTs: 1")
     print(f"requests  : {len(reqs)}  <- billed model calls")
     print(f"items     : {n_items or 'unknown, no index beside the file'}")
     print(f"model     : {model}")
@@ -188,7 +194,7 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
     s = _post_session()
     write_json(PENDING,
                {"digest": digest, "request_file": str(path), "requests": len(reqs),
-                "attempted": dt.datetime.now(dt.timezone.utc).isoformat()}, indent=2)
+                "attempted": dt.datetime.now(dt.UTC).isoformat()}, indent=2)
 
     r = s.post(API, headers=_headers(), json={"requests": reqs},
                timeout=s.request_timeout)
@@ -200,7 +206,7 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
     rec = {"batch_id": batch["id"], "digest": digest, "model": model,
            "requests": len(reqs), "items": n_items, "estimate_usd": cost["usd"],
            "request_file": str(path), "index_file": str(index),
-           "submitted": dt.datetime.now(dt.timezone.utc).isoformat()}
+           "submitted": dt.datetime.now(dt.UTC).isoformat()}
     _write_record(rec)
     PENDING.unlink(missing_ok=True)
 
@@ -323,7 +329,7 @@ def status(batch_id=None, watch=False, every=60):
             sys.exit(f"status failed [{r.status_code}]: {r.text[:500]}")
         b = r.json()
         counts = b.get("request_counts", {})
-        stamp = dt.datetime.now(dt.timezone.utc).strftime("%H:%M:%S")
+        stamp = dt.datetime.now(dt.UTC).strftime("%H:%M:%S")
         print(f"[{stamp}] {b.get('processing_status')} " +
               " ".join(f"{k}={v}" for k, v in counts.items()), flush=True)
         if b.get("processing_status") == "ended" or not watch:

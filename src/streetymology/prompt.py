@@ -12,7 +12,6 @@ import json
 from streetymology.config import data_path
 from streetymology.normalize import key
 
-
 HEADER = """# Street etymology — 240 items
 
 For each street, choose the Wikidata item it is named after, or say that none

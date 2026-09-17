@@ -12,11 +12,13 @@ Written to `osm_ways_geom.json`; the centre file is left alone so nothing that
 depends on it breaks while the switch is made.
 """
 import argparse
+import collections
 import json
 import sys
 
-from streetymology.config import (OVERPASS_ENDPOINTS, data_path, session,
-                                  write_json)
+import requests
+
+from streetymology.config import OVERPASS_ENDPOINTS, data_path, session, write_json
 
 OUT = "osm_ways_geom.json"
 
@@ -50,7 +52,7 @@ def fetch(timeout, endpoints=None):
             r = s.post(endpoint, data={"data": body}, timeout=timeout + 60)
             r.raise_for_status()
             return r.json()
-        except Exception as e:                       # noqa: BLE001 - report and try next
+        except (requests.RequestException, ValueError) as e:
             last = e
             print(f"  failed: {str(e)[:120]}", flush=True)
     raise SystemExit(f"all endpoints failed; last error: {last}")
@@ -79,7 +81,6 @@ def main():
             raise SystemExit(f"REFUSING: mirror data ({base}) is older than the "
                              f"file on disk ({prev}). Try another endpoint.")
     els = d.get("elements", [])
-    import collections
     kinds = collections.Counter(e.get("tags", {}).get("highway") for e in els)
     withgeom = sum(1 for e in els if e.get("geometry"))
     nodes = sum(len(e.get("geometry", ())) for e in els)
