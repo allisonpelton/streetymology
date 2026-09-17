@@ -8,13 +8,14 @@ That area was chosen because it exercises the normal path in one readable piece:
 a clean single-plat street, a contested one, a street no plat named, the Lugarno
 Terra phase merge, and tiers long enough to truncate.
 
-The phase merge is now a rule rather than a listed case: `geo.base_name` strips
-the phase marker and `PlatIndex` re-splits a base name by distance.
+The phase merge is a rule rather than a listed case. `platnames.base_name`
+strips the phase marker and `plats.PlatIndex` re-splits a base name by
+distance.
 
 `data/subdivisions.json` is still read during the run, and is anchored to the
 repo root rather than to `STREETYMOLOGY_DATA_DIR`, so the fixture cannot
 override it. It names none of these plats, but `LUGARNO TERRA NORTH` folds into
-`LUGARNO TERRA` through the `directional` rule — so setting `directional.enabled`
+`LUGARNO TERRA` through the `directional` rule, so setting `directional.enabled`
 to false would fail this test for a reason that has nothing to do with the
 fixture.
 

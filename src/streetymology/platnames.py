@@ -13,7 +13,7 @@ Where no regex decides, `data/subdivisions.json` holds the judgement and this
 module reads it: which names are possessive, which were standardised to one
 numbered sequence, which carry a marketing subtitle, and which name no
 development at all. This module does string work only. It holds no geometry,
-and `geo` imports it rather than the reverse.
+and `plats` imports it rather than the reverse.
 """
 import functools
 import json
