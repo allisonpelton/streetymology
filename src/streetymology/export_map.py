@@ -40,11 +40,11 @@ PRECISION = 5
 
 # What a reader of the map is entitled to know about a street. `reasoning` is
 # the model's own sentence, shown as its justification, not as fact.
-FIELDS = ("street", "choice", "qid", "label", "confidence", "theme", "reasoning")
+# What a reader of the map is entitled to know. `choice` is not among them: for
+# an entity pick it is a candidate LETTER, meaningless outside the prompt that
+# produced it. `category` is what a map colours by, and it is derived below.
+FIELDS = ("street", "qid", "label", "confidence", "theme", "reasoning")
 
-# `choice` is the raw answer and for an entity pick it is a candidate LETTER --
-# meaningless outside the prompt that produced it, and useless to style on. It
-# is kept for fidelity; `category` is the field a map should colour by.
 CATEGORIES = ("ENTITY", "PERSONAL", "INVENTED", "NONE", "NOT_ASKED")
 
 # A second way to colour the map, owing nothing to the model being right: when
@@ -125,9 +125,6 @@ def features(answers):
             # rather than lit up together.
             props["core"] = place.core
             props["places_with_core"] = per_core[place.core]
-            # A letter answer resolved to a QID; the three others did not, and
-            # the map needs to say which without the reader knowing the codes.
-            props["has_entity"] = bool((row or {}).get("qid"))
             rec = ctx.get(place.id, {})
             # Three views of one answer, because they answer different
             # questions. `subdivision` is the earliest phase clipping this
@@ -147,20 +144,14 @@ def features(answers):
             props["subdivision"] = rec.get("naming_phase") or ""
             props["subdivision_merged"] = rec.get("naming_plat") or ""
             props["subdivision_recorded"] = rec.get("naming_phase_recorded") or ""
-            # Every subdivision the place falls inside, most metres first. A
-            # street can run through several; only one of them named it.
-            seen, falls = set(), []
-            for pl in sorted(rec.get("plats", ()), key=lambda q: -q["inside_m"]):
-                if pl["name"] and pl["name"] not in seen:
-                    seen.add(pl["name"])
-                    falls.append(pl["name"])
-            props["subdivisions"] = falls
             raw = str(rec.get("naming_recorded") or "")[:4]
             props["plat_year"] = int(raw) if raw.isdigit() else ""
             props["plat_era"] = era_of(props["plat_year"]) if raw.isdigit() else ""
+            # A letter answer resolved to a QID; the three others did not.
+            choice = (row or {}).get("choice", "")
             props["category"] = ("NOT_ASKED" if row is None
-                                 else "ENTITY" if props["has_entity"]
-                                 else props["choice"])
+                                 else "ENTITY" if (row or {}).get("qid")
+                                 else choice)
             feats.append({"type": "Feature",
                           "properties": props,
                           "geometry": {"type": "MultiLineString",
@@ -187,7 +178,17 @@ def main():
     feats, no_geom = features(answers)
     out = pathlib.Path(a.out or config.ARTIFACTS_DIR / "streets.geojson")
     out.parent.mkdir(parents=True, exist_ok=True)
-    config.write_json(out, {"type": "FeatureCollection", "features": feats})
+    # Counts the legend would otherwise get by walking all 8,676 features
+    # before the map can paint. They are a property of this file, so they are
+    # written with it.
+    counts = {"category": {}, "plat_era": {}}
+    for f in feats:
+        pr = f["properties"]
+        for field in counts:
+            v = pr[field] or ""
+            counts[field][v] = counts[field].get(v, 0) + 1
+    config.write_json(out, {"type": "FeatureCollection", "counts": counts,
+                            "features": feats}, compact=True)
 
     mix = {}
     for f in feats:
@@ -210,9 +211,7 @@ def main():
         eras[e] = eras.get(e, 0) + 1
     print(f"plat era         : {sorted(eras.items())}")
     named = sum(1 for f in feats if f["properties"]["subdivision"])
-    multi = sum(1 for f in feats if len(f["properties"]["subdivisions"]) > 1)
     print(f"subdivision      : {named:,} named, {len(feats)-named:,} none")
-    print(f"falls inside >1  : {multi:,}")
     print(f"size             : {out.stat().st_size / 1e6:.1f} MB")
     print(f"wrote {out}")
 

@@ -102,7 +102,14 @@ def to_wgs(geom):
 
 def rings(geom):
     def ring(coords):
-        return [[round(x, PRECISION), round(y, PRECISION)] for x, y in coords]
+        out = []
+        for x, y in coords:
+            pt = [round(x, PRECISION), round(y, PRECISION)]
+            # Rounding can land two source vertices on the same point. A repeat
+            # draws nothing, so dropping it is lossless.
+            if not out or pt != out[-1]:
+                out.append(pt)
+        return out
     polys = shapely.get_parts(geom)
     return [[ring(p.exterior.coords)] + [ring(i.coords) for i in p.interiors]
             for p in polys if not p.is_empty]
@@ -185,6 +192,14 @@ def main():
     print(f"plats drawn: {drawn:,} of {len(idx.plats):,} "
           f"({len(idx.plats) - drawn} vacated or rescinded, kept for naming)")
 
+    # Street place ids, in the order a reader should see them. The page used
+    # to receive display names and look each one back up, which cannot be done
+    # exactly: 18 names are shared by 38 places, so the lookup guessed. An id
+    # is the join key `streets.geojson` already uses.
+    def street_ids(pids):
+        return [p for p in sorted(pids, key=lambda q: (ctx[q]["core"], ctx[q]["name"]))
+                if p in ctx]
+
     merged, phases = [], []
     for fam, plats in fams.items():
         label = idx.family_label[fam]
@@ -200,9 +215,9 @@ def main():
             "subdivision": label,
             "phases": phase_labels,
             "phase_count": len(groups),
-            "named": sorted(ctx[p]["name"] for p in ns),
-            "named_count": len(ns),
-            "through": sorted(ctx[p]["name"] for p in through_family.get(label, ())),
+            "named": street_ids(ns),
+            "through": street_ids(through_family.get(label, ())),
+            "has_streets": bool(ns or through_family.get(label)),
             "theme": one_theme([theme_of.get(p, "") for p in ns]),
             "recorded_from": years[0] if years else "",
             "recorded_to": years[-1] if years else "",
@@ -221,10 +236,9 @@ def main():
                 "phase_full": full,
                 "recorded": pyears[0] if pyears else "",
                 "plats": sorted(q.name for q in ps),
-                "named": sorted(ctx[p]["name"] for p in pn),
-                "named_count": len(pn),
-                "through": sorted(ctx[p]["name"] for p in crossing - set(pn)
-                                  if p in ctx),
+                "named": street_ids(pn),
+                "through": street_ids(crossing - set(pn)),
+                "has_streets": bool(pn or (crossing - set(pn))),
                 "theme": one_theme([theme_of.get(p, "") for p in pn]),
             }))
 
@@ -233,7 +247,8 @@ def main():
     for name, feats in (("subdivisions", merged), ("subdivision_phases", phases)):
         feats = [f for f in feats if f]
         path = out / f"{name}.geojson"
-        config.write_json(path, {"type": "FeatureCollection", "features": feats})
+        config.write_json(path, {"type": "FeatureCollection", "features": feats},
+                          compact=True)
         themed = sum(1 for f in feats if f["properties"]["theme"])
         print(f"{name:20} {len(feats):6,} polygons  {themed:5,} with a theme  "
               f"{path.stat().st_size / 1e6:5.1f} MB")

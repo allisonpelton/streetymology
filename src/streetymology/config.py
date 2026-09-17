@@ -63,10 +63,16 @@ def atomic_write(path, mode="w", **kw):
         raise
 
 
-def write_json(path, obj, indent=None):
-    """`obj` as JSON, atomically. The common case of `atomic_write`."""
+def write_json(path, obj, indent=None, compact=False):
+    """`obj` as JSON, atomically. The common case of `atomic_write`.
+
+    `compact` drops the space after every comma and colon. On a file the size
+    of the street export that is worth about 8% before compression, and no
+    reader cares.
+    """
+    seps = (",", ":") if compact else None
     with atomic_write(path) as fh:
-        json.dump(obj, fh, indent=indent)
+        json.dump(obj, fh, indent=indent, separators=seps)
     return pathlib.Path(path)
 
 
