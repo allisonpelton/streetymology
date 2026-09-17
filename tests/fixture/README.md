@@ -12,12 +12,9 @@ The phase merge is a rule rather than a listed case. `platnames.base_name`
 strips the phase marker and `plats.PlatIndex` re-splits a base name by
 distance.
 
-`data/subdivisions.json` is still read during the run, and is anchored to the
-repo root rather than to `STREETYMOLOGY_DATA_DIR`, so the fixture cannot
-override it. It names none of these plats, but `LUGARNO TERRA NORTH` folds into
-`LUGARNO TERRA` through the `directional` rule, so setting `directional.enabled`
-to false would fail this test for a reason that has nothing to do with the
-fixture.
+`LUGARNO TERRA NORTH` merges into `LUGARNO TERRA` through the directional rule
+in `plats._apply_merges`, not through anything in `judgement`. Removing that
+rule fails this test for a reason unrelated to the fixture.
 
 `derived/candidates.json` is a **frozen snapshot** of what Wikidata search
 returned, after `filter_candidates` ran over it. Neither stage is in the tested

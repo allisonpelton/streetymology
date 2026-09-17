@@ -9,19 +9,14 @@ Names arrive in assessor shorthand: upper case, with `SUB`, `ADD`, `AMD` and a
   - `display_name` gives the filing, phase and all, so the map can say when a
     particular street was named.
 
-Where no regex decides, `data/subdivisions.json` holds the judgement and this
-module reads it: which names are possessive, which were standardised to one
-numbered sequence, which carry a marketing subtitle, and which name no
-development at all. This module does string work only. It holds no geometry,
+Where no regex decides, `judgement` holds the answer: which names are
+possessive, which were standardised to one numbered sequence, which have a
+marketing subtitle, and which name no development at all. This module does string work only. It holds no geometry,
 and `plats` imports it rather than the reverse.
 """
-import functools
-import json
 import re
 
-from streetymology import platparse
-
-from .config import SUBDIVISIONS
+from streetymology import judgement, platparse
 
 # "COUNTRY CLUB THE" is the assessor's filing order for "The Country Club".
 _TRAILING_THE = re.compile(r"^(.*?),?\s+THE$", re.I)
@@ -118,27 +113,9 @@ def designation(name):
     return list(platparse.parse(name).levels)
 
 
-@functools.cache
-def judgement():
-    """`data/subdivisions.json`: the hand judgement, read once per process.
-
-    Absent is a valid state. A forker has no such file, and every section below
-    degrades to "no judgement recorded" rather than failing.
-    """
-    return json.loads(SUBDIVISIONS.read_text()) if SUBDIVISIONS.exists() else {}
-
-
-@functools.cache
-def _judged(section):
-    """One section of the judgement file. `_`-prefixed keys hold its reasons."""
-    return {k: v for k, v in judgement().get(section, {}).items()
-            if not k.startswith("_")}
-
-
-@functools.cache
 def excluded():
     """Plat names that are not developments, upper-cased for matching."""
-    return {n.upper() for n in judgement().get("exclude", {}).get("names", ())}
+    return {n.upper() for n in judgement.EXCLUDE}
 
 
 
@@ -161,7 +138,7 @@ def display_name(name, scattered=False, designated=True):
     # ESTATES SUB NO 03 THE REDWOODS". It belongs to the phase rather than the
     # development, so it comes off the stem and goes back after the
     # designation. Only the judgement file records which trailing words are one.
-    subtitle = _judged("subtitle").get(base_name(name), "")
+    subtitle = judgement.SUBTITLE.get(base_name(name), "")
     if subtitle:
         p = platparse.parse(
             re.sub(r"\s+" + re.escape(subtitle.upper()) + r"\b", " ", name, flags=re.I))
@@ -177,8 +154,8 @@ def _render(p, subtitle, scattered, designated):
     called. `possessive` fixes an apostrophe the assessor left out.
     """
     stem = p.filed_stem
-    canon = _judged("number_style").get(stem)
-    poss = _judged("possessive").get(stem)
+    canon = judgement.NUMBER_STYLE.get(stem)
+    poss = judgement.POSSESSIVE.get(stem)
     tail = _titlecase("ADDITION" + (" TO " + p.city if p.city else "")) if p.addition else ""
 
     if canon and p.ordinal:

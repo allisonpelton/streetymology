@@ -257,10 +257,9 @@ class PlatIndex:
         Seaman's without anyone having to say so twice.
         """
         self.merged_label = {}
-        doc = judgement()
         present = {p.base for p in self.plats}
-        groups = [(e["label"], [b for b in e["bases"] if b in present])
-                  for e in doc.get("merge", ())]
+        groups = [(label, [b for b in bases if b in present])
+                  for label, bases in judgement.MERGES]
         # Ordinal filings are phases of one development: Dundee 1st, 2nd and
         # 3rd, Hidden Springs 1st through 9th. They merge at the family level
         # while the phase layer keeps the ordinal visible, which is what AP
@@ -275,15 +274,15 @@ class PlatIndex:
             if len(group) > 1:
                 groups.append((None, group))
 
-        d = doc.get("directional", {})
-        if d.get("enabled"):
-            skip = set(d.get("skip", ()))
-            for b in sorted(present):
-                for w in ("NORTH", "SOUTH", "EAST", "WEST"):
-                    if b.endswith(" " + w):
-                        stem = b[:-(len(w) + 1)]
-                        if stem in present and stem not in skip:
-                            groups.append((None, [stem, b]))
+        # A base that is another base plus a trailing direction is the same
+        # naming act, where the two are within the family distance.
+        skip = set(judgement.DIRECTIONAL_SKIP)
+        for b in sorted(present):
+            for w in ("NORTH", "SOUTH", "EAST", "WEST"):
+                if b.endswith(" " + w):
+                    stem = b[:-(len(w) + 1)]
+                    if stem in present and stem not in skip:
+                        groups.append((None, [stem, b]))
         if not groups:
             return
 

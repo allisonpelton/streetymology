@@ -9,7 +9,7 @@ Every case below is a real recorded name from `data/raw/assessor_subdivisions.
 json`, grouped by the quirk it exercises. The quirk is the test's name; the
 comment above each group is the rule, not a description of the data.
 
-`display_name` reads `data/subdivisions.json` for possessives, standardised
+`display_name` reads `judgement` for possessives, standardised
 numbering and subtitles, so the cases that depend on hand judgement are kept in
 their own class and say which entry they rest on. The rest are pure regex.
 """
@@ -177,7 +177,7 @@ class TestDisplayName:
 
 
 class TestHandJudgement:
-    """Cases that rest on an entry in `data/subdivisions.json`.
+    """Cases that rest on an entry in `judgement`.
 
     These fail if the entry is removed, which is the point: the entry is the
     only thing carrying the judgement, and a silent removal should not pass.

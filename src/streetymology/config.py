@@ -22,11 +22,9 @@ RAW_DIR = DATA_DIR / "raw"                  # downloaded sources
 DERIVED_DIR = DATA_DIR / "derived"          # computed intermediates
 ARTIFACTS_DIR = DATA_DIR / "artifacts"      # run output
 
-# Tracked, because it cannot be regenerated.
+# Tracked, because it cannot be regenerated. Anchored to ROOT, not DATA_DIR, so
+# no pipeline stage reaches it by writing into its own output directory.
 LABELS = ROOT / "data" / "labels.csv"
-# Anchored to ROOT, not DATA_DIR, so no pipeline stage can reach it by writing
-# into its own output directory.
-SUBDIVISIONS = ROOT / "data" / "subdivisions.json"
 
 USER_AGENT = os.environ.get("WIKIDATA_USER_AGENT", "streetymology/0.1")
 

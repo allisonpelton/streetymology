@@ -1,222 +1,223 @@
 {
-  "_about": "Subdivision merges judged by AP and applied by Claude from chat rulings. Hand judgement, not regenerable. No pipeline stage writes this file.",
-  "_rule": "Bases listed together are one naming act. The family distance split still applies afterwards, so a listed base sitting far from the rest stays separate on its own -- that is deliberate, and is how Seamans 02nd stays out of Seaman's.",
-  "_judged": "2026-09-12",
-  "directional": {
-    "_rule": "A base that is another base plus a trailing NORTH/SOUTH/EAST/WEST is the same naming act, when the two are within the family distance.",
-    "enabled": true,
-    "skip": [
-      "HARRIS RANCH",
-      "SHELBURNE"
-    ],
-    "_skip_why": "Both were judged apart on theme in phase_merges.json: Harris Ranch has 26 sawmill names against 6 birds, and merging through the Shelburne parent would make two unrelated developments peers. Pending AP's ruling on whether distance now overrides that."
-  },
-  "merge": [
-    {
-      "label": "Cloverdale Ridge Estates",
-      "bases": [
-        "CLOVERDALE RIDGE ESTATES",
-        "CLOVERDALE RIDGE ESTATES BLOCK 1",
-        "CLOVERDALE RIDGE ESTATES BLOCK 2",
-        "CLOVERDALE RIDGE ESTATES BLOCK 3 AND 4"
-      ],
-      "why": "one development whose blocks were recorded separately"
-    },
-    {
-      "label": "Heather Haven Estates",
-      "bases": [
-        "HEATHER HAVEN ESTATES BLOCK 3",
-        "HEATHER HAVEN ESTATES BLOCKS 1 AND 2"
-      ],
-      "why": "same pattern as Cloverdale Ridge; no bare parent plat exists"
-    },
-    {
-      "label": "The Colony",
-      "bases": [
-        "THE COLONY",
-        "COLONY II"
-      ],
-      "why": "II is a phase, recorded seven months after the parent"
-    },
-    {
-      "label": "F. B. Smith Estate",
-      "bases": [
-        "F B SMITH SENIOR ESTATE",
-        "SMITH ESTATE 02ND",
-        "SMITH ESTATE 03RD",
-        "SMITH ESTATE 04TH",
-        "SMITH ESTATE 05TH"
-      ],
-      "why": "F B Smith Senior Estate (1923) is effectively the first; the estate then filed 2nd through 5th"
-    },
-    {
-      "label": "Scott's Subdivision",
-      "bases": [
-        "SCOTTS 01ST",
-        "SCOTTS 02ND",
-        "SCOTTS 03RD",
-        "SCOTTS 04TH",
-        "SCOTTS 05TH"
-      ],
-      "why": "one estate filing five times, 1895-1906. No standalone SCOTTS plat exists; the 1st survives only as a 1950 amendment"
-    },
-    {
-      "label": "Seaman's Subdivision",
-      "bases": [
-        "SEAMAN",
-        "SEAMANS 02ND",
-        "SEAMANS 03RD"
-      ],
-      "why": "same name singular and plural. The 02nd is 5.6 km away and the distance split keeps it separate, which is intended"
-    },
-    {
-      "label": "Randall",
-      "bases": [
-        "RANDALL",
-        "RANDALL 02ND",
-        "RANDALL 03RD"
-      ],
-      "why": "the three 1948 filings are one act. RANDALL SUB of 1939 is 6.7 km away and stays apart. Randall Acres is NOT included -- it is a reused name over four families"
-    },
-    {
-      "label": "Capitol Sites",
-      "bases": [
-        "CAPITOL SITE",
-        "CAPITOL SITES"
-      ],
-      "why": "singular and plural of one name. AP chose the plural, which appears only in the amended plat"
-    },
-    {
-      "label": "Willson's Addition to Boise",
-      "bases": [
-        "WILLSON",
-        "WILLSONS"
-      ],
-      "why": "same name, possessive"
-    },
-    {
-      "label": "Leaders Riverwoods",
-      "bases": [
-        "LEADERS RIVER WOODS",
-        "LEADERS RIVERWOODS"
-      ],
-      "why": "a spacing change between 1992 and 1994. AP: the sign says Riverwoods, so the newer spelling won"
-    },
-    {
-      "label": "Kimberley One Townhouses",
-      "bases": [
-        "KIMBERLEY ONE TOWNHOUSES",
-        "KIMBERLEY ONE A TOWNHOUSES"
-      ],
-      "why": "One-A is a resubdivision of the common areas and parking, not a separate development"
-    },
-    {
-      "label": "Paramount",
-      "bases": [
-        "PARAMOUNT",
-        "PARAMOUNT CHURCH",
-        "PARAMOUNT DIRECTOR",
-        "PARAMOUNT POINT",
-        "PARAMOUNT SQUARE",
-        "PARAMOUNT VERANDA",
-        "PARAMOUNT VILLAGE CENTER"
-      ],
-      "why": "one development, all seven at 0 m. The streets carry an actor theme throughout"
-    },
-    {
-      "label": "De Meyer Estates",
-      "bases": [
-        "DE MEYER ESTATES",
-        "DE MEYER ESTATES THE REDWOODS"
-      ],
-      "why": "No 3 and No 4 were filed as 'De Meyer Estates Sub No 03 The Redwoods'. The subtitle sits after the phase number, so stripping the number left it glued to the stem and split the family in two"
-    },
-    {
-      "label": "Lakeharbor",
-      "bases": [
-        "LAKEHARBOR",
-        "LAKEHARBOR VILLAGE AT SILVER LAKE"
-      ],
-      "why": "same shape: 'Lakeharbor No 06 Village at Silver Lake' is phase 6 with a subtitle"
-    }
+ "_SUPERSEDED": "DELETABLE as of 2026-09-17. Every judgement here now lives as a constant in src/streetymology/judgement.py, with its reason beside it. No code reads this file: measure_streets and build_context reproduce the county byte for byte with it removed. Two merge entries were dropped as redundant, Scott's Subdivision and Randall, because the ordinal rule already groups and labels both identically. Kept only until AP has read judgement.py and agrees it is complete; git history holds this file either way.",
+ "_about": "Subdivision merges judged by AP and applied by Claude from chat rulings. Hand judgement, not regenerable. No pipeline stage writes this file.",
+ "_rule": "Bases listed together are one naming act. The family distance split still applies afterwards, so a listed base sitting far from the rest stays separate on its own -- that is deliberate, and is how Seamans 02nd stays out of Seaman's.",
+ "_judged": "2026-09-12",
+ "directional": {
+  "_rule": "A base that is another base plus a trailing NORTH/SOUTH/EAST/WEST is the same naming act, when the two are within the family distance.",
+  "enabled": true,
+  "skip": [
+   "HARRIS RANCH",
+   "SHELBURNE"
   ],
-  "possessive": {
-    "_about": "Ordinal filings are overwhelmingly families platting their own land -- 62% of pre-1950 ordinals carry a possessive surname against 5% of NO/UNIT filings. The assessor is inconsistent about the apostrophe and sometimes drops the S entirely (BLASERS 01ST then BLASER 02ND, eleven months apart), so this is judgement, not a rule. A name mapped to null takes the comma form instead: 'South Boise, 2nd Addition'.",
-    "_judged_by": "Claude, 2026-09-12, for AP to correct",
-    "AFTONS": "Afton's",
-    "AIKENS": "Aiken's",
-    "ASSELINS": "Asselin's",
-    "BALDERSTONS": "Balderston's",
-    "BLASER": null,
-    "BLASERS": null,
-    "BOWNS": "Bown's",
-    "CARPENTERS": "Carpenter's",
-    "F A NOURSES": "F. A. Nourse's",
-    "GINZELS": "Ginzel's",
-    "HOWARDS": "Howard's",
-    "J M ANDERSONS": "J. M. Anderson's",
-    "JOHN KRALLS": "John Krall's",
-    "JOHN MCMILLANS": "John McMillan's",
-    "JOHNSTONS": "Johnston's",
-    "LAMPERTS": "Lampert's",
-    "LEONARDS": "Leonard's",
-    "MCCARTYS": "McCarty's",
-    "MCINTYRES": "McIntyre's",
-    "MORTONS": "Morton's",
-    "NIDAYS": "Niday's",
-    "ROSEDALE GALLAHERS": "Rosedale Gallaher's",
-    "SAXTONS": "Saxton's",
-    "SCOTTS": "Scott's",
-    "SEAMANS": "Seaman's",
-    "SETYS": "Sety's",
-    "SEWELLS": "Sewell's",
-    "STEINS": "Stein's",
-    "STONES": "Stone's",
-    "THOMPSONS": "Thompson's",
-    "VAILS": "Vail's",
-    "VAUGHANS": "Vaughan's",
-    "WAYLANDS": "Wayland's",
-    "_uncertain": "resolved by AP 2026-09-12: Humphreys and Bell are not possessive; Bower's, Sety's, Georgianna Milk's and Mrs. A. M. Wilson's are.",
-    "BOWERS": "Bower's",
-    "HUMPHREYS": null,
-    "GEORGIANNA MILKS": "Georgianna Milk's",
-    "BELL": null,
-    "_not_people": "place or compound names, and personal names with no trailing S -- these take the comma form",
-    "BROSE": null,
-    "DUNDEE": null,
-    "ELMER DAVIS": null,
-    "EMILIE GANZ": null,
-    "FAIRMONT": null,
-    "HIDDEN SPRINGS": null,
-    "HILLSIDE": null,
-    "KEPNER PLACE": null,
-    "LONDONER": null,
-    "MARKO": null,
-    "MIKE MILLER": null,
-    "MRS A M WILSON": "Mrs. A. M. Wilson's",
-    "ORA DELL": null,
-    "RANDALL": null,
-    "SMITH ESTATE": null,
-    "SOUTH BOISE": null,
-    "STRAWBERRY GLENN": null,
-    "THOMAS DAVIS": null,
-    "WILLSON": "Willson's",
-    "WILLSONS": "Willson's"
+  "_skip_why": "Both were judged apart on theme in phase_merges.json: Harris Ranch has 26 sawmill names against 6 birds, and merging through the Shelburne parent would make two unrelated developments peers. Pending AP's ruling on whether distance now overrides that."
+ },
+ "merge": [
+  {
+   "label": "Cloverdale Ridge Estates",
+   "bases": [
+    "CLOVERDALE RIDGE ESTATES",
+    "CLOVERDALE RIDGE ESTATES BLOCK 1",
+    "CLOVERDALE RIDGE ESTATES BLOCK 2",
+    "CLOVERDALE RIDGE ESTATES BLOCK 3 AND 4"
+   ],
+   "why": "one development whose blocks were recorded separately"
   },
-  "number_style": {
-    "_about": "Names whose filings read as one numbered sequence regardless of how the assessor wrote each. The value is the canonical head. Blaser ran 1st, 2nd, then NO 03-09 across four locations, dropping the possessive partway; AP: standardise to Blaser #1, #2 and so forth. This is labelling only -- the geographic split into four subdivisions stands.",
-    "BLASER": "Blaser",
-    "BLASERS": "Blaser"
+  {
+   "label": "Heather Haven Estates",
+   "bases": [
+    "HEATHER HAVEN ESTATES BLOCK 3",
+    "HEATHER HAVEN ESTATES BLOCKS 1 AND 2"
+   ],
+   "why": "same pattern as Cloverdale Ridge; no bare parent plat exists"
   },
-  "exclude": {
-    "_about": "Plats that are not a development of their own. AP 2026-09-12: HYDE PARK ADD LIGHTS ADD modifies part of the two additions it names rather than adding anything, and is being removed from OpenStreetMap for the same reason.",
-    "names": [
-      "HYDE PARK ADD LIGHTS ADD"
-    ]
+  {
+   "label": "The Colony",
+   "bases": [
+    "THE COLONY",
+    "COLONY II"
+   ],
+   "why": "II is a phase, recorded seven months after the parent"
   },
-  "subtitle": {
-    "_about": "A marketing subtitle filed after the phase number, lifted out so it sits after the designation instead of inside the development's name. Keyed by base. A regex cannot find these: 'DE MEYER ESTATES SUB NO 03 THE REDWOODS' is a subtitle while 'WOODS NO 02 AT RIVERSIDE THE SUB' is a name the designation interrupts, and they are the same shape.",
-    "DE MEYER ESTATES THE REDWOODS": "The Redwoods",
-    "LAKEHARBOR VILLAGE AT SILVER LAKE": "Village at Silver Lake"
+  {
+   "label": "F. B. Smith Estate",
+   "bases": [
+    "F B SMITH SENIOR ESTATE",
+    "SMITH ESTATE 02ND",
+    "SMITH ESTATE 03RD",
+    "SMITH ESTATE 04TH",
+    "SMITH ESTATE 05TH"
+   ],
+   "why": "F B Smith Senior Estate (1923) is effectively the first; the estate then filed 2nd through 5th"
+  },
+  {
+   "label": "Scott's Subdivision",
+   "bases": [
+    "SCOTTS 01ST",
+    "SCOTTS 02ND",
+    "SCOTTS 03RD",
+    "SCOTTS 04TH",
+    "SCOTTS 05TH"
+   ],
+   "why": "one estate filing five times, 1895-1906. No standalone SCOTTS plat exists; the 1st survives only as a 1950 amendment"
+  },
+  {
+   "label": "Seaman's Subdivision",
+   "bases": [
+    "SEAMAN",
+    "SEAMANS 02ND",
+    "SEAMANS 03RD"
+   ],
+   "why": "same name singular and plural. The 02nd is 5.6 km away and the distance split keeps it separate, which is intended"
+  },
+  {
+   "label": "Randall",
+   "bases": [
+    "RANDALL",
+    "RANDALL 02ND",
+    "RANDALL 03RD"
+   ],
+   "why": "the three 1948 filings are one act. RANDALL SUB of 1939 is 6.7 km away and stays apart. Randall Acres is NOT included -- it is a reused name over four families"
+  },
+  {
+   "label": "Capitol Sites",
+   "bases": [
+    "CAPITOL SITE",
+    "CAPITOL SITES"
+   ],
+   "why": "singular and plural of one name. AP chose the plural, which appears only in the amended plat"
+  },
+  {
+   "label": "Willson's Addition to Boise",
+   "bases": [
+    "WILLSON",
+    "WILLSONS"
+   ],
+   "why": "same name, possessive"
+  },
+  {
+   "label": "Leaders Riverwoods",
+   "bases": [
+    "LEADERS RIVER WOODS",
+    "LEADERS RIVERWOODS"
+   ],
+   "why": "a spacing change between 1992 and 1994. AP: the sign says Riverwoods, so the newer spelling won"
+  },
+  {
+   "label": "Kimberley One Townhouses",
+   "bases": [
+    "KIMBERLEY ONE TOWNHOUSES",
+    "KIMBERLEY ONE A TOWNHOUSES"
+   ],
+   "why": "One-A is a resubdivision of the common areas and parking, not a separate development"
+  },
+  {
+   "label": "Paramount",
+   "bases": [
+    "PARAMOUNT",
+    "PARAMOUNT CHURCH",
+    "PARAMOUNT DIRECTOR",
+    "PARAMOUNT POINT",
+    "PARAMOUNT SQUARE",
+    "PARAMOUNT VERANDA",
+    "PARAMOUNT VILLAGE CENTER"
+   ],
+   "why": "one development, all seven at 0 m. The streets carry an actor theme throughout"
+  },
+  {
+   "label": "De Meyer Estates",
+   "bases": [
+    "DE MEYER ESTATES",
+    "DE MEYER ESTATES THE REDWOODS"
+   ],
+   "why": "No 3 and No 4 were filed as 'De Meyer Estates Sub No 03 The Redwoods'. The subtitle sits after the phase number, so stripping the number left it glued to the stem and split the family in two"
+  },
+  {
+   "label": "Lakeharbor",
+   "bases": [
+    "LAKEHARBOR",
+    "LAKEHARBOR VILLAGE AT SILVER LAKE"
+   ],
+   "why": "same shape: 'Lakeharbor No 06 Village at Silver Lake' is phase 6 with a subtitle"
   }
+ ],
+ "possessive": {
+  "_about": "Ordinal filings are overwhelmingly families platting their own land -- 62% of pre-1950 ordinals carry a possessive surname against 5% of NO/UNIT filings. The assessor is inconsistent about the apostrophe and sometimes drops the S entirely (BLASERS 01ST then BLASER 02ND, eleven months apart), so this is judgement, not a rule. A name mapped to null takes the comma form instead: 'South Boise, 2nd Addition'.",
+  "_judged_by": "Claude, 2026-09-12, for AP to correct",
+  "AFTONS": "Afton's",
+  "AIKENS": "Aiken's",
+  "ASSELINS": "Asselin's",
+  "BALDERSTONS": "Balderston's",
+  "BLASER": null,
+  "BLASERS": null,
+  "BOWNS": "Bown's",
+  "CARPENTERS": "Carpenter's",
+  "F A NOURSES": "F. A. Nourse's",
+  "GINZELS": "Ginzel's",
+  "HOWARDS": "Howard's",
+  "J M ANDERSONS": "J. M. Anderson's",
+  "JOHN KRALLS": "John Krall's",
+  "JOHN MCMILLANS": "John McMillan's",
+  "JOHNSTONS": "Johnston's",
+  "LAMPERTS": "Lampert's",
+  "LEONARDS": "Leonard's",
+  "MCCARTYS": "McCarty's",
+  "MCINTYRES": "McIntyre's",
+  "MORTONS": "Morton's",
+  "NIDAYS": "Niday's",
+  "ROSEDALE GALLAHERS": "Rosedale Gallaher's",
+  "SAXTONS": "Saxton's",
+  "SCOTTS": "Scott's",
+  "SEAMANS": "Seaman's",
+  "SETYS": "Sety's",
+  "SEWELLS": "Sewell's",
+  "STEINS": "Stein's",
+  "STONES": "Stone's",
+  "THOMPSONS": "Thompson's",
+  "VAILS": "Vail's",
+  "VAUGHANS": "Vaughan's",
+  "WAYLANDS": "Wayland's",
+  "_uncertain": "resolved by AP 2026-09-12: Humphreys and Bell are not possessive; Bower's, Sety's, Georgianna Milk's and Mrs. A. M. Wilson's are.",
+  "BOWERS": "Bower's",
+  "HUMPHREYS": null,
+  "GEORGIANNA MILKS": "Georgianna Milk's",
+  "BELL": null,
+  "_not_people": "place or compound names, and personal names with no trailing S -- these take the comma form",
+  "BROSE": null,
+  "DUNDEE": null,
+  "ELMER DAVIS": null,
+  "EMILIE GANZ": null,
+  "FAIRMONT": null,
+  "HIDDEN SPRINGS": null,
+  "HILLSIDE": null,
+  "KEPNER PLACE": null,
+  "LONDONER": null,
+  "MARKO": null,
+  "MIKE MILLER": null,
+  "MRS A M WILSON": "Mrs. A. M. Wilson's",
+  "ORA DELL": null,
+  "RANDALL": null,
+  "SMITH ESTATE": null,
+  "SOUTH BOISE": null,
+  "STRAWBERRY GLENN": null,
+  "THOMAS DAVIS": null,
+  "WILLSON": "Willson's",
+  "WILLSONS": "Willson's"
+ },
+ "number_style": {
+  "_about": "Names whose filings read as one numbered sequence regardless of how the assessor wrote each. The value is the canonical head. Blaser ran 1st, 2nd, then NO 03-09 across four locations, dropping the possessive partway; AP: standardise to Blaser #1, #2 and so forth. This is labelling only -- the geographic split into four subdivisions stands.",
+  "BLASER": "Blaser",
+  "BLASERS": "Blaser"
+ },
+ "exclude": {
+  "_about": "Plats that are not a development of their own. AP 2026-09-12: HYDE PARK ADD LIGHTS ADD modifies part of the two additions it names rather than adding anything, and is being removed from OpenStreetMap for the same reason.",
+  "names": [
+   "HYDE PARK ADD LIGHTS ADD"
+  ]
+ },
+ "subtitle": {
+  "_about": "A marketing subtitle filed after the phase number, lifted out so it sits after the designation instead of inside the development's name. Keyed by base. A regex cannot find these: 'DE MEYER ESTATES SUB NO 03 THE REDWOODS' is a subtitle while 'WOODS NO 02 AT RIVERSIDE THE SUB' is a name the designation interrupts, and they are the same shape.",
+  "DE MEYER ESTATES THE REDWOODS": "The Redwoods",
+  "LAKEHARBOR VILLAGE AT SILVER LAKE": "Village at Silver Lake"
+ }
 }

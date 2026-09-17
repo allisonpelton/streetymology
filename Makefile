@@ -27,8 +27,7 @@ DERIVED := data/derived
 ## --- free: recomputed from what is already on disk ---------------------------
 
 $(DERIVED)/street_measures.json: $(RAW)/osm_ways_geom.json \
-                                 $(RAW)/assessor_subdivisions.json \
-                                 data/subdivisions.json
+                                 $(RAW)/assessor_subdivisions.json
 	$(RUN).measure_streets
 
 $(DERIVED)/place_context.json: $(DERIVED)/street_measures.json \
