@@ -96,8 +96,9 @@ def base_name(name: str) -> str:
 # is followed by a plat-type word: "LUCY IN THE SKY" and "LEXINGTON ON THE RIM"
 # mean what they say.
 _THE_PLAT_TYPE = re.compile(r"^(.*?)\s+THE\s+(?:UNIT|TRACTS?|CONDO)$", re.I)
-# The assessor zero-pads ordinals and _TRAIL leaves them, so .title() produced
-# "02Nd". Display-only: base_name still sees the original, so nothing regroups.
+# The assessor zero-pads ordinals and _TRAIL leaves them, so .title() gives
+# "02Nd" without this. Display-only: base_name still sees the original, so
+# nothing regroups.
 _ORDINAL = re.compile(r"\b0*(\d+)(st|nd|rd|th)\b", re.I)
 
 
@@ -345,7 +346,7 @@ def display_name(name, scattered=False, designated=True):
 # every length and distance below is metres straight from shapely rather than a
 # formula written here. Lengths in degrees are not comparable across directions:
 # a degree of longitude at this latitude is about 72% of a degree of latitude, so
-# an east-west street and a north-south one were being measured on different
+# an east-west street and a north-south one would be measured on different
 # scales.
 _TO_UTM = Transformer.from_crs("EPSG:4326", "EPSG:32611", always_xy=True)
 
@@ -443,8 +444,8 @@ def _stretches(lines):
 # Two plats of one name are one naming act only if they are in one place. Home
 # Acres is ten polygons scattered over 7 km and Randall Acres seventeen over 15,
 # one landowner's name reused across the city rather than one development. Left
-# ungrouped, every street in any Randall Acres parcel was a peer of every other,
-# 44 of them spanning 15 km.
+# ungrouped, every street in any Randall Acres parcel is a peer of every other,
+# across the full 15 km.
 FAMILY_M = 1000.0
 
 
@@ -644,9 +645,9 @@ class PlatIndex:
         """One name per family, settled once.
 
         It has to be a property of the family, not of whichever plat is in hand.
-        Deriving it per plat gave a street "Randall Acres #10" -- the earliest
-        filing touching that street -- while the polygon for the same family
-        said "#3", its earliest filing overall.
+        Deriving it per plat disagrees with itself: a street takes the earliest
+        filing that touches it, "Randall Acres #10", while the polygon for the
+        same family takes its earliest filing overall, "#3".
 
         A judged merge names itself. Otherwise the family's earliest unamended
         filing names it, phase designation dropped but type kept: Ellis Addition
@@ -880,10 +881,11 @@ class Place:
     def name(self):
         """Every post-type the place carries, in order of importance.
 
-        Was `ways[0]["name"]`, i.e. whichever way happened to sort first, which
-        showed the Ustick arterial as "North Ustick Court" after a short
-        offshoot. A place that is part Drive and part Court is both, so it says
-        both: "West Largo Drive/Court". Order is POST_RANK, never alphabetical.
+        A place that is part Drive and part Court is both, so it says both:
+        "West Largo Drive/Court". Order is POST_RANK, never alphabetical, and
+        never any single way's name -- taking one way's name lets a short
+        offshoot rename the whole street, which titles the Ustick arterial
+        "North Ustick Court".
 
         The directional is dropped when the place carries more than one, since
         "East Carol Street" is a claim about a street that also runs north.
@@ -963,10 +965,9 @@ def _merge_bands(groups, band_m=GRID_BAND_M):
 def _split_axes(places, core):
     """Separate a place that holds both north-south and east-west ways.
 
-    On a grid these are different streets that share a word. Joining them made
-    Broadway one place spanning East, South and West, and put Garden City's
-    West 41st Street with the numbered streets of the other grid. 109 of 8,567
-    places were affected.
+    On a grid these are different streets that share a word. Joined, Broadway
+    becomes one place spanning East, South and West, and Garden City's West 41st
+    Street lands with the numbered streets of the other grid.
 
     Ways with no directional belong to no axis, so they follow the longer half
     rather than forcing a third place.

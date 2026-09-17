@@ -31,9 +31,9 @@ from streetymology.prompt import (HEADER, candidate_lines, load_context,
                                   render)
 
 # AP's three runs over labelled streets were answered by Sonnet 5 in the desktop
-# app, not by the 4.5 this file used to name. The measured agreement and
-# confidence calibration describe this model and no other. /v1/models offers no
-# dated snapshot for it, so the moving alias is the only id available.
+# app. The measured agreement and confidence calibration describe this model and
+# no other, so changing it invalidates them. /v1/models offers no dated snapshot
+# for it, so the moving alias is the only id available.
 MODEL_DEFAULT = "claude-sonnet-5"
 
 # Verify against current pricing before trusting any estimate.
@@ -47,12 +47,11 @@ PRICES = {
 }
 
 
-# 40 is not a validated figure, whatever this comment used to claim. AP: Claude
-# picked it last session to fit a fresh chat window. She has run 240 items in one
-# desktop prompt with no degradation down the output, so the ceiling is higher
-# than this and unmeasured. Chunk size moves input cost by cents -- the header is
-# 6.1% of input here -- so the only real question is whether a request carries
-# fixed thinking overhead that fewer, larger requests would amortise.
+# 40 is not a validated figure. It was picked to fit a fresh chat window; AP has
+# run 240 items in one desktop prompt with no degradation down the output, so the
+# real ceiling is higher and unmeasured. Chunk size moves input cost by cents --
+# the header is 6.1% of input here -- so the only open question is whether a
+# request carries fixed thinking overhead that fewer, larger requests amortise.
 CHUNK_DEFAULT = 40
 
 # Measured on the 2026-09-10 trial: 44,501 prompt chars came back as 18,763
@@ -156,8 +155,8 @@ def estimate(requests, n_items, model, out_tokens_per_item=60, discount=0.5,
     generated or billed. Read `usd` as the most this can cost.
 
     PRICES is keyed by alias, so a dated model id is stripped back to one before
-    the lookup. An unpriced model used to return $0.00, which reads as free
-    rather than as unknown; `priced` says which it is.
+    the lookup. `priced` distinguishes an unpriced model from a free one, since
+    a bare $0.00 reads as free rather than as unknown.
     """
     inp = sum(len(r["params"]["messages"][0]["content"])
               for r in requests) / CHARS_PER_TOKEN

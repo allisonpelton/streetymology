@@ -25,10 +25,10 @@ SUFFIXES = {
     "hts","heights","est","estates","cres","crescent","spur","cutoff","connector",
 }
 
-# Post-types in order of how much street they usually describe. A place whose
-# ways carry several -- 2,076 of 8,567 do -- should be named for the biggest,
-# not for whichever way sorted first: Ustick is a multi-mile arterial and was
-# being displayed as "North Ustick Court" after a tiny offshoot.
+# Post-types in order of how much street they usually describe. Roughly a
+# quarter of places carry several, and such a place should be named for the
+# biggest, not for whichever way sorts first: Ustick is a multi-mile arterial
+# with a tiny Court offshoot.
 POST_RANK = ("highway", "hwy", "boulevard", "blvd", "parkway", "pkwy",
              "road", "rd", "avenue", "ave", "av", "street", "st",
              "way", "wy", "drive", "dr", "court", "ct", "place", "pl")
@@ -90,7 +90,7 @@ def axis(name: str) -> str:
     """Which grid axis a name's directional puts it on, if any.
 
     North and East halves of one core are different streets on a grid, and
-    grouping them produced places spanning both -- Broadway, and Garden City's
+    grouping them makes places that span both -- Broadway, and Garden City's
     numbered streets. Unprefixed names belong to no axis and may join either.
     """
     d = bare(parts(name)[0])

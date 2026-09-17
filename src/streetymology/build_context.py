@@ -248,11 +248,11 @@ def main():
         material = [p for p in pls if p["material"]]
         naming = named[pid]
 
-        # Only the naming plat's own membership. `shared` used to be the union
-        # over every plat touching this street, so North Wing Road -- which
-        # crosses four -- listed 35 streets from Trident Ridge, Karma Crest and
-        # Canvasback under a heading that says "in that subdivision", meaning
-        # Star Acres. The heading was a lie and the model had no way to know.
+        # The naming plat's own membership, never the union over every plat
+        # touching this street. North Wing Road crosses four, and the union
+        # lists 35 streets from Trident Ridge, Karma Crest and Canvasback under
+        # a heading that says "in that subdivision" and means Star Acres. The
+        # model cannot tell that the heading does not fit the list.
         shared = set(members[naming["base"]]) - {pid} if naming else set()
         peers = {q for q in shared
                  if named[q] and named[q]["base"] == naming["base"]} \
