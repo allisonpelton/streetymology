@@ -23,12 +23,15 @@ is a fact about the pipeline, not about the street. `status` says which.
 import argparse
 import csv
 import json
+import logging
 import pathlib
 
-from streetymology.config import data_path, ARTIFACTS_DIR
+from streetymology.config import data_path, log_to_stderr, ARTIFACTS_DIR
 from streetymology.measure_streets import load_places
 from streetymology.prompt import load_context
 from streetymology.geo import LINK_M, SPLIT_M
+
+log = logging.getLogger(__name__)
 
 WAYS = "osm_ways_geom.json"
 
@@ -194,8 +197,8 @@ def main():
         mix[k] = mix.get(k, 0) + 1
     unknown = {k for k in mix} - set(CATEGORIES)
     if unknown:
-        print(f"*** categories not in CATEGORIES: {unknown} — a map styling on "
-              f"them would drop these features to a fallback colour ***")
+        log.warning("categories not in CATEGORIES: %s — a map styling on them "
+                    "would drop these features to a fallback colour", unknown)
     asked = sum(1 for f in feats if f["properties"]["status"] == "answered")
     print(f"answers read     : {len(answers):,}")
     print(f"features written : {len(feats):,}  ({asked:,} answered, "
@@ -217,4 +220,5 @@ def main():
 
 
 if __name__ == "__main__":
+    log_to_stderr()
     main()

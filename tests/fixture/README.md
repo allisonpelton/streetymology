@@ -5,14 +5,23 @@ One geographic slice of Ada County: the bounding box of the `LUGARNO TERRA` and
 every recorded plat that intersects it. 49 ways, 17 plats, 34 core names.
 
 That area was chosen because it exercises the normal path in one readable piece:
-a clean single-plat street, a contested one, a street no plat named, the
-Lugarno Terra phase merge from `data/plat_judgement/phase_merges.json`, and tiers
-long enough to truncate.
+a clean single-plat street, a contested one, a street no plat named, the Lugarno
+Terra phase merge, and tiers long enough to truncate.
+
+The phase merge is now a rule rather than a listed case: `geo.base_name` strips
+the phase marker and `PlatIndex` re-splits a base name by distance.
+
+`data/subdivisions.json` is still read during the run, and is anchored to the
+repo root rather than to `STREETYMOLOGY_DATA_DIR`, so the fixture cannot
+override it. It names none of these plats, but `LUGARNO TERRA NORTH` folds into
+`LUGARNO TERRA` through the `directional` rule — so setting `directional.enabled`
+to false would fail this test for a reason that has nothing to do with the
+fixture.
 
 `derived/candidates.json` is a **frozen snapshot** of what Wikidata search
-search returned, after `filter_candidates` ran over it. Neither stage is in the
-tested chain, so live Wikidata edits cannot break the test. They also
-cannot be noticed by it; that is a data question, not a code question.
+returned, after `filter_candidates` ran over it. Neither stage is in the tested
+chain, so live Wikidata edits cannot break the test. They also cannot be noticed
+by it; that is a data question, not a code question.
 
 `expected/` holds the output the pipeline must reproduce byte for byte. See
-`tests/test_golden.py` for how to re-bless it.
+`tests/test_pipeline_output.py` for how to re-bless it.

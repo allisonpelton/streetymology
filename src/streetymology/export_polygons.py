@@ -28,7 +28,7 @@ from shapely.geometry import LineString
 from shapely.ops import transform as shapely_transform, unary_union
 from shapely.strtree import STRtree
 
-from streetymology.config import data_path, ARTIFACTS_DIR
+from streetymology.config import data_path, log_to_stderr, ARTIFACTS_DIR
 from streetymology.geo import PlatIndex, LINK_M, SPLIT_M
 from streetymology.measure_streets import load_places
 
@@ -235,4 +235,5 @@ def main():
 
 
 if __name__ == "__main__":
+    log_to_stderr()
     main()

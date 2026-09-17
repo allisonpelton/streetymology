@@ -27,7 +27,7 @@ from shapely.geometry import LineString, MultiPoint
 from shapely.strtree import STRtree
 
 from streetymology import geo
-from streetymology.config import data_path
+from streetymology.config import data_path, log_to_stderr
 from streetymology.geo import PlatIndex, pretty, to_utm
 
 _AMD = re.compile(r"\bAMD\b|\bAMENDED\b", re.I)
@@ -213,4 +213,5 @@ def report_dupes(built):
 
 
 if __name__ == "__main__":
+    log_to_stderr()
     main()

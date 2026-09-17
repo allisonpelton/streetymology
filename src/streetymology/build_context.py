@@ -26,7 +26,7 @@ import json
 import re
 import math
 
-from streetymology.config import data_path
+from streetymology.config import data_path, log_to_stderr
 from streetymology.normalize import key
 
 MEASURES = "street_measures.json"
@@ -341,4 +341,5 @@ def main():
 
 
 if __name__ == "__main__":
+    log_to_stderr()
     main()

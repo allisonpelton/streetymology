@@ -13,21 +13,24 @@ Names arrive in assessor shorthand: upper case, with `SUB`, `ADD`, `AMD` and a
 `NO n` phase marker. `base_name()` strips those to the naming act; `pretty()`
 produces something a prompt can show a model.
 """
+import collections
 import datetime
+import functools
 import json
+import logging
 import math
 import re
-import collections
-from collections import defaultdict
 
 from pyproj import Transformer
 from shapely.geometry import MultiPoint, MultiPolygon, Polygon
 from shapely.ops import linemerge, transform as shapely_transform, unary_union
-
-from streetymology import normalize
 from shapely.strtree import STRtree
 
+from streetymology import normalize
+
 from .config import data_path, SUBDIVISIONS
+
+log = logging.getLogger(__name__)
 
 FILE = "assessor_subdivisions.json"
 
@@ -132,21 +135,6 @@ _UNIT_N = re.compile(r"\bUNIT\b(\s+(\d+)\s*([A-Z])?(?![A-Z]))?", re.I)
 _AREA_X = re.compile(r"\bAREA\s+(\d+|[A-Z])(?![A-Z])", re.I)
 _BLOCK_N = re.compile(r"\bBLOCKS?\s+(\d+(?:\s+AND\s+\d+)?)", re.I)
 _ROMAN = re.compile(r"^(?:I{1,3}|IV|VI{0,3}|IX|XI{0,3})$")
-# A marketing subtitle filed after the phase number: "DE MEYER ESTATES SUB NO 03
-# THE REDWOODS". It belongs to the phase, not the development, so it is lifted
-# out and set after the designation rather than left glued to the stem.
-_SUBTITLES = None
-
-
-def _subtitles():
-    global _SUBTITLES
-    if _SUBTITLES is None:
-        _SUBTITLES = {}
-        if SUBDIVISIONS.exists():
-            doc = json.loads(SUBDIVISIONS.read_text())
-            _SUBTITLES = {k: v for k, v in doc.get("subtitle", {}).items()
-                          if not k.startswith("_")}
-    return _SUBTITLES
 # A base ending in an ordinal: "DUNDEE 03RD", "HIDDEN SPRINGS 06TH".
 _ORD_BASE = re.compile(r"^(.*\S)\s+0*\d+(?:ST|ND|RD|TH)$", re.I)
 
@@ -228,45 +216,29 @@ def designation(name):
     return out
 
 
-_POSSESSIVE = None
+@functools.cache
+def _judgement():
+    """`data/subdivisions.json`: the hand judgement, read once per process.
+
+    Absent is a valid state. A forker has no such file, and every section below
+    degrades to "no judgement recorded" rather than failing.
+    """
+    return json.loads(SUBDIVISIONS.read_text()) if SUBDIVISIONS.exists() else {}
 
 
-def _possessive_map():
-    global _POSSESSIVE
-    if _POSSESSIVE is None:
-        _POSSESSIVE = {}
-        if SUBDIVISIONS.exists():
-            doc = json.loads(SUBDIVISIONS.read_text())
-            _POSSESSIVE = {k: v for k, v in doc.get("possessive", {}).items()
-                           if not k.startswith("_")}
-    return _POSSESSIVE
+@functools.cache
+def _judged(section):
+    """One section of the judgement file. `_`-prefixed keys hold its reasons."""
+    return {k: v for k, v in _judgement().get(section, {}).items()
+            if not k.startswith("_")}
 
 
-_EXCLUDED = None
-
-
+@functools.cache
 def _excluded():
-    global _EXCLUDED
-    if _EXCLUDED is None:
-        _EXCLUDED = set()
-        if SUBDIVISIONS.exists():
-            doc = json.loads(SUBDIVISIONS.read_text())
-            _EXCLUDED = {n.upper() for n in doc.get("exclude", {}).get("names", ())}
-    return _EXCLUDED
+    """Plat names that are not developments, upper-cased for matching."""
+    return {n.upper() for n in _judgement().get("exclude", {}).get("names", ())}
 
 
-_NUMBER_STYLE = None
-
-
-def _number_style():
-    global _NUMBER_STYLE
-    if _NUMBER_STYLE is None:
-        _NUMBER_STYLE = {}
-        if SUBDIVISIONS.exists():
-            doc = json.loads(SUBDIVISIONS.read_text())
-            _NUMBER_STYLE = {k: v for k, v in doc.get("number_style", {}).items()
-                             if not k.startswith("_")}
-    return _NUMBER_STYLE
 
 
 # An ordinal sitting in the stem: "MCCARTYS 02ND ADDITION TO BOISE".
@@ -287,7 +259,10 @@ def display_name(name, scattered=False, designated=True):
     """
     s = " " + (name or "").upper().strip() + " "
     s = _AMD_ANY.sub(" ", s)
-    subtitle = _subtitles().get(base_name(name), "")
+    # A marketing subtitle is filed after the phase number: "DE MEYER ESTATES
+    # SUB NO 03 THE REDWOODS". It belongs to the phase, not the development, so
+    # it comes out here and goes back on after the designation.
+    subtitle = _judged("subtitle").get(base_name(name), "")
     if subtitle:
         s = re.sub(r"\s+" + re.escape(subtitle.upper()) + r"\b", " ", s, flags=re.I)
     levels = designation(name)
@@ -320,11 +295,11 @@ def display_name(name, scattered=False, designated=True):
         stem, sep, city = rest.partition(" ADDITION")
         stem = stem.strip()
         tail = _titlecase("ADDITION" + city) if sep else ""
-        poss = _possessive_map().get(stem)
+        poss = _judged("possessive").get(stem)
         head = poss or _titlecase(_dot_initials(stem))
         # A name AP has standardised to one numbered sequence reads its
         # ordinals as numbers: Blaser #1, #2, #3, however each was filed.
-        canon = _number_style().get(stem)
+        canon = _judged("number_style").get(stem)
         if canon:
             # A standardised sequence always shows its number: AP asked for
             # Blaser #1 through #9 whatever each filing was called.
@@ -341,11 +316,11 @@ def display_name(name, scattered=False, designated=True):
         if tail:
             out += " " + tail
     else:
-        canon = _number_style().get(s)
+        canon = _judged("number_style").get(s)
         stem_only, sep2, city2 = s.partition(" ADDITION")
-        out = (canon or _possessive_map().get(stem_only.strip())
+        out = (canon or _judged("possessive").get(stem_only.strip())
                or _titlecase(_dot_initials(s)))
-        if not canon and _possessive_map().get(stem_only.strip()) and sep2:
+        if not canon and _judged("possessive").get(stem_only.strip()) and sep2:
             out += " " + _titlecase("ADDITION" + city2)
         # A standardised name is a numbered sequence by definition, whatever
         # the contiguity test would have said.
@@ -415,9 +390,11 @@ class Plat:
         self.oid = attrs["OBJECTID"]
         self.name = (attrs.get("SubdivisionName") or "").strip()
         self.base = base_name(self.name)
+        # The assessor stores RecordedDate as epoch milliseconds UTC.
         ms = attrs.get("RecordedDate")
-        self.recorded = (datetime.datetime.utcfromtimestamp(ms / 1000).date()
-                         if ms is not None else None)
+        self.recorded = (
+            datetime.datetime.fromtimestamp(ms / 1000, datetime.timezone.utc).date()
+            if ms is not None else None)
         self.tax_year = attrs.get("InitialTaxYear")
         self.geom = geom
 
@@ -532,16 +509,16 @@ def _label_clusters(clusters, judged):
     if dupes:
         # Not a duplicate plat name -- those are not permitted -- so this is an
         # artifact: a stray polygon, or geometry that split a family wrongly.
-        print(f"*** cluster labels collide for {sorted(dupes)}: two filings of one "
-              f"name that the record does not distinguish. Check for a stray "
-              f"polygon rather than labelling around it ***")
+        log.warning("cluster labels collide for %s: two filings of one name that "
+                    "the record does not distinguish. Check for a stray polygon "
+                    "rather than labelling around it", sorted(dupes))
     return labels
 
 
 def _families(plats, gap=FAMILY_M):
     """Split each base name into geographically connected families."""
     out = {}
-    by_base = defaultdict(list)
+    by_base = collections.defaultdict(list)
     for p in plats:
         by_base[p.base].append(p)
     for base, group in by_base.items():
@@ -577,7 +554,7 @@ class PlatIndex:
         # one family is a phased development; one spread across families is a
         # name that was reused -- Randall Acres over four, Home Acres over three.
         self._apply_merges()
-        spread = defaultdict(set)
+        spread = collections.defaultdict(set)
         for p in self.plats:
             spread[p.base].add(p.family)
         self.scattered = {b for b, f in spread.items() if len(f) > 1}
@@ -604,7 +581,7 @@ class PlatIndex:
         # 3rd, Hidden Springs 1st through 9th. They merge at the family level
         # while the phase layer keeps the ordinal visible, which is what AP
         # wanted preserved. Distance still splits them afterwards.
-        ordinal_stem = defaultdict(set)
+        ordinal_stem = collections.defaultdict(set)
         for b in present:
             m = _ORD_BASE.match(b)
             if m:
@@ -643,7 +620,7 @@ class PlatIndex:
             if lab and bs:
                 label_of[find(bs[0])] = lab
 
-        members = defaultdict(list)
+        members = collections.defaultdict(list)
         for p in self.plats:
             if p.base in parent:
                 members[find(p.base)].append(p)
@@ -677,7 +654,7 @@ class PlatIndex:
         years and one town apart. A scattered name keeps its number, because the
         number is the only thing separating one from the next.
         """
-        members = defaultdict(list)
+        members = collections.defaultdict(list)
         for p in self.plats:
             members[p.family].append(p)
         self.family_label = {}
@@ -919,7 +896,7 @@ class Place:
         posts, seen = [], set()
         for w in sorted(self.ways, key=lambda w: -run[w["name"]]):
             post = normalize.parts(w["name"])[2]
-            bare = normalize._bare(post)
+            bare = normalize.bare(post)
             if post and bare not in seen:
                 seen.add(bare)
                 posts.append(post)

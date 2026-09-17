@@ -1,4 +1,5 @@
 """Central config, loaded from .env (never committed)."""
+import logging
 import os
 from pathlib import Path
 
@@ -25,6 +26,16 @@ LABELS = ROOT / "data" / "labels.csv"
 SUBDIVISIONS = ROOT / "data" / "subdivisions.json"
 
 USER_AGENT = os.environ.get("WIKIDATA_USER_AGENT", "streetymology/0.1")
+
+
+def log_to_stderr(level=logging.WARNING):
+    """Send library warnings to stderr. For entry points only.
+
+    A stage's own report goes to stdout with `print`, so that redirecting a run
+    to a file captures the numbers and leaves the warnings visible in the
+    terminal. Importing the package configures nothing.
+    """
+    logging.basicConfig(level=level, format="%(levelname)s %(name)s: %(message)s")
 
 
 def session(retries=4, backoff=1.0, timeout=120):

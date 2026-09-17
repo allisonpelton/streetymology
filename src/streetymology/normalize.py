@@ -37,7 +37,7 @@ _WS = re.compile(r"\s+")
 _TOK = re.compile(r"[^a-z0-9]")
 
 
-def _bare(tok: str) -> str:
+def bare(tok: str) -> str:
     """Lowercase a token and drop punctuation (assessor marks names with '*')."""
     return _TOK.sub("", tok.lower())
 
@@ -48,10 +48,10 @@ def normalize(name: str) -> str:
         return ""
     toks = _WS.sub(" ", name.strip()).split(" ")
     # strip leading directional, but never leave nothing behind
-    if len(toks) > 1 and _bare(toks[0]) in DIRECTIONALS:
+    if len(toks) > 1 and bare(toks[0]) in DIRECTIONALS:
         toks = toks[1:]
     # strip trailing post-type, but never leave nothing behind
-    if len(toks) > 1 and _bare(toks[-1]) in SUFFIXES:
+    if len(toks) > 1 and bare(toks[-1]) in SUFFIXES:
         toks = toks[:-1]
     return " ".join(toks)
 
@@ -66,23 +66,23 @@ def parts(name: str):
         return "", "", ""
     toks = _WS.sub(" ", name.strip()).split(" ")
     direction = ""
-    if len(toks) > 1 and _bare(toks[0]) in DIRECTIONALS:
+    if len(toks) > 1 and bare(toks[0]) in DIRECTIONALS:
         direction, toks = toks[0], toks[1:]
     post = ""
-    if len(toks) > 1 and _bare(toks[-1]) in SUFFIXES:
+    if len(toks) > 1 and bare(toks[-1]) in SUFFIXES:
         post, toks = toks[-1], toks[:-1]
     return direction, " ".join(toks), post
 
 
 def post_rank_token(post: str) -> int:
     """Rank a bare post-type token. Lower is more important."""
-    b = _bare(post)
+    b = bare(post)
     return POST_RANK.index(b) if b in POST_RANK else len(POST_RANK)
 
 
 def post_rank(name: str) -> int:
     """Lower is more important. Anything unlisted sorts last, in no order."""
-    post = _bare(parts(name)[2])
+    post = bare(parts(name)[2])
     return POST_RANK.index(post) if post in POST_RANK else len(POST_RANK)
 
 
@@ -93,7 +93,7 @@ def axis(name: str) -> str:
     grouping them produced places spanning both -- Broadway, and Garden City's
     numbered streets. Unprefixed names belong to no axis and may join either.
     """
-    d = _bare(parts(name)[0])
+    d = bare(parts(name)[0])
     if d in ("n", "north", "s", "south"):
         return "NS"
     if d in ("e", "east", "w", "west"):
