@@ -52,7 +52,7 @@ LATEST = RUNS_DIR / "latest.json"
 
 # Written before the POST and removed after the id is safely on disk. Its
 # presence means a submit did not confirm, so a batch may exist on the server
-# that nothing here knows about. `reconcile` is the only way out.
+# that no record here covers. `reconcile` is the only way out.
 PENDING = RUNS_DIR / "pending.json"
 
 # A file holding more requests than this will not be sent without raising it.
@@ -107,7 +107,7 @@ def _records():
 
 
 def _list_batches(s, limit=100):
-    """Every batch the account knows about, newest first."""
+    """Every batch on the account, newest first."""
     r = s.get(API, headers=_headers(), params={"limit": limit},
               timeout=s.request_timeout)
     if r.status_code >= 400:
@@ -353,7 +353,7 @@ def fetch(batch_id=None, force=False):
     r = s.get(url, headers=_headers(), timeout=s.request_timeout, stream=True)
     if r.status_code >= 400:
         raise Refused(f"fetch failed [{r.status_code}]: {r.text[:500]}")
-    # Atomic: `fetch` refuses to re-download when the file is already there,
+    # Atomic: `fetch` will not re-download when the file is already there,
     # so a download cut short would be parsed as the whole batch.
     with atomic_write(out, "wb") as fh:
         for block in r.iter_content(chunk_size=1 << 16):

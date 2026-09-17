@@ -25,7 +25,7 @@ LINK_M = 2000.0
 # This equals LINK_M by coincidence. LINK_M measures a gap between collinear
 # runs, which is a different quantity.
 SPLIT_M = 2000.0
-# Ada County is on a section grid, so an east-west street holds one latitude
+# Ada County is on a section grid, so an east-west street has one latitude
 # for its whole length. Two runs of one name in the same band are the same
 # street at any separation. Widening this does nothing. 94% of runs sit inside
 # 150 m and the rest wander past 400 m, so the ones it misses follow the Boise
@@ -185,7 +185,7 @@ class Place:
 
 
 def _band(pts):
-    """The grid band a run sits in, or None if it wanders out of one.
+    """The grid band a run falls in, or None if it spans more than one.
 
     Distance may only ever join two runs, never separate them, so this is a
     third way to be the same street and not a test anything can fail. A run that

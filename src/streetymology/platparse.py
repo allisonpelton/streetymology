@@ -150,7 +150,7 @@ def parse(name):
         ordinal = om.group(1) + om.group(2).upper()
         s = _WS.sub(" ", s[:om.start()] + " " + s[om.end():]).strip()
 
-    # base_name wants "THE COUNTRY CLUB"; the label wants the filing order,
+    # base_name needs "THE COUNTRY CLUB"; the label needs the filing order,
     # because _dot_initials letters "G I THE" before _titlecase moves the THE.
     filed = s
     the = _TRAILING_THE.match(s)

@@ -57,7 +57,7 @@ def parse_table(text):
 def _text(result):
     """The assistant text of one result line, or None if it did not succeed.
 
-    Thinking blocks are dropped: only the table is wanted, and the reasoning is
+    Thinking blocks are dropped. Only the table is used, and the reasoning is
     billed whether or not anything reads it.
     """
     if result.get("type") != "succeeded":
@@ -93,9 +93,10 @@ def parse(rec=None, results=None, index=None, out=None):
     if not results.exists():
         raise ValueError(f"no results at {results}. Fetch first.")
 
-    want = collections.defaultdict(list)     # custom_id -> rows of the index
+    # custom_id -> the index rows for the items in that request
+    index_rows = collections.defaultdict(list)
     for row in csv.DictReader(index.open()):
-        want[row["custom_id"]].append(row)
+        index_rows[row["custom_id"]].append(row)
 
     letters = _letter_qids()
     answers, missing, errored = [], [], []
@@ -117,14 +118,14 @@ def parse(rec=None, results=None, index=None, out=None):
         usage["output"] += u.get("output_tokens", 0)
         usage["thinking"] += u.get("output_tokens_details", {}).get("thinking_tokens", 0)
         # A request that hit max_tokens is a success by the API's reckoning: the
-        # limit was ours, so honouring it is correct behaviour. Only the caller
-        # knows a truncated table is worthless, so say so here.
+        # limit was ours, so obeying it is correct. A truncated table is
+        # still worthless to the caller, so report it here.
         if msg.get("stop_reason") == "max_tokens":
             truncated.append((cid, u.get("output_tokens", 0),
                               u.get("output_tokens_details", {}).get("thinking_tokens", 0)))
 
         table = parse_table(text)
-        for row in want.get(cid, []):
+        for row in index_rows.get(cid, []):
             n = int(row["n"])
             got = table.get(n)
             if got is None:
@@ -154,7 +155,7 @@ def parse(rec=None, results=None, index=None, out=None):
         for a in sorted(answers, key=lambda a: a["n"]):
             w.writerow(a)
 
-    asked = sum(len(v) for v in want.values())
+    asked = sum(len(v) for v in index_rows.values())
     mix = collections.Counter(a["choice"] if a["choice"] in NON_LETTER
                               else "letter" for a in answers)
     conf = collections.Counter(a["confidence"] for a in answers)

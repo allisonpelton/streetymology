@@ -160,7 +160,7 @@ def display_name(name, scattered=False, designated=True):
     # A marketing subtitle is filed after the phase number, as in "DE MEYER
     # ESTATES SUB NO 03 THE REDWOODS". It belongs to the phase rather than the
     # development, so it comes off the stem and goes back after the
-    # designation. Only the judgement file knows which trailing words are one.
+    # designation. Only the judgement file records which trailing words are one.
     subtitle = _judged("subtitle").get(base_name(name), "")
     if subtitle:
         p = platparse.parse(
@@ -188,8 +188,8 @@ def _render(p, subtitle, scattered, designated):
     head = canon or poss or _titlecase(_dot_initials(stem))
     if p.ordinal and designated:
         ordinal = p.ordinal.lstrip("0").lower()
-        # A comma only earns its place in front of "Addition". "Dundee, 3rd"
-        # on its own reads as a typo.
+        # A comma is only correct in front of "Addition". "Dundee, 3rd" on
+        # its own reads as a typo.
         out = f"{head}, {ordinal}" if (not poss and tail) else f"{head} {ordinal}"
     else:
         out = head

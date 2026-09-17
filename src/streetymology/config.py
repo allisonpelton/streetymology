@@ -14,7 +14,7 @@ from urllib3.util.retry import Retry
 ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / ".env")
 
-# Pipeline data sits in the repo beside the code that reads it, but is not
+# Pipeline data is in the repo beside the code that reads it, but is not
 # tracked: all of it re-downloads or recomputes. `streetymology-data` is for
 # notes about the project, which the pipeline never touches.
 DATA_DIR = Path(os.environ.get("STREETYMOLOGY_DATA_DIR", ROOT / "data"))
@@ -109,7 +109,7 @@ _HOMES = (("osm_", RAW_DIR), ("assessor_", RAW_DIR))
 
 
 def data_path(name):
-    """Downloads live in raw/, everything computed in derived/."""
+    """Downloaded files resolve to raw/, computed files to derived/."""
     name = str(name)
     for prefix, home in _HOMES:
         if name.startswith(prefix):

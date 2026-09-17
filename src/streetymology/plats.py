@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 
 FILE = "assessor_subdivisions.json"
 
-# Ada County sits in UTM zone 11N. Geometry is projected once, on the way in, so
+# Ada County is in UTM zone 11N. Geometry is projected once, on the way in, so
 # every length and distance below is metres straight from shapely rather than a
 # formula written here. Lengths in degrees are not comparable across directions:
 # a degree of longitude at this latitude is about 72% of a degree of latitude, so
@@ -179,7 +179,7 @@ def _cluster_suffix(plat):
 
 
 def _label_clusters(clusters, judged):
-    """Label every cluster of a merged group, and flag any that collide."""
+    """Label every cluster of a merged group. Warns if two labels collide."""
     if len(clusters) == 1:
         live = [q for q in clusters[0]
                 if not AMD_ANY.search(" " + q.name.upper() + " ")] or clusters[0]

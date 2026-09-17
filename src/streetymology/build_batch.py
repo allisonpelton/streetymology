@@ -48,7 +48,7 @@ PRICES = {
 # run 240 items in one desktop prompt with no degradation down the output, so the
 # real ceiling is higher and unmeasured. Chunk size moves input cost by cents --
 # the header is 6.1% of input here. The only open question is whether a
-# request carries fixed thinking overhead that fewer, larger requests amortise.
+# request has a fixed thinking overhead that fewer, larger requests amortise.
 CHUNK_DEFAULT = 40
 
 # Measured on the 2026-09-10 trial: 44,501 prompt chars came back as 18,763
@@ -56,7 +56,7 @@ CHUNK_DEFAULT = 40
 CHARS_PER_TOKEN = 2.37
 
 # Sonnet 5 thinks by default, and rejects the explicit `budget_tokens` form that
-# earlier models take: it wants adaptive thinking with an effort level. The API
+# earlier models take. It requires adaptive thinking with an effort level. The API
 # said so itself after the second trial errored --
 #   "thinking.type.enabled is not supported for this model. Use
 #    thinking.type.adaptive and output_config.effort"
@@ -69,7 +69,7 @@ EFFORT_DEFAULT = "high"
 # model spent all of it reasoning, and no table came back at all. A success by
 # the API's reckoning and worthless here. Unspent headroom is never generated and
 # never billed, and a batch request has no client-side timeout to hit, so there is
-# nothing to trade off: this sits well above any plausible need. The model's
+# nothing to trade off. This is well above any plausible need. The model's
 # ceiling is 128,000.
 MAX_TOKENS_DEFAULT = 64000
 

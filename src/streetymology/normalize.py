@@ -26,7 +26,7 @@ SUFFIXES = {
 }
 
 # Post-types in order of how much street they usually describe. Roughly a
-# quarter of places carry several, and such a place should be named for the
+# quarter of places have several, and such a place should be named for the
 # biggest, not for whichever way sorts first: Ustick is a multi-mile arterial
 # with a tiny Court offshoot.
 POST_RANK = ("highway", "hwy", "boulevard", "blvd", "parkway", "pkwy",
@@ -111,8 +111,8 @@ def key(name: str) -> str:
     """Comparison key for a STREET name: directional and post-type removed."""
     return _compare(normalize(name))
 
-# Loading OSM names lives here too: the only thing anyone does with the extract
-# is turn it into core keys, which is this module's job.
+# Loading OSM names belongs here too. The only use for the extract is turning
+# it into core keys, which is this module's job.
 EXCLUDED_HIGHWAYS = {"trunk"}
 
 
