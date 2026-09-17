@@ -35,7 +35,8 @@ import re
 import sys
 import time
 
-from streetymology.config import ANTHROPIC_API_KEY, ARTIFACTS_DIR, data_path
+from streetymology.config import (ANTHROPIC_API_KEY, ARTIFACTS_DIR, atomic_write,
+                                  data_path, session, write_json)
 from streetymology.build_batch import estimate, MODEL_DEFAULT, THINKING_PER_ITEM
 from streetymology.prompt import LETTERS
 
@@ -75,11 +76,6 @@ def _headers():
             "content-type": "application/json"}
 
 
-def _session():
-    from streetymology.config import session
-    return session()
-
-
 def _post_session():
     """A session that never repeats a POST.
 
@@ -88,9 +84,7 @@ def _post_session():
     creates a second batch and bills it. An ambiguous submit must fail and be
     reconciled by hand, not resolved by guessing.
     """
-    from streetymology.config import session
-    s = session(retries=0)
-    return s
+    return session(retries=0)
 
 
 def _digest(path):
@@ -126,8 +120,8 @@ def _record(batch_id=None):
 
 def _write_record(rec):
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
-    (RUNS_DIR / f"{rec['batch_id']}.json").write_text(json.dumps(rec, indent=2))
-    LATEST.write_text(json.dumps(rec, indent=2))
+    write_json(RUNS_DIR / f"{rec['batch_id']}.json", rec, indent=2)
+    write_json(LATEST, rec, indent=2)
 
 
 def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
@@ -192,10 +186,9 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
         return None
 
     s = _post_session()
-    RUNS_DIR.mkdir(parents=True, exist_ok=True)
-    PENDING.write_text(json.dumps(
-        {"digest": digest, "request_file": str(path), "requests": len(reqs),
-         "attempted": dt.datetime.now(dt.timezone.utc).isoformat()}, indent=2))
+    write_json(PENDING,
+               {"digest": digest, "request_file": str(path), "requests": len(reqs),
+                "attempted": dt.datetime.now(dt.timezone.utc).isoformat()}, indent=2)
 
     r = s.post(API, headers=_headers(), json={"requests": reqs},
                timeout=s.request_timeout)
@@ -232,7 +225,7 @@ def verify(model=MODEL_DEFAULT):
     The key is never printed, and a failure is diagnosed from the status code
     and the response body, which do not contain it.
     """
-    s = _session()
+    s = session()
     ok = True
 
     r = s.get(MODELS_API, headers=_headers(), params={"limit": 100},
@@ -293,7 +286,7 @@ def reconcile():
     The case this exists for: submit died between sending and writing the id,
     so money is being spent by a batch nothing local refers to.
     """
-    s = _session()
+    s = session()
     server = _list_batches(s)
     known = {r["batch_id"]: r for r in _records()}
 
@@ -322,7 +315,7 @@ def reconcile():
 
 def status(batch_id=None, watch=False, every=60):
     rec = _record(batch_id)
-    s = _session()
+    s = session()
     while True:
         r = s.get(f"{API}/{rec['batch_id']}", headers=_headers(),
                   timeout=s.request_timeout)
@@ -350,15 +343,16 @@ def fetch(batch_id=None, force=False):
     if b.get("processing_status") != "ended":
         sys.exit(f"batch is {b.get('processing_status')}, not ended. Nothing to fetch.")
 
-    s = _session()
+    s = session()
     url = b.get("results_url") or f"{API}/{rec['batch_id']}/results"
     r = s.get(url, headers=_headers(), timeout=s.request_timeout, stream=True)
     if r.status_code >= 400:
         sys.exit(f"fetch failed [{r.status_code}]: {r.text[:500]}")
-    with out.open("wb") as fh:
+    # Atomic: `fetch` refuses to re-download when the file is already there,
+    # so a download cut short would be parsed as the whole batch.
+    with atomic_write(out, "wb") as fh:
         for block in r.iter_content(chunk_size=1 << 16):
             fh.write(block)
-    out.chmod(0o664)
     print(f"wrote {out} ({out.stat().st_size:,} bytes)")
     return out
 
@@ -475,14 +469,13 @@ def parse(batch_id=None, results=None, index=None, out=None):
 
     out = pathlib.Path(out or ARTIFACTS_DIR /
                        f"{results.stem.replace('.results', '')}.answers.csv")
-    with out.open("w", newline="") as fh:
+    with atomic_write(out, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=["place", "street", "n", "custom_id",
                                            "choice", "qid", "label",
                                            "confidence", "theme", "reasoning"])
         w.writeheader()
         for a in sorted(answers, key=lambda a: a["n"]):
             w.writerow(a)
-    out.chmod(0o664)
 
     asked = sum(len(v) for v in want.values())
     mix = collections.Counter(a["choice"] if a["choice"] in NON_LETTER

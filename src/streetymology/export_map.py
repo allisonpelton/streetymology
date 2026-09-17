@@ -26,7 +26,8 @@ import json
 import logging
 import pathlib
 
-from streetymology.config import data_path, log_to_stderr, ARTIFACTS_DIR
+from streetymology.config import (data_path, log_to_stderr, write_json,
+                                  ARTIFACTS_DIR)
 from streetymology.measure_streets import load_places
 from streetymology.prompt import load_context
 from streetymology.geo import LINK_M, SPLIT_M
@@ -188,8 +189,7 @@ def main():
     feats, no_geom = features(answers)
     out = pathlib.Path(a.out or ARTIFACTS_DIR / "streets.geojson")
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps({"type": "FeatureCollection", "features": feats}))
-    out.chmod(0o664)
+    write_json(out, {"type": "FeatureCollection", "features": feats})
 
     mix = {}
     for f in feats:

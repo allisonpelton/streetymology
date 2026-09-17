@@ -28,7 +28,8 @@ from shapely.geometry import LineString
 from shapely.ops import transform as shapely_transform, unary_union
 from shapely.strtree import STRtree
 
-from streetymology.config import data_path, log_to_stderr, ARTIFACTS_DIR
+from streetymology.config import (data_path, log_to_stderr, write_json,
+                                  ARTIFACTS_DIR)
 from streetymology.geo import PlatIndex, LINK_M, SPLIT_M
 from streetymology.measure_streets import load_places
 
@@ -227,8 +228,7 @@ def main():
     for name, feats in (("subdivisions", merged), ("subdivision_phases", phases)):
         feats = [f for f in feats if f]
         path = out / f"{name}.geojson"
-        path.write_text(json.dumps({"type": "FeatureCollection", "features": feats}))
-        path.chmod(0o664)
+        write_json(path, {"type": "FeatureCollection", "features": feats})
         themed = sum(1 for f in feats if f["properties"]["theme"])
         print(f"{name:20} {len(feats):6,} polygons  {themed:5,} with a theme  "
               f"{path.stat().st_size / 1e6:5.1f} MB")

@@ -19,7 +19,7 @@ Usage:
 import argparse
 import json
 import time
-from streetymology.config import data_path, session
+from streetymology.config import data_path, session, write_json
 from streetymology.normalize import osm_cores
 
 API = "https://www.wikidata.org/w/api.php"
@@ -72,9 +72,9 @@ def main():
             el = time.time() - t0
             print(f"  {i}/{len(todo)}  {el:.0f}s elapsed, "
                   f"{el/i*(len(todo)-i)/60:.0f} min remaining", flush=True)
-            OUT.write_text(json.dumps(cache))
+            write_json(OUT, cache)
         time.sleep(PAUSE)
-    OUT.write_text(json.dumps(cache))
+    write_json(OUT, cache)
     hits = sum(1 for v in cache.values() if v)
     print(f"done in {time.time()-t0:.0f}s. {hits}/{len(cache)} names returned candidates")
     print(f"-> {OUT}")

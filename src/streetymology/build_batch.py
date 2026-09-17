@@ -42,8 +42,6 @@ PRICES = {
     # Sonnet 5 from the pricing page on 2026-09-10, base input and output only.
     # The cache columns do not apply: nothing here sets cache_control.
     "claude-sonnet-5": (2.0, 10.0),
-    # Kept only because a test asserts a dated id resolves to its alias.
-    "claude-sonnet-4-5": (3.0, 15.0),
 }
 
 

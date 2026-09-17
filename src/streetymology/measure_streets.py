@@ -27,7 +27,7 @@ from shapely.geometry import LineString, MultiPoint
 from shapely.strtree import STRtree
 
 from streetymology import geo
-from streetymology.config import data_path, log_to_stderr
+from streetymology.config import data_path, log_to_stderr, write_json
 from streetymology.geo import PlatIndex, to_utm
 from streetymology.platnames import pretty
 
@@ -174,8 +174,7 @@ def main():
         out[p.id]["near_unplatted"] = sorted(near - {p.id})
 
     path = data_path(OUT)
-    path.write_text(json.dumps(out))
-    path.chmod(0o664)
+    write_json(path, out)
 
     covered = sum(1 for v in out.values() if v["plats"])
     print(f"  places touching a plat  {covered} ({covered / len(out):.1%})")

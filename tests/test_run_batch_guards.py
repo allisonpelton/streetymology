@@ -16,8 +16,9 @@ reason the rest exist:
   and bill a second one.
 - `unpriced_model_is_not_free`: PRICES is keyed by alias, so a dated model id
   returned $0.00, which reads as free rather than as unknown.
-- `verify_refuses_an_unlisted_model`: `claude-sonnet-4-5` was not an id the API
-  lists. A wrong id fails every request in the batch.
+- `verify_refuses_an_unlisted_model`: a wrong id fails every request in the
+  batch. `claude-sonnet-4-5` is the case to test with because it is plausible
+  rather than nonsense -- a real model name the account cannot call.
 """
 import json
 import os
@@ -101,8 +102,9 @@ def env(tmp_path, monkeypatch):
 
 
 def use(monkeypatch, fake):
-    monkeypatch.setattr(run_batch, "_post_session", lambda: fake)
-    monkeypatch.setattr(run_batch, "_session", lambda: fake)
+    # One seam: both helpers go through `config.session`, imported into
+    # run_batch at module level, so patching that name covers every call.
+    monkeypatch.setattr(run_batch, "session", lambda *a, **k: fake)
     return fake
 
 
@@ -216,7 +218,7 @@ def test_pending_is_cleared_when_the_api_rejects(env, monkeypatch):
 def test_the_submit_session_never_retries_a_post():
     url = "https://api.anthropic.com"
     assert run_batch._post_session().get_adapter(url).max_retries.total == 0
-    assert run_batch._session().get_adapter(url).max_retries.total > 0
+    assert run_batch.session().get_adapter(url).max_retries.total > 0
 
 
 def test_an_unpriced_model_is_not_reported_as_free():
@@ -224,8 +226,12 @@ def test_an_unpriced_model_is_not_reported_as_free():
     assert build_batch.estimate(reqs, 40, "claude-fictional-9")["priced"] is False
     assert build_batch.estimate(reqs, 40, build_batch.MODEL_DEFAULT)["priced"] is True
     # PRICES is keyed by alias, so a dated id has to be stripped back to one.
-    # The regression is in the lookup, not the flag: assert the money.
-    assert build_batch.estimate(reqs, 40, "claude-sonnet-4-5-20250929")["usd"] > 0
+    # The regression is in the lookup, not the flag: assert the money, and
+    # assert it against the model actually in use rather than keeping a second
+    # priced model alive for this line.
+    dated = build_batch.estimate(reqs, 40, build_batch.MODEL_DEFAULT + "-20250929")
+    assert dated["usd"] > 0
+    assert dated == build_batch.estimate(reqs, 40, build_batch.MODEL_DEFAULT)
 
 
 def test_submit_prices_a_file_the_same_way_build_batch_did(env, monkeypatch, capsys):

@@ -1,6 +1,9 @@
 """Central config, loaded from .env (never committed)."""
+import contextlib
+import json
 import logging
 import os
+import pathlib
 from pathlib import Path
 
 import requests
@@ -26,6 +29,47 @@ LABELS = ROOT / "data" / "labels.csv"
 SUBDIVISIONS = ROOT / "data" / "subdivisions.json"
 
 USER_AGENT = os.environ.get("WIKIDATA_USER_AGENT", "streetymology/0.1")
+
+
+@contextlib.contextmanager
+def atomic_write(path, mode="w", **kw):
+    """Open `path` for writing so that it either appears whole or not at all.
+
+    A stage that dies mid-write otherwise leaves a truncated file that still
+    parses as far as it goes, and nothing downstream can tell. Two cases make
+    this worth the ceremony rather than a bare `open`: the run records under
+    `artifacts/batch_runs/`, which hold the id of a batch that is already
+    costing money, and the results download, which `fetch` will not repeat
+    because it sees a file already there.
+
+    Writes to a temporary file in the same directory and renames, since
+    os.replace is only atomic within one filesystem.
+
+    The temporary file is opened with an explicit 0o666 rather than through
+    `tempfile`, which forces 0600. 0o666 is what the built-in `open` requests,
+    so the result carries whatever permissions umask gives any other file here
+    and this function imposes no policy of its own.
+    """
+    path = pathlib.Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o666)
+        with os.fdopen(fd, mode, **kw) as fh:
+            yield fh
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
+def write_json(path, obj, indent=None):
+    """`obj` as JSON, atomically. The common case of `atomic_write`."""
+    with atomic_write(path) as fh:
+        json.dump(obj, fh, indent=indent)
+    return pathlib.Path(path)
 
 
 def log_to_stderr(level=logging.WARNING):

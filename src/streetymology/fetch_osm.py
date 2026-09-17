@@ -15,7 +15,8 @@ import argparse
 import json
 import sys
 
-from streetymology.config import OVERPASS_ENDPOINTS, data_path, session
+from streetymology.config import (OVERPASS_ENDPOINTS, data_path, session,
+                                  write_json)
 
 OUT = "osm_ways_geom.json"
 
@@ -83,7 +84,7 @@ def main():
     withgeom = sum(1 for e in els if e.get("geometry"))
     nodes = sum(len(e.get("geometry", ())) for e in els)
     path = data_path(OUT)
-    path.write_text(json.dumps(d))
+    write_json(path, d)
     print(f"\nwrote {path}")
     print(f"{len(els)} ways, {withgeom} with geometry, {nodes} nodes total")
     print("by class: " + ", ".join(f"{k} {v}" for k, v in kinds.most_common()))

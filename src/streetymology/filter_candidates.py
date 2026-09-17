@@ -18,11 +18,12 @@ change again.
 """
 import argparse
 import csv
+import functools
 import io
 import json
 import time
 
-from streetymology.config import data_path, session
+from streetymology.config import data_path, session, write_json
 
 # P31 values that make an item a bare personal name or Wikimedia plumbing.
 # Add to this rather than writing string rules.
@@ -102,12 +103,19 @@ def _publishable(description: str | None) -> bool:
 ENDPOINT = "https://query.wikidata.org/sparql"
 
 
-_S = session()
+@functools.cache
+def _s():
+    """One pooled session, built on first use.
+
+    Not at module level: importing a stage should not open a connection pool,
+    which makes it unimportable wherever the network is not wanted.
+    """
+    return session()
 
 
 def query(sparql: str, timeout: int = 300) -> list[dict]:
     """Run a SPARQL query, returning its CSV rows as dicts."""
-    r = _S.post(ENDPOINT, data={"query": sparql},
+    r = _s().post(ENDPOINT, data={"query": sparql},
                 headers={"Accept": "text/csv"}, timeout=timeout)
     r.raise_for_status()
     return list(csv.DictReader(io.StringIO(r.text)))
@@ -172,7 +180,7 @@ def main():
         dropped += len(hits) - len(keep)
         if keep:
             out[core] = keep
-    data_path(a.out).write_text(json.dumps(out, indent=1))
+    write_json(data_path(a.out), out, indent=1)
 
     total = sum(len(h) for h in search.values())
     print(f"cores {len(search)} -> {len(out)} with a candidate left")

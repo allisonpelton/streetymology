@@ -26,7 +26,7 @@ import json
 import re
 import math
 
-from streetymology.config import data_path, log_to_stderr
+from streetymology.config import data_path, log_to_stderr, write_json
 from streetymology.normalize import key
 
 MEASURES = "street_measures.json"
@@ -315,8 +315,7 @@ def main():
         return
 
     path = data_path(OUT)
-    path.write_text(json.dumps(out))
-    path.chmod(0o664)
+    write_json(path, out)
 
     an = [v for v in out.values() if v["analysed"]]
 

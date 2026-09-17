@@ -13,10 +13,11 @@ Writes `raw/assessor_subdivisions.json`: one record per feature with attributes
 and WGS84 rings. Raw download, no interpretation.
 """
 import argparse
+import functools
 import json
 import time
 
-from streetymology.config import data_path, session
+from streetymology.config import data_path, session, write_json
 
 URL = ("http://www.adacountyassessor.org/arcgis/rest/services/External/"
        "ExternalMap/MapServer/18/query")
@@ -24,7 +25,14 @@ OUT = "assessor_subdivisions.json"
 BATCH = 200
 
 
-_S = session()
+@functools.cache
+def _s():
+    """One pooled session, built on first use.
+
+    Not at module level: importing a stage should not open a connection pool,
+    which makes it unimportable wherever the network is not wanted.
+    """
+    return session()
 
 
 def get(params):
@@ -32,7 +40,7 @@ def get(params):
     the server answers 404. Transport and 5xx retries come from the session; an
     error in the body means the request itself was wrong, so it is not retried.
     """
-    r = _S.post(URL, data=params, timeout=120)
+    r = _s().post(URL, data=params, timeout=120)
     r.raise_for_status()
     d = r.json()
     if "error" in d:
@@ -58,10 +66,9 @@ def main():
         print(f"  {len(feats):5d}/{len(ids)}")
         time.sleep(0.3)
 
-    path = data_path(a.out)
-    path.write_text(json.dumps({"source": URL, "fetched": time.strftime("%Y-%m-%d"),
-                                "features": feats}))
-    path.chmod(0o664)
+    path = write_json(data_path(a.out),
+                      {"source": URL, "fetched": time.strftime("%Y-%m-%d"),
+                       "features": feats})
     print(f"-> {path}  ({path.stat().st_size/1e6:.1f} MB)")
 
     named = sum(1 for f in feats if (f["attributes"].get("SubdivisionName") or "").strip())
