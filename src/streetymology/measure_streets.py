@@ -28,7 +28,8 @@ from shapely.strtree import STRtree
 
 from streetymology import geo
 from streetymology.config import data_path, log_to_stderr
-from streetymology.geo import PlatIndex, pretty, to_utm
+from streetymology.geo import PlatIndex, to_utm
+from streetymology.platnames import pretty
 
 _AMD = re.compile(r"\bAMD\b|\bAMENDED\b", re.I)
 from streetymology.normalize import key, normalize

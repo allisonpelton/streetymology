@@ -15,7 +15,7 @@ their own class and say which entry they rest on. The rest are pure regex.
 """
 import pytest
 
-from streetymology.geo import base_name, designation, display_name, pretty
+from streetymology.platnames import base_name, designation, display_name, pretty
 
 
 class TestBaseName:

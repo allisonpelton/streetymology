@@ -8,7 +8,7 @@ specifically named.
 An amendment is unioned into the plat it amends rather than drawn on its own.
 Measured 2026-09-13: 944 of 945 original/amendment pairs are disjoint and 52 of
 138 originals carry a hole, so an amendment fills a cutout. Drawn apart the pair
-reads as a donut and a patch. `geo.display_name` strips AMD, so plats sharing a
+reads as a donut and a patch. `platnames.display_name` strips AMD, so plats sharing a
 rendered name are the same filing and group together without a second rule.
 
 Geometry is projected to UTM on the way in, so it has to come back out.
