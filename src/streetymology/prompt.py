@@ -158,8 +158,22 @@ def load_context():
     return ctx, by_core
 
 
+def lettered(cands):
+    """(letter, candidate) pairs, in the order the prompt shows them.
+
+    The one place that decides which letter means which candidate. `answers`
+    inverts this to turn a letter back into a QID, so a second copy of the
+    slice-and-enumerate would have to stay in step with this one by hand.
+
+    Nothing shuffles: the order is `candidates.json` file order, which is
+    Wikidata search rank. Regenerating that file between building a batch and
+    parsing it moves every letter.
+    """
+    return list(zip(LETTERS, cands[:len(LETTERS)]))
+
+
 def candidate_lines(cands):
     """Render Wikidata hits as lettered options. Input is already filtered."""
-    return [f"    - **{LETTERS[i]}.** {c['label']} \u2014 "
+    return [f"    - **{letter}.** {c['label']} \u2014 "
             f"{c.get('description') or '(no description)'}"
-            for i, c in enumerate(cands[:len(LETTERS)])]
+            for letter, c in lettered(cands)]

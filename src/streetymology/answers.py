@@ -15,7 +15,7 @@ import pathlib
 import re
 
 from streetymology.config import ARTIFACTS_DIR, atomic_write, data_path
-from streetymology.prompt import LETTERS
+from streetymology.prompt import LETTERS, lettered
 
 # Answers the prompt offers besides a candidate letter. Anything else is a
 # parse failure, not a new answer class.
@@ -67,16 +67,15 @@ def _text(result):
 
 
 def _letter_qids():
-    """core -> {letter: (qid, label)}, rebuilt the way `build_batch` lettered it.
+    """core -> {letter: (qid, label)}, inverting what the prompt showed.
 
-    Letters mean nothing on their own, so an answer is only as good as this
-    mapping. `candidate_lines` letters `candidates.json` in file order and
-    nothing shuffles it, so re-reading the same file reproduces the rendering.
-    Regenerating candidates between build and parse would silently move them.
+    A letter means nothing on its own, so an answer is only as good as this
+    mapping. It calls `prompt.lettered`, the same function that rendered the
+    options, rather than repeating the slice and enumerate here.
     """
     cands = json.loads(data_path("candidates.json").read_text())
-    return {core: {LETTERS[i]: (c.get("qid"), c.get("label"))
-                   for i, c in enumerate(cs[:len(LETTERS)])}
+    return {core: {letter: (c.get("qid"), c.get("label"))
+                   for letter, c in lettered(cs)}
             for core, cs in cands.items()}
 
 
