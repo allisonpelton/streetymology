@@ -1,18 +1,19 @@
 """Recorded plat names, as filed and as a reader should see them.
 
 Names arrive in assessor shorthand: upper case, with `SUB`, `ADD`, `AMD` and a
-`NO n` phase marker. Two questions get asked of one, and they are different:
+`NO n` phase marker. Two functions ask different questions of one name.
 
-  - `base_name` gives the NAMING ACT. "SUTTERS MILL SUB NO 3" and "NO 4" are one
-    act, so streets in both plausibly share an etymology. Everything groups on it.
-  - `display_name` gives the FILING, phase and all, because the map has to say
-    when a particular street was named.
+  - `base_name` gives the naming act. "SUTTERS MILL SUB NO 3" and "NO 4" are
+    one act, so streets in both plausibly share an etymology. Everything groups
+    on this.
+  - `display_name` gives the filing, phase and all, so the map can say when a
+    particular street was named.
 
-Where no regex can decide, the judgement lives in `data/subdivisions.json` and
-is read here: which names are possessive, which were standardised to one
-numbered sequence, which carry a marketing subtitle, and which are not
-developments at all. This module is pure string work -- it holds no geometry,
-and `geo` imports it rather than the other way round.
+Where no regex decides, `data/subdivisions.json` holds the judgement and this
+module reads it: which names are possessive, which were standardised to one
+numbered sequence, which carry a marketing subtitle, and which name no
+development at all. This module does string work only. It holds no geometry,
+and `geo` imports it rather than the reverse.
 """
 import functools
 import json
@@ -26,9 +27,9 @@ from .config import SUBDIVISIONS
 # so the naming act read as "A T Sorensen Unit". Both forms go.
 # Phase numbers carry a letter suffix often enough to matter: "SUB NO 04A",
 # "PHASE 01A1", "UNIT NO 02A". `\d+` followed by `\b` cannot match those --
-# there is no boundary between "4" and "A" -- so the marker survived and every
-# lettered phase read as its own naming act. "PHASE A" has no digits at all.
-# A phase letter is written both ways -- "NO 04A" and "NO 03 A" -- so each
+# there is no boundary between "4" and "A", so the marker survives and every
+# lettered phase reads as its own naming act. "PHASE A" has no digits at all.
+# The assessor writes a phase letter both ways, "NO 04A" and "NO 03 A", so each
 # marker accepts an adjacent suffix or a standalone letter token. The `\b` on
 # the standalone branch is what stops it eating the S of a following SUB: in
 # "NO 01 SUB" there is no boundary between S and U, so the branch fails and
@@ -41,8 +42,8 @@ _TRAIL = re.compile(r"\s+(SUB(DIVISION)?|ADD(ITION)?|AMD|AMENDED|"
                     r"UNIT(\s+\d+(?:\s+[A-Z]\b|[A-Z]?\d*))?)\b", re.I)
 # A trailing phase with no marker word in front of it: "PARKCENTER POINTE 01A",
 # "CAMELBACK 02". Only zero-padded, which is how the assessor writes phases and
-# is what separates them from a number that is part of the name -- CONCEPT 500,
-# PINE 43, EDSONS LOT 18, CLOVERDALE RIDGE ESTATES BLOCK 1 all keep theirs.
+# is what separates them from a number that belongs to the name. CONCEPT 500,
+# PINE 43, EDSONS LOT 18 and CLOVERDALE RIDGE ESTATES BLOCK 1 all keep theirs.
 _BARE_PHASE = re.compile(r"\s+0\d*[A-Z]?\d*$", re.I)
 # "LANCASTER TERRACE SUB UNIT NO 01 AND 02 AMD" strips down to a dangling AND.
 _STRAND = re.compile(r"\s+(AND|OR)$", re.I)
@@ -219,7 +220,7 @@ def display_name(name, scattered=False, designated=True):
     fifteenth phase.
 
     Levels join with a dot, so a spaced letter and an attached one render the
-    same -- the assessor writes both "NO 03 A" and "NO 04A" and means one thing.
+    same. The assessor writes both "NO 03 A" and "NO 04A" and means one thing.
     """
     s = " " + (name or "").upper().strip() + " "
     s = AMD_ANY.sub(" ", s)
@@ -248,7 +249,7 @@ def display_name(name, scattered=False, designated=True):
         s = _STRAND.sub("", s.strip())
     s = _WS.sub(" ", s).strip()
     # An ordinal filing is usually a family platting its own land, so it reads
-    # as a possessive -- "McCarty's 1st Addition to Boise". The assessor is not
+    # as a possessive, "McCarty's 1st Addition to Boise". The assessor is not
     # consistent about the apostrophe, or even the S, so the judgement lives in
     # subdivisions.json. A name that is not a person takes a comma instead:
     # "South Boise, 2nd Addition".

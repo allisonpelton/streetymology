@@ -1,7 +1,7 @@
 """Build the paid, county-wide run as Batch API requests. Sends nothing.
 
-Replaces build_llm_batch.py, which was written for the old task -- judge one
-proposed candidate, yes or no -- against neighbour lists from the retired
+Replaces build_llm_batch.py, which was written for the old task of judging one
+proposed candidate yes or no, against neighbour lists from the retired
 landuse modules, and had stopped running at all.
 
 This asks the current question instead: choose among the Wikidata candidates, or
@@ -47,7 +47,7 @@ PRICES = {
 # 40 is not a validated figure. It was picked to fit a fresh chat window; AP has
 # run 240 items in one desktop prompt with no degradation down the output, so the
 # real ceiling is higher and unmeasured. Chunk size moves input cost by cents --
-# the header is 6.1% of input here -- so the only open question is whether a
+# the header is 6.1% of input here. The only open question is whether a
 # request carries fixed thinking overhead that fewer, larger requests amortise.
 CHUNK_DEFAULT = 40
 
@@ -60,13 +60,13 @@ CHARS_PER_TOKEN = 2.37
 # said so itself after the second trial errored --
 #   "thinking.type.enabled is not supported for this model. Use
 #    thinking.type.adaptive and output_config.effort"
-# -- and named the levels: low, medium, high, xhigh, max. AP's desktop runs,
+# and named the levels: low, medium, high, xhigh, max. The desktop runs,
 # which is what the labels and the calibration were measured against, were high.
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
 EFFORT_DEFAULT = "high"
 
 # max_tokens covers thinking and answer together. The first trial set 8,000, the
-# model spent all of it reasoning, and no table came back at all -- a success by
+# model spent all of it reasoning, and no table came back at all. A success by
 # the API's reckoning and worthless here. Unspent headroom is never generated and
 # never billed, and a batch request has no client-side timeout to hit, so there is
 # nothing to trade off: this sits well above any plausible need. The model's
@@ -74,11 +74,11 @@ EFFORT_DEFAULT = "high"
 MAX_TOKENS_DEFAULT = 64000
 
 # For pricing only; never sent. Adaptive thinking names no budget, so a run
-# cannot be bounded in advance -- this is measured, not a ceiling.
+# cannot be bounded in advance. This is measured, not a ceiling.
 #
 # Per item, not per request: chunk size barely moves it. Six unlabelled draws on
 # 2026-09-10 gave 208-250 with sd 15. Labelled places came in near 190, which is
-# why this is the unlabelled figure -- the county is 92% unlabelled and AP's
+# why this is the unlabelled figure. The county is mostly unlabelled and the
 # labelled streets need about 20% less thinking than ordinary ones.
 THINKING_PER_ITEM = 231
 

@@ -90,7 +90,7 @@ def axis(name: str) -> str:
     """Which grid axis a name's directional puts it on, if any.
 
     North and East halves of one core are different streets on a grid, and
-    grouping them makes places that span both -- Broadway, and Garden City's
+    grouping them makes places that span both, such as Broadway and Garden City's
     numbered streets. Unprefixed names belong to no axis and may join either.
     """
     d = bare(parts(name)[0])

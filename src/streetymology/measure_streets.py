@@ -23,8 +23,7 @@ import collections
 import json
 import re
 
-from shapely.geometry import LineString, MultiPoint
-from shapely.strtree import STRtree
+import shapely
 
 from streetymology import geo
 from streetymology.config import data_path, log_to_stderr, write_json
@@ -65,9 +64,9 @@ def plats_for(place, index):
     Phases of one plat are one naming act, so they are accumulated together:
     metres add up, pieces are concatenated, and the earliest date wins. Grouped
     by family rather than by base name, so the scattered parcels one landowner
-    filed under a single name stay apart -- see geo._families.
+    filed under a single name stay apart. See `geo` for how families split.
     """
-    lines = [LineString(w["points"]) for w in place.ways if len(w["points"]) > 1]
+    lines = [shapely.LineString(w["points"]) for w in place.ways if len(w["points"]) > 1]
     if not lines:
         return 0.0, 0.0, []
     street_m = sum(ln.length for ln in lines)
@@ -77,7 +76,7 @@ def plats_for(place, index):
         rec = plat.recorded.isoformat() if plat.recorded else None
         # `name` is the naming act, `phase` is this particular filing. Both
         # follow the earliest date below, so the phase reported is the earliest
-        # one clipping the street -- even slightly, which is the whole rule.
+        # one clipping the street at all, however slightly.
         cur = acc.setdefault(plat.family, {
             "base": plat.family, "name": index.family_name(plat), "recorded": rec,
             "phase": index.label(plat), "phase_recorded": plat.name,
@@ -163,9 +162,9 @@ def main():
     # Proximity is only evidence where no plat explains the street at all.
     # Full geometry rather than a sample: sampling measured vertex to vertex and
     # lost links, for 0.2 s of 11.
-    pts = {p.id: MultiPoint(p.points) for p in allp}
+    pts = {p.id: shapely.MultiPoint(p.points) for p in allp}
     unplatted = [pid for pid, v in out.items() if not v["plats"]]
-    tree = STRtree([pts[pid] for pid in unplatted])
+    tree = shapely.STRtree([pts[pid] for pid in unplatted])
     for p in allp:
         near = {unplatted[i] for i in
                 tree.query(pts[p.id], predicate="dwithin", distance=a.near)}
@@ -198,7 +197,7 @@ def report_dupes(built):
     for core, ps in built.items():
         if len(ps) < 2:
             continue
-        pts = [MultiPoint(p.points) for p in ps]
+        pts = [shapely.MultiPoint(p.points) for p in ps]
         sep = min(pts[i].distance(pts[j])
                   for i in range(len(ps)) for j in range(i + 1, len(ps)))
         rows.append((sep, core, ps))

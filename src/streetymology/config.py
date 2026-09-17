@@ -86,7 +86,7 @@ def session(retries=4, backoff=1.0, timeout=120):
     """A requests Session that retries transport and server errors itself.
 
     Every fetch stage had its own loop with its own sleep, and two of them used
-    urllib while two used requests. urllib3 does this properly -- exponential
+    urllib while two used requests. urllib3 does this properly, with exponential
     backoff, and it honours Retry-After on a 429, which none of the hand-written
     loops did.
     """

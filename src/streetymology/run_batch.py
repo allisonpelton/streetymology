@@ -517,11 +517,11 @@ def parse(batch_id=None, results=None, index=None, out=None):
             print(f"      {cid}: {out_t:,} output tokens, {think_t:,} thinking")
         print("    Raise --max-tokens above the thinking budget, or lower --thinking.")
     if errored:
-        print("\nFAILED REQUESTS -- these items were paid for and produced nothing:")
+        print("\nFAILED REQUESTS. These items were paid for and produced nothing:")
         for cid, kind, err in errored[:5]:
             print(f"  {cid} {kind} {err}")
     if missing:
-        print("\nMISSING ITEMS -- in the request, absent from the answer table:")
+        print("\nMISSING ITEMS. In the request, absent from the answer table:")
         for cid, n, street in missing[:5]:
             print(f"  {cid} n={n} {street}")
         print("  Re-ask these with build_batch --only rather than re-running the county.")

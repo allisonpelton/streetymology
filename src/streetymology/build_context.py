@@ -8,7 +8,7 @@ threshold does.
 Everything below is a judgement about naming rather than a fact about geometry:
 
   BRIDGE_M        a street that leaves a plat and comes straight back was still
-                  laid out by it -- boundaries detour around parks and phase
+                  laid out by it. Boundaries detour around parks and phase
                   lines. Two pieces closer than this count as one run.
   MIN_PLATTED     below this share inside any plat, the street is not a platted
                   street at all and no plat is credited with naming it.
@@ -213,15 +213,15 @@ def main():
         # Whether anyone named it. A road no plat holds a share of was there
         # first: Linder, Overland, Victory and Meridian top out at 0.09, and
         # the subdivisions along them are named after the road, not the
-        # reverse -- Linderwood Estates, Overland Square, Victory View Acres.
+        # reverse: Linderwood Estates, Overland Square, Victory View Acres.
         if not any(p["share"] >= a.min_naming_share for p in material):
             return None
         # Which one named it. A plat whose name is in the street's is better
         # evidence than a few points of share: Abram Place holds 0.13 of West
         # Abram Street where Dawson Meadows holds 0.19 and shares nothing.
         # Over every plat touching the street, not just the material ones. A
-        # namesake holding almost nothing still named it -- Abbs Sub against
-        # South Abbs Street -- and the floor above has already established that
+        # namesake holding almost nothing still named it, as Abbs Sub does
+        # against South Abbs Street, and the floor above has established that
         # somebody here did the naming, so a stranger cannot win by default.
         matched = [p for p in scored[pid]
                    if _name_match(measures[pid]["core"], p["name"])]
@@ -237,7 +237,7 @@ def main():
 
     # Settle every naming plat before any peer list is built. Peers are places
     # named by the SAME act, so the test has to be against the other place's
-    # naming plat -- not against its largest, which differs on 9% of places and
+    # naming plat, not against its largest. Those differ on 9% of places, and
     # silently dropped them from each other's peers.
     named = {pid: naming_plat(pid) for pid in measures}
 

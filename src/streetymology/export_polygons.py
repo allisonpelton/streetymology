@@ -23,18 +23,16 @@ import json
 import pathlib
 import re
 
-from pyproj import Transformer
-from shapely.geometry import LineString
-from shapely.ops import transform as shapely_transform
-from shapely.ops import unary_union
-from shapely.strtree import STRtree
+import pyproj
+import shapely
+import shapely.ops
 
 from streetymology.config import ARTIFACTS_DIR, data_path, log_to_stderr, write_json
 from streetymology.geo import LINK_M, SPLIT_M, PlatIndex
 from streetymology.measure_streets import load_places
 
 _VACATED = re.compile(r"\bVACATED\b|\bRESCINDED\b", re.I)
-_TO_WGS = Transformer.from_crs("EPSG:32611", "EPSG:4326", always_xy=True)
+_TO_WGS = pyproj.Transformer.from_crs("EPSG:32611", "EPSG:4326", always_xy=True)
 
 # Same reasoning as export_map: five decimals is about a metre, on data whose
 # real accuracy is metres, and plat polygons are the bulk of the payload.
@@ -100,13 +98,13 @@ def natural(label):
 
 
 def to_wgs(geom):
-    return shapely_transform(_TO_WGS.transform, geom)
+    return shapely.ops.transform(_TO_WGS.transform, geom)
 
 
 def rings(geom):
     def ring(coords):
         return [[round(x, PRECISION), round(y, PRECISION)] for x, y in coords]
-    polys = geom.geoms if geom.geom_type == "MultiPolygon" else [geom]
+    polys = shapely.get_parts(geom)
     return [[ring(p.exterior.coords)] + [ring(i.coords) for i in p.interiors]
             for p in polys if not p.is_empty]
 
@@ -127,11 +125,11 @@ def street_index():
     ids, geoms = [], []
     for places in built.values():
         for place in places:
-            lines = [LineString(w["points"]) for w in place.ways if len(w["points"]) > 1]
+            lines = [shapely.LineString(w["points"]) for w in place.ways if len(w["points"]) > 1]
             if lines:
                 ids.append(place.id)
-                geoms.append(unary_union(lines))
-    return ids, geoms, STRtree(geoms)
+                geoms.append(shapely.unary_union(lines))
+    return ids, geoms, shapely.STRtree(geoms)
 
 
 def main():
@@ -183,7 +181,7 @@ def main():
     merged, phases = [], []
     for plats in fams.values():
         label = idx.family_name(min(plats, key=lambda q: str(q.recorded or "9999")))
-        geom = unary_union([p.geom for p in plats])
+        geom = shapely.unary_union([p.geom for p in plats])
         # phases: plats rendering to one name are one filing, amendments included
         groups = collections.defaultdict(list)
         for p in plats:
@@ -204,7 +202,7 @@ def main():
         }))
         for full, ps in groups.items():
             short = full[len(label):].lstrip(", ") if full.startswith(label) else full
-            pg = unary_union([q.geom for q in ps])
+            pg = shapely.unary_union([q.geom for q in ps])
             pn = named_by_phase.get((label, full), [])
             pyears = sorted(q.recorded.year for q in ps if q.recorded)
             crossing = {ids[i] for i in tree.query(pg)

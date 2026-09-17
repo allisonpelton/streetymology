@@ -5,7 +5,7 @@ Nothing else emits a street-to-QID result, which is why this exists.
 The geometry is not in `derived/`. `street_measures.json` and
 `place_context.json` carry measurements and context, never coordinates, so a
 place's ways have to be rebuilt from the raw OSM extract by the same code that
-built them in the first place -- `measure_streets.load_places`. That keeps one
+built them in the first place, `measure_streets.load_places`. That keeps one
 definition of what a place is; a second one here would drift.
 
 Coordinates come from the raw extract in lon/lat. `Place.points` is projected to
@@ -13,7 +13,7 @@ UTM for measuring and is not what GeoJSON wants.
 
 One Feature per place, geometry MultiLineString, whether or not it has an
 answer. A street nobody asked about is still a street on the map, and 918 of
-them were never asked because no Wikidata candidate survived filtering -- which
+them were never asked because no Wikidata candidate survived filtering, which
 is a fact about the pipeline, not about the street. `status` says which.
 
   python -m streetymology.export_map data/artifacts/*.answers.csv
@@ -107,7 +107,7 @@ def features(answers):
             props["status"] = "answered" if row else "not_asked"
             # Always the place's own name, never the answers CSV's copy. That
             # copy is the label as it stood when the prompt was rendered, and it
-            # goes stale the moment naming changes -- which it just did.
+            # goes stale the moment naming changes.
             props["street"] = place.name
             # Every feature carries every key. Emitting a key only sometimes
             # makes an expression read null on one feature and "" on another,
@@ -123,7 +123,7 @@ def features(answers):
             # Clicking highlights the place, which already holds every segment
             # of that street in that location. `core` exists for search: 150
             # cores sit in more than one place, and those are duplicates --
-            # the same word chosen twice -- so they are listed separately
+            # the same word chosen twice, so they are listed separately
             # rather than lit up together.
             props["core"] = place.core
             props["places_with_core"] = per_core[place.core]
@@ -133,7 +133,8 @@ def features(answers):
             rec = ctx.get(place.id, {})
             # Three views of one answer, because they answer different
             # questions. `subdivision` is the earliest phase clipping this
-            # street -- when it was specifically named. `subdivision_merged`
+            # street, which says when it was specifically named.
+            # `subdivision_merged`
             # is the naming act those phases belong to, which is what asserts
             # a common etymology. `subdivision_recorded` is the assessor's
             # string, kept because the friendly form deliberately does not
@@ -143,7 +144,7 @@ def features(answers):
             # street to claim it. That is the same street the prompt describes
             # as "no subdivision appears to have named this street". It does
             # not distinguish that from a street absent from the plat data
-            # altogether -- if the map ever needs to say which, that is a
+            # altogether. If the map ever needs to say which, that is a
             # second key, not a second meaning for this one.
             props["subdivision"] = rec.get("naming_phase") or ""
             props["subdivision_merged"] = rec.get("naming_plat") or ""
@@ -196,7 +197,7 @@ def main():
         mix[k] = mix.get(k, 0) + 1
     unknown = set(mix) - set(CATEGORIES)
     if unknown:
-        log.warning("categories not in CATEGORIES: %s — a map styling on them "
+        log.warning("categories not in CATEGORIES: %s. A map styling on them "
                     "would drop these features to a fallback colour", unknown)
     asked = sum(1 for f in feats if f["properties"]["status"] == "answered")
     print(f"answers read     : {len(answers):,}")

@@ -6,7 +6,7 @@ reached 16.7% of streets against search's 73%, so the filter it applied is gone
 and every core is searched.
 
 Curated gazetteers cannot reach entities whose label differs from the street
-name -- Wikidata calls it "Harvard University", not "Harvard". wbsearchentities
+name. Wikidata calls it "Harvard University", not "Harvard". wbsearchentities
 does prefix/alias matching and finds them.
 
 This is the Action API, not WDQS: no SPARQL limits, but the User-Agent policy

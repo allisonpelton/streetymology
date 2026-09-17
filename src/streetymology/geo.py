@@ -3,8 +3,10 @@
 Two things are built here, and they meet only at the county boundary:
 
   - `PlatIndex`, the Ada County Assessor's recorded plats, searchable by
-    geometry and grouped into FAMILIES -- one naming act in one location.
-  - `build`, which turns OSM ways into PLACES -- one core name in one location.
+    geometry and grouped into families. A family is one naming act in one
+    location.
+  - `build`, which turns OSM ways into places. A place is one core name in one
+    location.
 
 The assessor is the authority on subdivisions, in place of OSM
 `landuse=residential`, a hand-traced proxy for this layer. It carries three
@@ -22,12 +24,9 @@ import json
 import logging
 import math
 
-from pyproj import Transformer
-from shapely.errors import ShapelyError
-from shapely.geometry import MultiPoint, MultiPolygon, Polygon
-from shapely.ops import linemerge, unary_union
-from shapely.ops import transform as shapely_transform
-from shapely.strtree import STRtree
+import pyproj
+import shapely
+import shapely.ops
 
 from streetymology import normalize
 from streetymology.platnames import (
@@ -53,7 +52,7 @@ FILE = "assessor_subdivisions.json"
 # a degree of longitude at this latitude is about 72% of a degree of latitude, so
 # an east-west street and a north-south one would be measured on different
 # scales.
-_TO_UTM = Transformer.from_crs("EPSG:4326", "EPSG:32611", always_xy=True)
+_TO_UTM = pyproj.Transformer.from_crs("EPSG:4326", "EPSG:32611", always_xy=True)
 
 
 def to_utm(lon, lat):
@@ -64,16 +63,18 @@ def to_utm(lon, lat):
 def _rings_to_geom(rings):
     """ESRI rings -> shapely. Clockwise rings are outer, counter-clockwise holes.
 
-    Shoelace sign decides; ESRI writes outer rings clockwise in screen order,
-    which is a NEGATIVE signed area in standard orientation.
+    The shoelace formula gives a polygon's area from its vertices alone: sum
+    x1*y2 - x2*y1 over each adjacent pair, then halve. Only the sign is wanted
+    here. Walking a ring counter-clockwise gives a positive number, clockwise a
+    negative one, and ESRI writes outer rings clockwise in screen order.
 
-    `shapely.LinearRing.is_ccw` is the same test and was tried instead. It
-    disagrees on 23 of 8,986 rings, all of them self-intersecting -- a ring
-    whose lobes cancel to about zero area, which is_ccw calls counter-clockwise
-    and so treats as a hole. That punches the hole into its own plat: Harris
-    Ranch No 09 takes Sawmill from a platted share of 1.0 to 0.568, and 112
-    places move. The sign test keeps them as outer rings, which buffer(0)
-    below then repairs.
+    `shapely.LinearRing.is_ccw` answers the same question and is worse on this
+    data. The two disagree on 23 of 8,986 rings, every one self-intersecting.
+    A figure-eight winds one way in each lobe, so the areas nearly cancel and
+    the sign near zero is arbitrary. `is_ccw` calls those counter-clockwise,
+    which makes them holes punched into their own plat. Harris Ranch No 09 then
+    takes Sawmill from a platted share of 1.0 to 0.568, and 112 places move.
+    The sign test keeps them as outer rings and buffer(0) below repairs them.
     """
     outers, holes = [], []
     for r in rings:
@@ -84,16 +85,16 @@ def _rings_to_geom(rings):
         (holes if area > 0 else outers).append(r)
     polys = []
     for o in outers:
-        shell = Polygon(o)
+        shell = shapely.Polygon(o)
         if not shell.is_valid:
             shell = shell.buffer(0)
-        inner = [h for h in holes if shell.contains(Polygon(h).representative_point())]
-        p = Polygon(o, inner) if inner else shell
+        inner = [h for h in holes if shell.contains(shapely.Polygon(h).representative_point())]
+        p = shapely.Polygon(o, inner) if inner else shell
         polys.append(p if p.is_valid else p.buffer(0))
     if not polys:
         return None
-    g = polys[0] if len(polys) == 1 else MultiPolygon(
-        [q for p in polys for q in (p.geoms if p.geom_type == "MultiPolygon" else [p])])
+    g = polys[0] if len(polys) == 1 else shapely.MultiPolygon(
+        [q for p in polys for q in shapely.get_parts(p)])
     return g if g.is_valid else g.buffer(0)
 
 
@@ -132,26 +133,22 @@ def _clip(stretches, geom):
     for stretch in stretches:
         try:
             inter = stretch.intersection(geom)
-        except ShapelyError:
+        except shapely.errors.ShapelyError:
             inter = stretch.intersection(geom.buffer(0))
         if inter.is_empty:
             continue
-        parts = list(inter.geoms) if hasattr(inter, "geoms") else [inter]
-        out.extend(p for p in parts if p.geom_type == "LineString")
+        out.extend(p for p in shapely.get_parts(inter)
+                   if p.geom_type == "LineString")
     return out
 
 
 def _stretches(lines):
-    """A place's ways merged into its continuous stretches.
+    """The unbroken runs of road surface that `lines` add up to.
 
-    OSM splits a street wherever an editor stopped, so the ways are merged first
-    and only genuine discontinuities survive. Three words are kept apart below:
-    a STRETCH is an unbroken run of road surface, a PIECE is the part of a
-    stretch lying inside one plat, and a RUN is a chain of pieces joined across
-    short excursions outside it.
+    OSM cuts a street wherever an editor stopped, so merging first leaves only
+    the genuine gaps.
     """
-    merged = linemerge(lines)
-    return list(merged.geoms) if merged.geom_type == "MultiLineString" else [merged]
+    return list(shapely.get_parts(shapely.ops.linemerge(lines)))
 
 
 # Two plats of one name are one naming act only if they are in one place. Home
@@ -246,8 +243,8 @@ def _label_clusters(clusters, judged):
         labels.append(display_name(earliest.name, scattered=True))
     dupes = {l for l in labels if labels.count(l) > 1}
     if dupes:
-        # Not a duplicate plat name -- those are not permitted -- so this is an
-        # artifact: a stray polygon, or geometry that split a family wrongly.
+        # Ada County does not permit two plats to share a name, so this is
+        # not one. It is a stray polygon, or geometry that split a family.
         log.warning("cluster labels collide for %s: two filings of one name that "
                     "the record does not distinguish. Check for a stray polygon "
                     "rather than labelling around it", sorted(dupes))
@@ -280,18 +277,19 @@ class PlatIndex:
             g = _rings_to_geom(f.get("geometry", {}).get("rings", []))
             if g is None or g.is_empty:
                 continue
-            g = shapely_transform(_TO_UTM.transform, g)
+            g = shapely.ops.transform(_TO_UTM.transform, g)
             plat = Plat(f["attributes"], g)
             if plat.name.upper() in excluded():
                 continue
             self.plats.append(plat)
-        self.tree = STRtree([p.geom for p in self.plats])
+        self.tree = shapely.STRtree([p.geom for p in self.plats])
         fams = _families(self.plats)
         for p in self.plats:
             p.family = fams[p.oid]
-        # Contiguity, for the display name. A name whose numbered plats sit in
-        # one family is a phased development; one spread across families is a
-        # name that was reused -- Randall Acres over four, Home Acres over three.
+        # Contiguity, for the display name. A name whose numbered plats sit
+        # in one family is a phased development. One spread across families is
+        # a name someone reused: Randall Acres over four, Home Acres over
+        # three.
         self._apply_merges()
         spread = collections.defaultdict(set)
         for p in self.plats:
@@ -303,11 +301,11 @@ class PlatIndex:
     def _apply_merges(self):
         """Fold hand-judged merges into the families computed above.
 
-        Judgement joins names; geometry still splits them. A merge lists base
-        names that are one naming act, and the family distance is re-applied
-        across the union -- so a listed base sitting far from the rest comes out
-        on its own anyway. That is why Seamans 02nd stays out of Seaman's
-        without anyone having to say so twice.
+        Judgement joins names and geometry still splits them. A merge lists
+        base names that are one naming act, then the family distance applies
+        again across the union, so a listed base sitting far from the rest
+        still comes out on its own. That is why Seamans 02nd stays out of
+        Seaman's without anyone having to say so twice.
         """
         self.merged_label = {}
         doc = judgement()
@@ -424,22 +422,22 @@ class PlatIndex:
     def pieces_inside(self, lines):
         """plat -> (metres inside, [(length, end, end)] per unbroken piece).
 
-        Pieces are returned rather than a single run length because whether two
-        of them count as one run is a judgement -- a plat boundary detours
-        around a park parcel or a phase line, and the street through it was
-        still laid out by that plat. build_context applies that judgement, in
+        This returns the pieces rather than one run length because deciding
+        whether two pieces count as one run takes judgement. A plat boundary
+        detours around a park parcel or a phase line, and that plat still laid
+        out the street running through it. `build_context` makes that call, in
         the stage that owns it.
 
-        Takes every way of a place at once and merges them first, because OSM
-        splits a street at arbitrary points -- a lane change, a bridge, an
-        editing session. A "share of a way" therefore measures mapping accidents
-        as much as geography. What a plat that LAID OUT a street produces is a
-        long unbroken run of it inside the boundary, and that survives however
-        the ways were split.
+        It takes every way of a place at once and merges them first. OSM splits
+        a street at arbitrary points, such as a lane change, a bridge, or an
+        editing session, so a share of one way measures mapping accidents as
+        much as geography. A plat that laid out a street produces a long
+        unbroken run of it inside the boundary, and that survives however the
+        ways were split.
         """
         stretches = _stretches(lines)
         out = {}
-        for p in self.covering(linemerge(lines)):
+        for p in self.covering(shapely.ops.linemerge(lines)):
             pieces = [(x.length, x.coords[0], x.coords[-1])
                       for x in _clip(stretches, p.geom)]
             if pieces:
@@ -449,19 +447,19 @@ class PlatIndex:
     def covered_metres(self, lines):
         """Metres of street lying inside ANY plat, and the merged street length.
 
-        Plats overlap -- an amended plat sits on its original, phases abut -- so
-        summing per-plat metres double counts. The union is what says whether a
-        street was platted at all. A grid street laid out by a town, with
-        additions filed piecemeal along it decades later, is mostly NOT inside
-        any plat, and that is what distinguishes it from a street a developer
-        built.
+        Plats overlap, since an amended plat sits on its original and phases
+        abut, so summing per-plat metres counts some of it twice. The union
+        says whether a street was platted at all. A town laid out its grid
+        streets and developers filed additions along them piecemeal decades
+        later, so most of such a street falls inside no plat. That is what
+        separates it from a street a developer built.
         """
         stretches = _stretches(lines)
         total = sum(s.length for s in stretches)
-        covering = [p.geom for p in self.covering(linemerge(lines))]
+        covering = [p.geom for p in self.covering(shapely.ops.linemerge(lines))]
         if not covering:
             return 0.0, total
-        inside = sum(x.length for x in _clip(stretches, unary_union(covering)))
+        inside = sum(x.length for x in _clip(stretches, shapely.unary_union(covering)))
         return inside, total
 
     def share_inside(self, line):
@@ -479,7 +477,7 @@ class PlatIndex:
         for p in self.covering(line):
             try:
                 inside = line.intersection(p.geom).length
-            except ShapelyError:
+            except shapely.errors.ShapelyError:
                 inside = line.intersection(p.geom.buffer(0)).length
             if inside > 0:
                 out[p] = inside / total
@@ -489,16 +487,17 @@ class PlatIndex:
 # Ada County's grid puts a mile between arterials, so a break shorter than this
 # is one street interrupted rather than two.
 LINK_M = 2000.0
-# Proximity alone, no alignment required. AP ruled on every case between 500 m
-# and 5 km: the closest confirmed duplicate is 2,028 m and the widest confirmed
-# single street is 1,916 m, which brackets this to 112 metres. Equal to LINK_M
-# by coincidence, not by definition -- that one is a gap between COLLINEAR runs.
+# Proximity alone, no alignment required. Every case between 500 m and 5 km was
+# ruled on by hand. The closest confirmed duplicate is 2,028 m and the widest
+# confirmed single street is 1,916 m, so only 112 metres are left to choose in.
+# This equals LINK_M by coincidence. LINK_M measures a gap between collinear
+# runs, which is a different quantity.
 SPLIT_M = 2000.0
-# Ada County is on a section grid, so an east-west street holds one latitude for
-# its whole length: two runs of one name in the same band are the same street at
-# any separation. Widening this does nothing -- 94% of runs sit inside 150 m and
-# the rest wander past 400 m -- so the streets it misses are the ones aligned to
-# the Boise River rather than to the grid, which no band width reaches.
+# Ada County is on a section grid, so an east-west street holds one latitude
+# for its whole length. Two runs of one name in the same band are the same
+# street at any separation. Widening this does nothing. 94% of runs sit inside
+# 150 m and the rest wander past 400 m, so the ones it misses follow the Boise
+# River rather than the grid, and no band width reaches those.
 GRID_BAND_M = 150.0
 
 # Classes a developer plausibly named. Anything above tertiary is a public road
@@ -530,11 +529,11 @@ def _ends(pts):
 def continues(a_pts, b_pts, gap, max_angle=30.0):
     """True if b is the same road as a, resuming after an interruption.
 
-    Proximity alone merged East Chester Lane with West Chester Drive, two
-    unrelated streets 400 m apart in plats 47 years apart. A real interruption
-    -- a canal, a school, a section line -- leaves the road pointing the same
-    way and resuming ahead of itself, so require BOTH: endpoints within `gap`,
-    and the gap collinear with the runs on either side of it.
+    Proximity alone merges East Chester Lane with West Chester Drive, two
+    unrelated streets 400 m apart in plats 47 years apart. A canal, a school or
+    a section line leaves the road pointing the same way and resuming ahead of
+    itself. So both tests must pass. The endpoints fall within `gap`, and the
+    gap runs collinear with the road on either side of it.
     """
     for p, ba in _ends(a_pts):
         for q, bb in _ends(b_pts):
@@ -554,15 +553,15 @@ def continues(a_pts, b_pts, gap, max_angle=30.0):
 def _components(items, pts_of, gap, test):
     """Group `items` into connected components.
 
-    Graph sense: each item is a node, `test` decides whether two are joined, and
-    a component is a maximal set where every member is reachable from every
-    other. Reachability is the point -- a way joins another it never touches, so
-    long as something links them -- which is how a street that bends around a
-    corner stays one thing.
+    Graph sense. Each item is a node, `test` decides whether two are joined,
+    and a component is a maximal set where every member is reachable from every
+    other. Reachability is what matters. A way can join another it never
+    touches as long as something links them, which is how a street that bends
+    around a corner stays one thing.
 
-    There is no default `test`, because the two callers mean different things by
-    joined: `_same_location` is closest approach, `_same_alignment` also demands
-    the two run along one line.
+    `test` has no default, because the two callers mean different things by
+    joined. `_same_location` measures closest approach. `_same_alignment` also
+    requires that the two run along one line.
     """
     def singleton(it):
         pts = list(pts_of(it))
@@ -581,8 +580,8 @@ def _same_alignment(pts, members, gap):
 
 def _same_location(pts, members, gap):
     """Near each other, whatever their heading. Not a claim of alignment."""
-    here = MultiPoint(list(pts))
-    return any(here.distance(MultiPoint(list(m))) <= gap for m in members)
+    here = shapely.MultiPoint(list(pts))
+    return any(here.distance(shapely.MultiPoint(list(m))) <= gap for m in members)
 
 
 class Place:
@@ -608,14 +607,15 @@ class Place:
     def name(self):
         """Every post-type the place carries, in order of importance.
 
-        A place that is part Drive and part Court is both, so it says both:
-        "West Largo Drive/Court". Order is POST_RANK, never alphabetical, and
-        never any single way's name -- taking one way's name lets a short
-        offshoot rename the whole street, which titles the Ustick arterial
-        "North Ustick Court".
+        A place that is part Drive and part Court is both, so it says both,
+        as "West Largo Drive/Court". POST_RANK sets the order, never the
+        alphabet and never one way's name. Taking one way's name lets a short
+        offshoot rename the street, which titles the Ustick arterial "North
+        Ustick Court".
 
-        The directional is dropped when the place carries more than one, since
-        "East Carol Street" is a claim about a street that also runs north.
+        A place carrying more than one directional shows none, because "East
+        Carol Street" claims something false about a street that also runs
+        north.
         """
         run = collections.Counter()
         for w in self.ways:
