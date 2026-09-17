@@ -170,8 +170,8 @@ def main():
           f"({len(idx.plats) - drawn} vacated or rescinded, kept for naming)")
 
     merged, phases = [], []
-    for plats in fams.values():
-        label = idx.family_name(min(plats, key=lambda q: str(q.recorded or "9999")))
+    for fam, plats in fams.items():
+        label = idx.family_label[fam]
         geom = shapely.unary_union([p.geom for p in plats])
         # phases: plats rendering to one name are one filing, amendments included
         groups = collections.defaultdict(list)

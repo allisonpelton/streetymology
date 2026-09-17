@@ -81,12 +81,15 @@ def _rings_to_geom(rings):
 
 
 class Plat:
-    __slots__ = ("oid", "name", "base", "family", "recorded", "tax_year", "geom")
+    __slots__ = ("oid", "name", "base", "amended", "family", "recorded",
+                 "tax_year", "geom")
 
     def __init__(self, attrs, geom):
         self.oid = attrs["OBJECTID"]
         self.name = (attrs.get("SubdivisionName") or "").strip()
-        self.base = platnames.base_name(self.name)
+        parsed = platparse.parse(self.name)
+        self.base = platnames.base_from(parsed)
+        self.amended = parsed.amended
         # The assessor stores RecordedDate as epoch milliseconds UTC.
         ms = attrs.get("RecordedDate")
         self.recorded = (
@@ -101,6 +104,20 @@ class Plat:
 
     def __repr__(self):
         return f"<Plat {self.name!r} {self.year}>"
+
+
+def earliest_filing(plats):
+    """The plat that names a group: the earliest that is not an amendment.
+
+    An amendment restates a plat that already exists, so it never names
+    anything. Where every plat in the group is one, the group amends something
+    outside itself and the earliest amendment stands in.
+
+    The assessor leaves RecordedDate null on a few plats. date.max sorts those
+    last without a sentinel string, and without comparing dates as text.
+    """
+    live = [p for p in plats if not p.amended] or list(plats)
+    return min(live, key=lambda p: p.recorded or datetime.date.max)
 
 
 def _clip(stretches, geom):
@@ -176,14 +193,11 @@ def _cluster_suffix(plat):
 def _label_clusters(clusters, judged):
     """Label every cluster of a merged group. Warns if two labels collide."""
     if len(clusters) == 1:
-        live = [q for q in clusters[0]
-                if not platparse.AMD_ANY.search(" " + q.name.upper() + " ")] or clusters[0]
-        earliest = min(live, key=lambda q: str(q.recorded or "9999"))
+        earliest = earliest_filing(clusters[0])
         return [judged or platnames.display_name(earliest.name, designated=False)]
     labels = []
     for c in clusters:
-        live = [q for q in c if not platparse.AMD_ANY.search(" " + q.name.upper() + " ")] or c
-        earliest = min(live, key=lambda q: str(q.recorded or "9999"))
+        earliest = earliest_filing(c)
         labels.append(platnames.display_name(earliest.name, scattered=True))
     dupes = {l for l in labels if labels.count(l) > 1}
     if dupes:
@@ -340,8 +354,7 @@ class PlatIndex:
             if fam in self.merged_label:
                 self.family_label[fam] = self.merged_label[fam]
                 continue
-            live = [q for q in ps if not platparse.AMD_ANY.search(" " + q.name.upper() + " ")] or ps
-            first = min(live, key=lambda q: str(q.recorded or "9999"))
+            first = earliest_filing(ps)
             self.family_label[fam] = platnames.display_name(
                 first.name, scattered=True,
                 designated=first.base in self.scattered)

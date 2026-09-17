@@ -232,7 +232,12 @@ def main():
         if modern and (not old or max(p["inside_m"] for p in modern)
                        >= max(p["inside_m"] for p in old)):
             material = modern
-        return min(material, key=lambda p: (p["recorded"] or "9999", -p["inside_m"]))
+        # Undated plats sort last without a sentinel date. `recorded` here is
+        # the ISO string measure_streets wrote, not a date object, so the
+        # boolean is what orders them rather than a string that happens to
+        # compare high.
+        return min(material, key=lambda p: (not p["recorded"], p["recorded"],
+                                            -p["inside_m"]))
 
     # Settle every naming plat before any peer list is built. Peers are places
     # named by the SAME act, so the test has to be against the other place's

@@ -30,7 +30,11 @@ def base_name(name):
     and the ordinal stay, because two filings that differ only there are
     different acts: Stein's 1st Addition is not Stein's 2nd.
     """
-    p = platparse.parse(name)
+    return base_from(platparse.parse(name))
+
+
+def base_from(p):
+    """`base_name` for an already-parsed name, so a caller parses only once."""
     out = p.stem
     if p.ordinal:
         out = (out + " " + p.ordinal).strip()
