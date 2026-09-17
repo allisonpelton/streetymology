@@ -120,11 +120,10 @@ def osm_cores() -> dict[str, str]:
     """Map core-name key -> a representative original OSM name.
 
     Reads the same extract `measure_streets` builds places from, which is the
-    only one `fetch_osm` writes. It previously read osm_named_ways.json, a
-    separate file no stage produced: a snapshot of this same query taken five
-    days earlier. The two had drifted 34 cores one way and 48 the other, so
-    candidates were searched for names that no longer existed while current
-    names were never searched at all.
+    only one `fetch_osm` writes. There must not be a second: two snapshots of
+    this Overpass query taken five days apart differ by 34 core names one way
+    and 48 the other, so a stage reading the other one searches Wikidata for
+    streets that do not exist and misses streets that do.
     """
     els = json.loads((config.data_path("osm_ways_geom.json")).read_text())["elements"]
     cores: dict[str, str] = {}

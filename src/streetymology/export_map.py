@@ -178,9 +178,8 @@ def main():
     feats, no_geom = features(answers)
     out = pathlib.Path(a.out or config.ARTIFACTS_DIR / "streets.geojson")
     out.parent.mkdir(parents=True, exist_ok=True)
-    # Counts the legend would otherwise get by walking all 8,676 features
-    # before the map can paint. They are a property of this file, so they are
-    # written with it.
+    # Counts the legend would otherwise get by walking every feature before
+    # the map can paint. They are a property of this file, so they ship in it.
     counts = {"category": {}, "plat_era": {}}
     for f in feats:
         pr = f["properties"]

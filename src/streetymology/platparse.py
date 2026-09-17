@@ -6,11 +6,11 @@ fixed order. `parse` reads that structure once and returns it. `base_name` and
 `display_name` are then two views over the same record rather than two separate
 attempts to take the name apart.
 
-That matters because the markers used to be recognised by two regex families
-that had to agree. `_TRAIL` stripped them for the naming act, `_NO_N`,
-`_PHASE_N` and `_UNIT_N` extracted them for the designation and stripped them
-again for display. Any name the two families disagreed about produced a base
-and a label that described different things.
+One parse, because two are not guaranteed to agree. Recognising the phase
+markers separately for the naming act and for the label lets a name come out
+with a base and a caption that describe different things, and nothing detects
+it. Reading the structure once removes the possibility rather than the
+symptom.
 
 The patterns themselves are unchanged and live in `platnames`. Only the number
 of times they run is different.

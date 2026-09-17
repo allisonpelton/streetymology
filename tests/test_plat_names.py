@@ -238,7 +238,8 @@ class TestOneParseFixesFourNames:
     # behind, and it rendered as part of the name.
     def test_a_phase_marker_is_consumed_whole(self):
         assert base_name("RIVER RUN PHASE 01A1") == "RIVER RUN"
-        # The stray digit used to reach the stem, giving "River Run 1".
+        # The stray digit reaches the stem if the marker is not consumed
+        # whole, and renders as part of the name.
         assert display_name("RIVER RUN PHASE 01A1") == "River Run, Phase 1.A"
         assert display_name("RIVER RUN PHASE 01A1", designated=False) == "River Run"
 
