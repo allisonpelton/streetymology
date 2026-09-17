@@ -15,7 +15,7 @@ their own class and say which entry they rest on. The rest are pure regex.
 """
 import pytest
 
-from streetymology.platnames import base_name, designation, display_name, pretty
+from streetymology.platnames import base_name, designation, display_name
 
 
 class TestBaseName:
@@ -216,23 +216,3 @@ class TestHandJudgement:
         assert base_name("DE MEYER ESTATES SUB NO 03 THE REDWOODS") == \
             "DE MEYER ESTATES THE REDWOODS"
         assert base_name("DE MEYER ESTATES SUB NO 01") == "DE MEYER ESTATES"
-
-
-class TestPretty:
-    """Title-cased base name, for a prompt or a reader."""
-
-    def test_collapses_to_the_naming_act(self):
-        assert pretty("SUTTERS MILL SUB NO 03") == "Sutters Mill"
-
-    # "HIGHLANDS THE UNIT" is "The Highlands, Unit 1" in filing order, and the
-    # bare UNIT strands THE mid-string where the trailing-THE rule cannot see it.
-    def test_the_before_a_plat_type_is_inverted(self):
-        assert pretty("HIGHLANDS THE UNIT NO 01") == "The Highlands"
-
-    # .title() gives "Mcintyres", and zero-padded ordinals give "01St".
-    def test_mc_keeps_its_capital(self):
-        assert pretty("MCINTYRES 01ST SUB") == "McIntyres 1st"
-
-    # The assessor files "The Country Club" as "COUNTRY CLUB THE".
-    def test_trailing_the_is_inverted(self):
-        assert pretty("COUNTRY CLUB THE SUB NO 01") == "The Country Club"

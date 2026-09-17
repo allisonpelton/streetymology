@@ -66,6 +66,14 @@ def _rings_to_geom(rings):
 
     Shoelace sign decides; ESRI writes outer rings clockwise in screen order,
     which is a NEGATIVE signed area in standard orientation.
+
+    `shapely.LinearRing.is_ccw` is the same test and was tried instead. It
+    disagrees on 23 of 8,986 rings, all of them self-intersecting -- a ring
+    whose lobes cancel to about zero area, which is_ccw calls counter-clockwise
+    and so treats as a hole. That punches the hole into its own plat: Harris
+    Ranch No 09 takes Sawmill from a platted share of 1.0 to 0.568, and 112
+    places move. The sign test keeps them as outer rings, which buffer(0)
+    below then repairs.
     """
     outers, holes = [], []
     for r in rings:

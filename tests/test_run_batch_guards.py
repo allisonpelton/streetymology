@@ -139,7 +139,7 @@ def test_a_file_already_sent_is_refused(env, monkeypatch):
     fake = use(monkeypatch, FakeSession())
     path = request_file(env)
     record(run_batch._digest(path))
-    with pytest.raises(SystemExit):
+    with pytest.raises(run_batch.Refused):
         run_batch.submit(path, yes=True)
     assert fake.posts == 0
 
@@ -147,14 +147,14 @@ def test_a_file_already_sent_is_refused(env, monkeypatch):
 def test_an_unconfirmed_submit_blocks_the_next(env, monkeypatch):
     fake = use(monkeypatch, FakeSession())
     run_batch.PENDING.write_text('{"digest": "abc"}')
-    with pytest.raises(SystemExit):
+    with pytest.raises(run_batch.Refused):
         run_batch.submit(request_file(env), yes=True)
     assert fake.posts == 0
 
 
 def test_more_requests_than_the_ceiling_is_refused(env, monkeypatch):
     fake = use(monkeypatch, FakeSession())
-    with pytest.raises(SystemExit):
+    with pytest.raises(run_batch.Refused):
         run_batch.submit(request_file(env, n=5), yes=True, max_requests=4)
     assert fake.posts == 0
 
@@ -208,7 +208,7 @@ def test_pending_survives_a_post_that_raises(env, monkeypatch):
 def test_pending_is_cleared_when_the_api_rejects(env, monkeypatch):
     """A 4xx means no batch was created, so the marker must not block the fix."""
     use(monkeypatch, FakeSession(post_status=400))
-    with pytest.raises(SystemExit):
+    with pytest.raises(run_batch.Refused):
         run_batch.submit(request_file(env), yes=True)
     assert not run_batch.PENDING.exists()
 
@@ -259,7 +259,7 @@ def test_submit_prices_a_file_the_same_way_build_batch_did(env, monkeypatch, cap
 
 def test_verify_refuses_a_model_the_api_does_not_list(env, monkeypatch):
     use(monkeypatch, FakeSession(models=["claude-sonnet-5"]))
-    with pytest.raises(SystemExit):
+    with pytest.raises(run_batch.Refused):
         run_batch.verify("claude-sonnet-4-5")
     assert run_batch.verify("claude-sonnet-5") is True
 

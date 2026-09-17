@@ -1,0 +1,28 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # requirements.lock pins the transitive closure, so a dependency
+      # published between two runs cannot change the result.
+      - run: pip install -r requirements.lock -e .
+
+      - run: ruff check src/ tests/
+
+      # No network: the fetch stages are outside the tested chain and the
+      # fixture carries its own frozen inputs. If this ever needs the network
+      # to pass, something has leaked into the chain that should not be there.
+      - run: pytest -q

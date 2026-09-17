@@ -55,7 +55,7 @@ def fetch(timeout, endpoints=None):
         except (requests.RequestException, ValueError) as e:
             last = e
             print(f"  failed: {str(e)[:120]}", flush=True)
-    raise SystemExit(f"all endpoints failed; last error: {last}")
+    raise RuntimeError(f"all endpoints failed; last error: {last}")
 
 
 def main():
@@ -65,7 +65,10 @@ def main():
                     help="override the configured endpoints, in order")
     a = ap.parse_args()
 
-    d = fetch(a.timeout, a.endpoint)
+    try:
+        d = fetch(a.timeout, a.endpoint)
+    except RuntimeError as e:
+        raise SystemExit(str(e)) from e
 
     # Mirrors lag. kumi.systems once answered with a database 6 weeks older than
     # the file it was about to overwrite, silently reverting the author's own

@@ -74,9 +74,19 @@ CONFIDENCES = {"high", "medium", "low"}
 _ROW = re.compile(r"^\s*\|")
 
 
+class Refused(Exception):
+    """A guard declined to act, or the API said no.
+
+    Every check in this module raises rather than exiting, so `submit` and
+    `fetch` can be called from a test or another program without that call
+    taking the interpreter down with it. `main` is the only thing that exits,
+    and it prints this message exactly as sys.exit did.
+    """
+
+
 def _headers():
     if not ANTHROPIC_API_KEY:
-        sys.exit("ANTHROPIC_API_KEY is unset. It belongs in .env, never in a command.")
+        raise Refused("ANTHROPIC_API_KEY is unset. It belongs in .env, never in a command.")
     return {"x-api-key": ANTHROPIC_API_KEY,
             "anthropic-version": API_VERSION,
             "content-type": "application/json"}
@@ -112,7 +122,7 @@ def _list_batches(s, limit=100):
     r = s.get(API, headers=_headers(), params={"limit": limit},
               timeout=s.request_timeout)
     if r.status_code >= 400:
-        sys.exit(f"list failed [{r.status_code}]: {r.text[:500]}")
+        raise Refused(f"list failed [{r.status_code}]: {r.text[:500]}")
     return r.json().get("data", [])
 
 
@@ -120,7 +130,7 @@ def _record(batch_id=None):
     """The run record for `batch_id`, or the most recently submitted one."""
     path = RUNS_DIR / f"{batch_id}.json" if batch_id else LATEST
     if not path.exists():
-        sys.exit(f"no run record at {path}. Submit first, or pass --id.")
+        raise Refused(f"no run record at {path}. Submit first, or pass --id.")
     return json.loads(path.read_text())
 
 
@@ -146,7 +156,7 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
     """
     reqs = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
     if not reqs:
-        sys.exit(f"{path} holds no requests.")
+        raise Refused(f"{path} holds no requests.")
 
     model = reqs[0]["params"]["model"]
     index = path.with_suffix(".index.csv")
@@ -172,19 +182,19 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
               f"is not an estimate, it is a zero. ***")
 
     if PENDING.exists():
-        sys.exit(f"\nREFUSING TO SEND. {PENDING} says an earlier submit never "
+        raise Refused(f"\nREFUSING TO SEND. {PENDING} says an earlier submit never "
                  f"confirmed:\n  {PENDING.read_text()}\n"
                  "A batch may exist on the server. Run `reconcile` first.")
 
     prior = next((r for r in _records() if r.get("digest") == digest), None)
     if prior and not again:
-        sys.exit(f"\nREFUSING TO SEND. This exact file was already submitted as "
+        raise Refused(f"\nREFUSING TO SEND. This exact file was already submitted as "
                  f"{prior['batch_id']} at {prior['submitted']}.\n"
                  "Its results are already paid for; fetch them instead. "
                  "--again overrides.")
 
     if len(reqs) > max_requests:
-        sys.exit(f"\nREFUSING TO SEND. {len(reqs)} requests is over the "
+        raise Refused(f"\nREFUSING TO SEND. {len(reqs)} requests is over the "
                  f"{max_requests} ceiling. Raise --max-requests if deliberate.")
 
     if not yes:
@@ -200,7 +210,7 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
                timeout=s.request_timeout)
     if r.status_code >= 400:
         PENDING.unlink(missing_ok=True)
-        sys.exit(f"submit failed [{r.status_code}]: {r.text[:500]}")
+        raise Refused(f"submit failed [{r.status_code}]: {r.text[:500]}")
     batch = r.json()
 
     rec = {"batch_id": batch["id"], "digest": digest, "model": model,
@@ -237,13 +247,13 @@ def verify(model=MODEL_DEFAULT):
     r = s.get(MODELS_API, headers=_headers(), params={"limit": 100},
               timeout=s.request_timeout)
     if r.status_code == 401:
-        sys.exit("key REJECTED (401). The key the program loaded from .env is not "
+        raise Refused("key REJECTED (401). The key the program loaded from .env is not "
                  "valid. I have not read .env and cannot tell you what is in it.")
     if r.status_code == 403:
-        sys.exit("key FORBIDDEN (403). It authenticated but lacks permission, or "
+        raise Refused("key FORBIDDEN (403). It authenticated but lacks permission, or "
                  "the workspace has no billing enabled.")
     if r.status_code >= 400:
-        sys.exit(f"models call failed [{r.status_code}]: {r.text[:300]}")
+        raise Refused(f"models call failed [{r.status_code}]: {r.text[:300]}")
 
     ids = [m["id"] for m in r.json().get("data", [])]
     print(f"key            : accepted ({len(ids)} models visible)")
@@ -269,7 +279,7 @@ def verify(model=MODEL_DEFAULT):
 
     print("\nNothing was billed: neither endpoint returns tokens.")
     if not ok:
-        sys.exit("verification did not fully pass. Do not send.")
+        raise Refused("verification did not fully pass. Do not send.")
     return ok
 
 
@@ -279,7 +289,7 @@ def cancel(batch_id):
     r = s.post(f"{API}/{batch_id}/cancel", headers=_headers(),
                timeout=s.request_timeout)
     if r.status_code >= 400:
-        sys.exit(f"cancel failed [{r.status_code}]: {r.text[:500]}")
+        raise Refused(f"cancel failed [{r.status_code}]: {r.text[:500]}")
     b = r.json()
     print(f"{batch_id} -> {b.get('processing_status')}")
     print("Requests already completed are billed. Cancelling is not a refund.")
@@ -326,7 +336,7 @@ def status(batch_id=None, watch=False, every=60):
         r = s.get(f"{API}/{rec['batch_id']}", headers=_headers(),
                   timeout=s.request_timeout)
         if r.status_code >= 400:
-            sys.exit(f"status failed [{r.status_code}]: {r.text[:500]}")
+            raise Refused(f"status failed [{r.status_code}]: {r.text[:500]}")
         b = r.json()
         counts = b.get("request_counts", {})
         stamp = dt.datetime.now(dt.UTC).strftime("%H:%M:%S")
@@ -347,13 +357,13 @@ def fetch(batch_id=None, force=False):
 
     b = status(rec["batch_id"])
     if b.get("processing_status") != "ended":
-        sys.exit(f"batch is {b.get('processing_status')}, not ended. Nothing to fetch.")
+        raise Refused(f"batch is {b.get('processing_status')}, not ended. Nothing to fetch.")
 
     s = session()
     url = b.get("results_url") or f"{API}/{rec['batch_id']}/results"
     r = s.get(url, headers=_headers(), timeout=s.request_timeout, stream=True)
     if r.status_code >= 400:
-        sys.exit(f"fetch failed [{r.status_code}]: {r.text[:500]}")
+        raise Refused(f"fetch failed [{r.status_code}]: {r.text[:500]}")
     # Atomic: `fetch` refuses to re-download when the file is already there,
     # so a download cut short would be parsed as the whole batch.
     with atomic_write(out, "wb") as fh:
@@ -420,7 +430,7 @@ def parse(batch_id=None, results=None, index=None, out=None):
     results = pathlib.Path(results or ARTIFACTS_DIR / f"{rec['batch_id']}.results.jsonl")
     index = pathlib.Path(index or rec["index_file"])
     if not results.exists():
-        sys.exit(f"no results at {results}. Fetch first.")
+        raise Refused(f"no results at {results}. Fetch first.")
 
     want = collections.defaultdict(list)     # custom_id -> rows of the index
     for row in csv.DictReader(index.open()):
@@ -555,6 +565,13 @@ def main():
     p.add_argument("--id", required=True)
 
     a = ap.parse_args()
+    try:
+        _dispatch(a)
+    except Refused as e:
+        sys.exit(str(e))
+
+
+def _dispatch(a):
     if a.cmd == "submit":
         submit(a.file, a.yes, a.max_requests, a.again)
     elif a.cmd == "verify":

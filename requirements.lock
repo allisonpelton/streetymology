@@ -1,9 +1,6 @@
-# Exact versions this project was last verified against.
-# The transitive closure of requirements.txt, resolved against the versions
-# installed in .venv rather than against the index, so it records what the
-# tests actually passed on. Regenerate by re-running that resolution; there is
-# no pin script (an earlier header named scripts/pin_requirements.py, which the
-# repo has never contained).
+# Exact versions this project was last verified against, and what CI installs.
+# The transitive closure of requirements.txt plus the dev extras, resolved
+# against the versions in .venv, so it records what the tests passed on.
 # python 3.11.2, generated 2026-09-17
 
 certifi==2026.7.22
@@ -18,5 +15,6 @@ pyproj==3.7.2
 pytest==9.1.1
 python-dotenv==1.2.3
 requests==2.34.2
+ruff==0.16.8
 shapely==2.1.2
 urllib3==2.7.0
