@@ -27,8 +27,8 @@ import logging
 import pathlib
 
 from streetymology.config import ARTIFACTS_DIR, data_path, log_to_stderr, write_json
-from streetymology.geo import LINK_M, SPLIT_M
 from streetymology.measure_streets import load_places
+from streetymology.places import LINK_M, SPLIT_M
 from streetymology.prompt import load_context
 
 log = logging.getLogger(__name__)

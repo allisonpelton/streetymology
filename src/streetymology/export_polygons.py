@@ -28,8 +28,9 @@ import shapely
 import shapely.ops
 
 from streetymology.config import ARTIFACTS_DIR, data_path, log_to_stderr, write_json
-from streetymology.geo import LINK_M, SPLIT_M, PlatIndex
 from streetymology.measure_streets import load_places
+from streetymology.places import LINK_M, SPLIT_M
+from streetymology.plats import PlatIndex
 
 _VACATED = re.compile(r"\bVACATED\b|\bRESCINDED\b", re.I)
 _TO_WGS = pyproj.Transformer.from_crs("EPSG:32611", "EPSG:4326", always_xy=True)

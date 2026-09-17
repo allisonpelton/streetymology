@@ -25,10 +25,10 @@ import re
 
 import shapely
 
-from streetymology import geo
 from streetymology.config import data_path, log_to_stderr, write_json
-from streetymology.geo import PlatIndex, to_utm
 from streetymology.normalize import key, normalize
+from streetymology.places import LINK_M, SPLIT_M, build
+from streetymology.plats import PlatIndex, to_utm
 
 _AMD = re.compile(r"\bAMD\b|\bAMENDED\b", re.I)
 
@@ -54,7 +54,7 @@ def load_places(ways, link_m, split_m):
                            "highway": tags.get("highway"),
                            "nodes": e.get("nodes", []),
                            "points": projected(e["geometry"])})
-    built = geo.build(by_core, link_m, split_m)
+    built = build(by_core, link_m, split_m)
     return built, [p for ps in built.values() for p in ps]
 
 
@@ -64,7 +64,7 @@ def plats_for(place, index):
     Phases of one plat are one naming act, so they are accumulated together:
     metres add up, pieces are concatenated, and the earliest date wins. Grouped
     by family rather than by base name, so the scattered parcels one landowner
-    filed under a single name stay apart. See `geo` for how families split.
+    filed under a single name stay apart. See `plats` for how families split.
     """
     lines = [shapely.LineString(w["points"]) for w in place.ways if len(w["points"]) > 1]
     if not lines:
@@ -117,9 +117,9 @@ def plats_for(place, index):
 def main():
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--link", type=float, default=geo.LINK_M,
+    ap.add_argument("--link", type=float, default=LINK_M,
                     help="metres within which two ways are one alignment")
-    ap.add_argument("--split", type=float, default=geo.SPLIT_M,
+    ap.add_argument("--split", type=float, default=SPLIT_M,
                     help="metres beyond which two alignments are separate places")
     ap.add_argument("--near", type=float, default=NEAR_M,
                     help="metres within which an unplatted street is context")
