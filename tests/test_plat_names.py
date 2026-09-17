@@ -216,3 +216,38 @@ class TestHandJudgement:
         assert base_name("DE MEYER ESTATES SUB NO 03 THE REDWOODS") == \
             "DE MEYER ESTATES THE REDWOODS"
         assert base_name("DE MEYER ESTATES SUB NO 01") == "DE MEYER ESTATES"
+
+
+class TestOneParseFixesFourNames:
+    """Names the two old regex families disagreed about.
+
+    `base_name` stripped markers with one pattern set and `display_name`
+    stripped them with another, so a name either family read differently came
+    out as a naming act and a label that described different things. One parse
+    cannot disagree with itself. These four are every name in the county's
+    7,435 where the answer changed.
+    """
+
+    # The assessor files "The Bown" as "BOWN THE". Inverting it late left the
+    # article stranded in the middle of the rendered label.
+    def test_trailing_the_inverts_in_the_label_too(self):
+        assert display_name("BOWN THE ADD TO MERIDIAN") == \
+            "The Bown Addition to Meridian"
+
+    # "PHASE 01A1" is one marker. Capturing 01 and A left the final digit
+    # behind, and it rendered as part of the name.
+    def test_a_phase_marker_is_consumed_whole(self):
+        assert base_name("RIVER RUN PHASE 01A1") == "RIVER RUN"
+        # The stray digit used to reach the stem, giving "River Run 1".
+        assert display_name("RIVER RUN PHASE 01A1") == "River Run, Phase 1.A"
+        assert display_name("RIVER RUN PHASE 01A1", designated=False) == "River Run"
+
+    # Two ADDs, and only the one naming a city ends the stem.
+    def test_a_bare_addition_does_not_end_the_name(self):
+        assert base_name("HYDE PARK ADD LIGHTS ADD") == "HYDE PARK LIGHTS"
+        assert display_name("HYDE PARK ADD LIGHTS ADD") == "Hyde Park Lights Addition"
+
+    # An amendment number trails the city and names no phase.
+    def test_an_amendment_number_after_the_city_is_dropped(self):
+        assert display_name("CRUZEN MOUNTAIN VIEW ADD TO BOISE AMD 03") == \
+            "Cruzen Mountain View Addition to Boise"

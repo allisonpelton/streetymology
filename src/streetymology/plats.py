@@ -23,16 +23,8 @@ import shapely
 import shapely.ops
 
 from streetymology.grouping import single_linkage
-from streetymology.platnames import (
-    ADD_W,
-    AMD_ANY,
-    ORD_BASE,
-    ORDINAL,
-    base_name,
-    display_name,
-    excluded,
-    judgement,
-)
+from streetymology.platnames import ORD_BASE, ORDINAL, base_name, display_name, excluded, judgement
+from streetymology.platparse import ADD_W, AMD_ANY
 
 from .config import data_path
 
