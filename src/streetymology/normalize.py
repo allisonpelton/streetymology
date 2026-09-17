@@ -7,7 +7,7 @@ the correct join key across sources and the correct unit of etymology.
 import json
 import re
 
-from streetymology.config import data_path
+from streetymology import config
 
 DIRECTIONALS = {
     "n","s","e","w","ne","nw","se","sw",
@@ -126,7 +126,7 @@ def osm_cores() -> dict[str, str]:
     candidates were searched for names that no longer existed while current
     names were never searched at all.
     """
-    els = json.loads((data_path("osm_ways_geom.json")).read_text())["elements"]
+    els = json.loads((config.data_path("osm_ways_geom.json")).read_text())["elements"]
     cores: dict[str, str] = {}
     for e in els:
         tags = e.get("tags", {})

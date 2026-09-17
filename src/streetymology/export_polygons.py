@@ -27,7 +27,7 @@ import pyproj
 import shapely
 import shapely.ops
 
-from streetymology.config import ARTIFACTS_DIR, data_path, log_to_stderr, write_json
+from streetymology import config
 from streetymology.plats import PlatIndex
 
 _VACATED = re.compile(r"\bVACATED\b|\bRESCINDED\b", re.I)
@@ -120,12 +120,12 @@ def feature(geom, props):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--answers", default=str(ARTIFACTS_DIR / "answers_rekeyed.csv"))
+    ap.add_argument("--answers", default=str(config.ARTIFACTS_DIR / "answers_rekeyed.csv"))
     ap.add_argument("--out-dir", default=None)
     a = ap.parse_args()
 
     idx = PlatIndex()
-    ctx = json.loads(data_path("place_context.json").read_text())
+    ctx = json.loads(config.data_path("place_context.json").read_text())
     theme_of = {}
     if pathlib.Path(a.answers).exists():
         with open(a.answers, newline="") as fh:
@@ -210,17 +210,17 @@ def main():
                 "theme": one_theme([theme_of.get(p, "") for p in pn]),
             }))
 
-    out = pathlib.Path(a.out_dir or ARTIFACTS_DIR)
+    out = pathlib.Path(a.out_dir or config.ARTIFACTS_DIR)
     out.mkdir(parents=True, exist_ok=True)
     for name, feats in (("subdivisions", merged), ("subdivision_phases", phases)):
         feats = [f for f in feats if f]
         path = out / f"{name}.geojson"
-        write_json(path, {"type": "FeatureCollection", "features": feats})
+        config.write_json(path, {"type": "FeatureCollection", "features": feats})
         themed = sum(1 for f in feats if f["properties"]["theme"])
         print(f"{name:20} {len(feats):6,} polygons  {themed:5,} with a theme  "
               f"{path.stat().st_size / 1e6:5.1f} MB")
 
 
 if __name__ == "__main__":
-    log_to_stderr()
+    config.log_to_stderr()
     main()

@@ -14,8 +14,7 @@ import json
 import pathlib
 import re
 
-from streetymology.config import ARTIFACTS_DIR, atomic_write, data_path
-from streetymology.prompt import LETTERS, lettered
+from streetymology import config, prompt
 
 # Answers the prompt offers besides a candidate letter. Anything else is a
 # parse failure, not a new answer class.
@@ -42,7 +41,7 @@ def parse_table(text):
             continue
         choice = cells[2].strip("`* ")
         upper = choice.upper()
-        if upper not in NON_LETTER and not (len(choice) == 1 and upper in LETTERS):
+        if upper not in NON_LETTER and not (len(choice) == 1 and upper in prompt.LETTERS):
             continue
         out[int(cells[0])] = {
             "street": cells[1],
@@ -73,9 +72,9 @@ def _letter_qids():
     mapping. It calls `prompt.lettered`, the same function that rendered the
     options, rather than repeating the slice and enumerate here.
     """
-    cands = json.loads(data_path("candidates.json").read_text())
+    cands = json.loads(config.data_path("candidates.json").read_text())
     return {core: {letter: (c.get("qid"), c.get("label"))
-                   for letter, c in lettered(cs)}
+                   for letter, c in prompt.lettered(cs)}
             for core, cs in cands.items()}
 
 
@@ -87,7 +86,7 @@ def parse(rec=None, results=None, index=None, out=None):
     file recovered by hand gets parsed without inventing a record for it.
     """
     rec = rec or {}
-    results = pathlib.Path(results or ARTIFACTS_DIR / f"{rec['batch_id']}.results.jsonl")
+    results = pathlib.Path(results or config.ARTIFACTS_DIR / f"{rec['batch_id']}.results.jsonl")
     index = pathlib.Path(index or rec["index_file"])
     if not results.exists():
         raise ValueError(f"no results at {results}. Fetch first.")
@@ -144,9 +143,9 @@ def parse(rec=None, results=None, index=None, out=None):
                             "confidence": got["confidence"], "theme": got["theme"],
                             "reasoning": got["reasoning"]})
 
-    out = pathlib.Path(out or ARTIFACTS_DIR /
+    out = pathlib.Path(out or config.ARTIFACTS_DIR /
                        f"{results.stem.replace('.results', '')}.answers.csv")
-    with atomic_write(out, "w", newline="") as fh:
+    with config.atomic_write(out, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=["place", "street", "n", "custom_id",
                                            "choice", "qid", "label",
                                            "confidence", "theme", "reasoning"])

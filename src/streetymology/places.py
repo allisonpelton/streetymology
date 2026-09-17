@@ -13,8 +13,7 @@ import math
 
 import shapely
 
-from streetymology import normalize
-from streetymology.grouping import single_linkage
+from streetymology import grouping, normalize
 
 # Ada County's grid puts a mile between arterials, so a break shorter than this
 # is one street interrupted rather than two.
@@ -108,7 +107,7 @@ def _components(items, pts_of, gap, test):
         pts = list(pts_of(it))
         return {"items": [it], "pts": list(pts), "members": [pts]}
 
-    return single_linkage(
+    return grouping.single_linkage(
         [singleton(it) for it in items],
         lambda g, o: test(g["pts"], o["members"], gap),
         _absorb_run_group)
@@ -213,7 +212,7 @@ def _merge_bands(groups, band_m=GRID_BAND_M):
     """
     banded = [{**g, "bands": [b for b in (_band(m) for m in g["members"]) if b]}
               for g in groups]
-    return single_linkage(
+    return grouping.single_linkage(
         banded,
         lambda g, o: any(_overlap(x, y, band_m)
                          for x in g["bands"] for y in o["bands"]),

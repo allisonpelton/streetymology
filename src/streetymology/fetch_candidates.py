@@ -22,16 +22,15 @@ import time
 
 import requests
 
-from streetymology.config import data_path, session, write_json
-from streetymology.normalize import osm_cores
+from streetymology import config, normalize
 
 API = "https://www.wikidata.org/w/api.php"
-OUT = data_path("search_unmatched.json")
+OUT = config.data_path("search_unmatched.json")
 PAUSE = 0.25          # serial and polite; the API has no published hard limit
 
 
-def search(session, term, limit=5):
-    r = session.get(API, params={
+def search(s, term, limit=5):
+    r = s.get(API, params={
         "action": "wbsearchentities", "search": term, "language": "en",
         "uselang": "en", "type": "item", "limit": limit, "format": "json",
     }, timeout=30)
@@ -49,7 +48,7 @@ def main():
     ap.add_argument("--limit", type=int)
     a = ap.parse_args()
 
-    cores = osm_cores()
+    cores = normalize.osm_cores()
     unmatched = dict(cores)
     cache = json.loads(OUT.read_text()) if OUT.exists() else {}
     todo = [k for k in sorted(unmatched) if k not in cache]
@@ -57,7 +56,7 @@ def main():
         todo = todo[:a.limit]
     print(f"{len(unmatched)} unmatched, {len(todo)} to query", flush=True)
 
-    s = session()
+    s = config.session()
     t0 = time.time()
     for i, k in enumerate(todo, 1):
         try:
@@ -67,7 +66,7 @@ def main():
             # returned 8 hits between them, all of them other cities' streets.
             cache[k] = search(s, k)
         except (requests.RequestException, ValueError) as e:
-            # The session has already retried transport and 5xx errors. Getting
+            # The config.session has already retried transport and 5xx errors. Getting
             # here means this one term is bad, so skip it and keep the run going.
             print(f"  {k}: {str(e)[:60]}", flush=True)
             continue
@@ -75,9 +74,9 @@ def main():
             el = time.time() - t0
             print(f"  {i}/{len(todo)}  {el:.0f}s elapsed, "
                   f"{el/i*(len(todo)-i)/60:.0f} min remaining", flush=True)
-            write_json(OUT, cache)
+            config.write_json(OUT, cache)
         time.sleep(PAUSE)
-    write_json(OUT, cache)
+    config.write_json(OUT, cache)
     hits = sum(1 for v in cache.values() if v)
     print(f"done in {time.time()-t0:.0f}s. {hits}/{len(cache)} names returned candidates")
     print(f"-> {OUT}")

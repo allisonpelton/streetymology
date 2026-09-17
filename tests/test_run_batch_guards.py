@@ -29,7 +29,7 @@ from pathlib import Path
 
 import pytest
 
-from streetymology import build_batch, run_batch
+from streetymology import build_batch, config, run_batch
 
 FIXTURE = Path(__file__).parent / "fixture"
 
@@ -96,15 +96,15 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(run_batch, "RUNS_DIR", runs)
     monkeypatch.setattr(run_batch, "PENDING", runs / "pending.json")
     monkeypatch.setattr(run_batch, "LATEST", runs / "latest.json")
-    monkeypatch.setattr(run_batch, "ARTIFACTS_DIR", arts)
+    monkeypatch.setattr(config, "ARTIFACTS_DIR", arts)
     monkeypatch.setattr(run_batch, "_headers", lambda: {"x-api-key": "test"})
     return tmp_path
 
 
 def use(monkeypatch, fake):
-    # One seam: both helpers go through `config.session`, imported into
-    # run_batch at module level, so patching that name covers every call.
-    monkeypatch.setattr(run_batch, "session", lambda *a, **k: fake)
+    # One seam. Every caller reaches the factory as config.session, so
+    # patching it there covers both run_batch helpers and anything else.
+    monkeypatch.setattr(config, "session", lambda *a, **k: fake)
     return fake
 
 
@@ -218,7 +218,7 @@ def test_pending_is_cleared_when_the_api_rejects(env, monkeypatch):
 def test_the_submit_session_never_retries_a_post():
     url = "https://api.anthropic.com"
     assert run_batch._post_session().get_adapter(url).max_retries.total == 0
-    assert run_batch.session().get_adapter(url).max_retries.total > 0
+    assert config.session().get_adapter(url).max_retries.total > 0
 
 
 def test_an_unpriced_model_is_not_reported_as_free():
@@ -269,7 +269,7 @@ def test_verify_refuses_a_model_the_api_does_not_list(env, monkeypatch):
 def test_fetch_does_not_redownload(env, monkeypatch):
     fake = use(monkeypatch, FakeSession())
     record("d", batch_id="msgbatch_X")
-    (run_batch.ARTIFACTS_DIR / "msgbatch_X.results.jsonl").write_text("kept\n")
+    (config.ARTIFACTS_DIR / "msgbatch_X.results.jsonl").write_text("kept\n")
     out = run_batch.fetch("msgbatch_X")
     assert out.read_text() == "kept\n"
     assert fake.gets == []

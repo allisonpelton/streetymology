@@ -16,7 +16,7 @@ import argparse
 import functools
 import time
 
-from streetymology.config import data_path, session, write_json
+from streetymology import config
 
 URL = ("http://www.adacountyassessor.org/arcgis/rest/services/External/"
        "ExternalMap/MapServer/18/query")
@@ -26,13 +26,13 @@ BATCH = 200
 
 @functools.cache
 def _s():
-    """One pooled session, built on first use rather than at import."""
-    return session()
+    """One pooled config.session, built on first use rather than at import."""
+    return config.session()
 
 
 def get(params):
     """POST because an OBJECTID batch makes a GET query string long enough that
-    the server answers 404. Transport and 5xx retries come from the session; an
+    the server answers 404. Transport and 5xx retries come from the config.session; an
     error in the body means the request itself was wrong, so it is not retried.
     """
     r = _s().post(URL, data=params, timeout=120)
@@ -61,7 +61,7 @@ def main():
         print(f"  {len(feats):5d}/{len(ids)}")
         time.sleep(0.3)
 
-    path = write_json(data_path(a.out),
+    path = config.write_json(config.data_path(a.out),
                       {"source": URL, "fetched": time.strftime("%Y-%m-%d"),
                        "features": feats})
     print(f"-> {path}  ({path.stat().st_size/1e6:.1f} MB)")

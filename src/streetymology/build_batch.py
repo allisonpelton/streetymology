@@ -26,7 +26,7 @@ import pathlib
 import random
 import re
 
-from streetymology.config import ARTIFACTS_DIR, data_path
+from streetymology import config
 from streetymology.prompt import HEADER, candidate_lines, load_context, render
 
 # AP's three runs over labelled streets were answered by Sonnet 5 in the desktop
@@ -97,7 +97,7 @@ def build_items(limit=None, only=None, exclude=None, sample=None, seed=0):
     sampled batch is indistinguishable in shape from a whole one.
     """
     ctx, by_core = load_context()
-    cands = json.loads(data_path("candidates.json").read_text())
+    cands = json.loads(config.data_path("candidates.json").read_text())
 
     eligible, skipped_no_cands = [], 0
     for pid, rec in sorted(ctx.items()):
@@ -200,7 +200,7 @@ def main():
     cost = estimate(reqs, len(items), a.model,
                     thinking_per_item=THINKING_PER_ITEM)
 
-    out = pathlib.Path(a.out or (ARTIFACTS_DIR / f"batch_{a.model}.jsonl"))
+    out = pathlib.Path(a.out or (config.ARTIFACTS_DIR / f"batch_{a.model}.jsonl"))
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w") as fh:
         for r in reqs:

@@ -25,9 +25,7 @@ import re
 
 import shapely
 
-from streetymology.config import data_path, log_to_stderr, write_json
-from streetymology.normalize import key, normalize
-from streetymology.places import LINK_M, SPLIT_M, build
+from streetymology import config, normalize, places
 from streetymology.plats import PlatIndex, to_utm
 
 _AMD = re.compile(r"\bAMD\b|\bAMENDED\b", re.I)
@@ -47,14 +45,14 @@ def load_places(ways, link_m, split_m):
     by_core = collections.defaultdict(list)
     for e in ways["elements"]:
         tags = e.get("tags", {})
-        k = key(tags.get("name") or "")
+        k = normalize.key(tags.get("name") or "")
         if not k or not e.get("geometry"):
             continue
         by_core[k].append({"id": e["id"], "name": tags["name"],
                            "highway": tags.get("highway"),
                            "nodes": e.get("nodes", []),
                            "points": projected(e["geometry"])})
-    built = build(by_core, link_m, split_m)
+    built = places.build(by_core, link_m, split_m)
     return built, [p for ps in built.values() for p in ps]
 
 
@@ -117,9 +115,9 @@ def plats_for(place, index):
 def main():
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--link", type=float, default=LINK_M,
+    ap.add_argument("--link", type=float, default=places.LINK_M,
                     help="metres within which two ways are one alignment")
-    ap.add_argument("--split", type=float, default=SPLIT_M,
+    ap.add_argument("--split", type=float, default=places.SPLIT_M,
                     help="metres beyond which two alignments are separate places")
     ap.add_argument("--near", type=float, default=NEAR_M,
                     help="metres within which an unplatted street is context")
@@ -127,7 +125,7 @@ def main():
                     help="cores occupying more than one place, for eyeballing")
     a = ap.parse_args()
 
-    ways = json.loads(data_path(WAYS).read_text())
+    ways = json.loads(config.data_path(WAYS).read_text())
     print(f"extract timestamp: {(ways.get('osm3s') or {}).get('timestamp_osm_base')}")
     built, allp = load_places(ways, a.link, a.split)
     print(f"{len(built)} cores, {len(allp)} places, "
@@ -147,7 +145,7 @@ def main():
             # What a neighbour list should print. Directional and post-type
             # carry no etymology and cost prompt budget that names need:
             # "West Bayhorse Street" -> "Bayhorse".
-            "display": normalize(p.name),
+            "display": normalize.normalize(p.name),
             "street_m": street_m, "covered_m": covered_m,
             "plats": plats,
         }
@@ -171,8 +169,8 @@ def main():
         out[p.id]["attached"] = sorted(attached.get(p.id, ()))
         out[p.id]["near_unplatted"] = sorted(near - {p.id})
 
-    path = data_path(OUT)
-    write_json(path, out)
+    path = config.data_path(OUT)
+    config.write_json(path, out)
 
     covered = sum(1 for v in out.values() if v["plats"])
     print(f"  places touching a plat  {covered} ({covered / len(out):.1%})")
@@ -211,5 +209,5 @@ def report_dupes(built):
 
 
 if __name__ == "__main__":
-    log_to_stderr()
+    config.log_to_stderr()
     main()

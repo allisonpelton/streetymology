@@ -9,8 +9,7 @@ Nothing in this module reads the network or writes a file.
 """
 import json
 
-from streetymology.config import data_path
-from streetymology.normalize import key
+from streetymology import config, normalize
 
 HEADER = """# Street etymology — 240 items
 
@@ -85,7 +84,7 @@ OPTIONS = [
 
 
 def pick(street, by_core):
-    places = by_core.get(key(street))
+    places = by_core.get(normalize.key(street))
     if not places:
         return None
     if len(places) == 1:
@@ -151,7 +150,7 @@ def render(n, street, cand_lines, rec, ctx, by_core):
 
 def load_context():
     """place_context.json, plus a core -> places index for name lookup."""
-    ctx = json.loads(data_path("place_context.json").read_text())
+    ctx = json.loads(config.data_path("place_context.json").read_text())
     by_core = {}
     for pid, rec in ctx.items():
         by_core.setdefault(pid.split("#")[0], []).append((pid, rec))

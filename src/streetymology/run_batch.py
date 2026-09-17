@@ -33,21 +33,13 @@ import pathlib
 import sys
 import time
 
-from streetymology import answers
-from streetymology.build_batch import MODEL_DEFAULT, THINKING_PER_ITEM, estimate
-from streetymology.config import (
-    ANTHROPIC_API_KEY,
-    ARTIFACTS_DIR,
-    atomic_write,
-    session,
-    write_json,
-)
+from streetymology import answers, build_batch, config
 
 API = "https://api.anthropic.com/v1/messages/batches"
 MODELS_API = "https://api.anthropic.com/v1/models"
 API_VERSION = "2023-06-01"
 
-RUNS_DIR = ARTIFACTS_DIR / "batch_runs"
+RUNS_DIR = config.ARTIFACTS_DIR / "batch_runs"
 LATEST = RUNS_DIR / "latest.json"
 
 # Written before the POST and removed after the id is safely on disk. Its
@@ -74,22 +66,22 @@ class Refused(Exception):
 
 
 def _headers():
-    if not ANTHROPIC_API_KEY:
-        raise Refused("ANTHROPIC_API_KEY is unset. It belongs in .env, never in a command.")
-    return {"x-api-key": ANTHROPIC_API_KEY,
+    if not config.ANTHROPIC_API_KEY:
+        raise Refused("config.ANTHROPIC_API_KEY is unset. It belongs in .env, never in a command.")
+    return {"x-api-key": config.ANTHROPIC_API_KEY,
             "anthropic-version": API_VERSION,
             "content-type": "application/json"}
 
 
 def _post_session():
-    """A session that never repeats a POST.
+    """A config.session that never repeats a POST.
 
     `config.session` retries POST on 502/503, which is right for Overpass and
     wrong here: a batch can be created and its response lost, and the retry then
     creates a second batch and bills it. An ambiguous submit must fail and be
     reconciled by hand, not resolved by guessing.
     """
-    return session(retries=0)
+    return config.session(retries=0)
 
 
 def _digest(path):
@@ -125,8 +117,8 @@ def _record(batch_id=None):
 
 def _write_record(rec):
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
-    write_json(RUNS_DIR / f"{rec['batch_id']}.json", rec, indent=2)
-    write_json(LATEST, rec, indent=2)
+    config.write_json(RUNS_DIR / f"{rec['batch_id']}.json", rec, indent=2)
+    config.write_json(LATEST, rec, indent=2)
 
 
 def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
@@ -154,8 +146,8 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
     # only the ~60 answer tokens an item needs and silently drops the thinking,
     # which is most of the bill: the county priced at $5.38 here against $13.64
     # there, at the exact moment the money is committed.
-    cost = estimate(reqs, n_items or len(reqs), model,
-                    thinking_per_item=THINKING_PER_ITEM)
+    cost = build_batch.estimate(reqs, n_items or len(reqs), model,
+                    thinking_per_item=build_batch.THINKING_PER_ITEM)
     digest = _digest(path)
 
     print(f"file      : {path}")
@@ -168,7 +160,7 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
           f"({cost['input_tokens']:,} in, {cost['output_tokens']:,} out)")
     if not cost.get("priced"):
         print(f"            *** no price on file for {model}. The figure above "
-              f"is not an estimate, it is a zero. ***")
+              f"is not an build_batch.estimate, it is a zero. ***")
 
     if PENDING.exists():
         raise Refused(f"\nREFUSING TO SEND. {PENDING} says an earlier submit never "
@@ -187,11 +179,11 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
                  f"{max_requests} ceiling. Raise --max-requests if deliberate.")
 
     if not yes:
-        print("\nNOTHING WAS SENT. Re-run with --yes to spend the estimate above.")
+        print("\nNOTHING WAS SENT. Re-run with --yes to spend the build_batch.estimate above.")
         return None
 
     s = _post_session()
-    write_json(PENDING,
+    config.write_json(PENDING,
                {"digest": digest, "request_file": str(path), "requests": len(reqs),
                 "attempted": dt.datetime.now(dt.UTC).isoformat()}, indent=2)
 
@@ -220,7 +212,7 @@ def submit(path, yes=False, max_requests=MAX_REQUESTS, again=False):
     return rec
 
 
-def verify(model=MODEL_DEFAULT):
+def verify(model=build_batch.MODEL_DEFAULT):
     """Prove the key and the model id work, without spending anything.
 
     Both endpoints return no tokens, so neither bills. This is the only free
@@ -230,7 +222,7 @@ def verify(model=MODEL_DEFAULT):
     The key is never printed, and a failure is diagnosed from the status code
     and the response body, which do not contain it.
     """
-    s = session()
+    s = config.session()
     ok = True
 
     r = s.get(MODELS_API, headers=_headers(), params={"limit": 100},
@@ -253,7 +245,7 @@ def verify(model=MODEL_DEFAULT):
         near = [i for i in ids if i.split("-")[1:2] == model.split("-")[1:2]]
         print(f"model {model} : *** NOT IN THE LIST ***")
         print(f"  closest ids : {near or ids[:5]}")
-        print("  A wrong id fails every request in the batch. Fix MODEL_DEFAULT "
+        print("  A wrong id fails every request in the batch. Fix build_batch.MODEL_DEFAULT "
               "in build_batch before sending.")
 
     r = s.get(API, headers=_headers(), params={"limit": 1},
@@ -291,7 +283,7 @@ def reconcile():
     The case this exists for: submit died between sending and writing the id,
     so money is being spent by a batch nothing local refers to.
     """
-    s = session()
+    s = config.session()
     server = _list_batches(s)
     known = {r["batch_id"]: r for r in _records()}
 
@@ -320,7 +312,7 @@ def reconcile():
 
 def status(batch_id=None, watch=False, every=60):
     rec = _record(batch_id)
-    s = session()
+    s = config.session()
     while True:
         r = s.get(f"{API}/{rec['batch_id']}", headers=_headers(),
                   timeout=s.request_timeout)
@@ -339,7 +331,7 @@ def status(batch_id=None, watch=False, every=60):
 def fetch(batch_id=None, force=False):
     """Download the raw result lines. Never re-downloads over an existing file."""
     rec = _record(batch_id)
-    out = ARTIFACTS_DIR / f"{rec['batch_id']}.results.jsonl"
+    out = config.ARTIFACTS_DIR / f"{rec['batch_id']}.results.jsonl"
     if out.exists() and not force:
         print(f"already have {out} ({out.stat().st_size:,} bytes). --force to replace.")
         return out
@@ -348,14 +340,14 @@ def fetch(batch_id=None, force=False):
     if b.get("processing_status") != "ended":
         raise Refused(f"batch is {b.get('processing_status')}, not ended. Nothing to fetch.")
 
-    s = session()
+    s = config.session()
     url = b.get("results_url") or f"{API}/{rec['batch_id']}/results"
     r = s.get(url, headers=_headers(), timeout=s.request_timeout, stream=True)
     if r.status_code >= 400:
         raise Refused(f"fetch failed [{r.status_code}]: {r.text[:500]}")
     # Atomic: `fetch` will not re-download when the file is already there,
     # so a download cut short would be parsed as the whole batch.
-    with atomic_write(out, "wb") as fh:
+    with config.atomic_write(out, "wb") as fh:
         for block in r.iter_content(chunk_size=1 << 16):
             fh.write(block)
     print(f"wrote {out} ({out.stat().st_size:,} bytes)")
@@ -390,7 +382,7 @@ def main():
     p.add_argument("--out")
 
     p = sub.add_parser("verify", help="check the key and model id; bills nothing")
-    p.add_argument("--model", default=MODEL_DEFAULT)
+    p.add_argument("--model", default=build_batch.MODEL_DEFAULT)
 
     p = sub.add_parser("reconcile", help="batches on the account vs run records here")
 

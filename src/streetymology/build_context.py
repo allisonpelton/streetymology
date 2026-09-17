@@ -26,8 +26,7 @@ import json
 import math
 import re
 
-from streetymology.config import data_path, log_to_stderr, write_json
-from streetymology.normalize import key
+from streetymology import config, normalize
 
 MEASURES = "street_measures.json"
 OUT = "place_context.json"
@@ -179,7 +178,7 @@ def main():
     ap.add_argument("--dump", help="print the context of one street and stop")
     a = ap.parse_args()
 
-    measures = json.loads(data_path(MEASURES).read_text())
+    measures = json.loads(config.data_path(MEASURES).read_text())
     scored = {pid: score_plats(rec, a.bridge, a.material_ratio)
               for pid, rec in measures.items()}
 
@@ -297,7 +296,7 @@ def main():
 
     # REPORTING ONLY. --dump prints one street for AP and stops without writing.
     if a.dump:
-        pid = next((q for q, v in out.items() if key(a.dump) == v["core"]), None)
+        pid = next((q for q, v in out.items() if normalize.key(a.dump) == v["core"]), None)
         if not pid:
             raise SystemExit(f"no place for {a.dump!r}")
         v = out[pid]
@@ -314,8 +313,8 @@ def main():
                 print(f"      {out[q]['name']}")
         return
 
-    path = data_path(OUT)
-    write_json(path, out)
+    path = config.data_path(OUT)
+    config.write_json(path, out)
 
     an = [v for v in out.values() if v["analysed"]]
 
@@ -340,5 +339,5 @@ def main():
 
 
 if __name__ == "__main__":
-    log_to_stderr()
+    config.log_to_stderr()
     main()

@@ -18,7 +18,7 @@ import sys
 
 import requests
 
-from streetymology.config import OVERPASS_ENDPOINTS, data_path, session, write_json
+from streetymology import config
 
 OUT = "osm_ways_geom.json"
 
@@ -42,11 +42,11 @@ out geom;
 
 def fetch(timeout, endpoints=None):
     body = QUERY % {"timeout": timeout, "classes": CLASSES}
-    # The session retries a given endpoint; this loop moves to the next one,
+    # The config.session retries a given endpoint; this loop moves to the next one,
     # which is a different failure and not something Retry can do.
-    s = session()
+    s = config.session()
     last = None
-    for endpoint in (endpoints or OVERPASS_ENDPOINTS):
+    for endpoint in (endpoints or config.OVERPASS_ENDPOINTS):
         print(f"requesting {endpoint} ...", flush=True)
         try:
             r = s.post(endpoint, data={"data": body}, timeout=timeout + 60)
@@ -75,7 +75,7 @@ def main():
     # OSM edits. Never write an extract older than the one on disk.
     base = (d.get("osm3s") or {}).get("timestamp_osm_base", "")
     print(f"database timestamp: {base or 'unknown'}")
-    old = data_path(OUT)
+    old = config.data_path(OUT)
     if old.exists():
         prev = (json.loads(old.read_text()).get("osm3s") or {}).get(
             "timestamp_osm_base", "")
@@ -87,8 +87,8 @@ def main():
     kinds = collections.Counter(e.get("tags", {}).get("highway") for e in els)
     withgeom = sum(1 for e in els if e.get("geometry"))
     nodes = sum(len(e.get("geometry", ())) for e in els)
-    path = data_path(OUT)
-    write_json(path, d)
+    path = config.data_path(OUT)
+    config.write_json(path, d)
     print(f"\nwrote {path}")
     print(f"{len(els)} ways, {withgeom} with geometry, {nodes} nodes total")
     print("by class: " + ", ".join(f"{k} {v}" for k, v in kinds.most_common()))

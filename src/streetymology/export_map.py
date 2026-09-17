@@ -26,10 +26,8 @@ import json
 import logging
 import pathlib
 
-from streetymology.config import ARTIFACTS_DIR, data_path, log_to_stderr, write_json
-from streetymology.measure_streets import load_places
+from streetymology import config, measure_streets, prompt
 from streetymology.places import LINK_M, SPLIT_M
-from streetymology.prompt import load_context
 
 log = logging.getLogger(__name__)
 
@@ -88,12 +86,12 @@ def place_lines(ways_raw):
 
 
 def features(answers):
-    ways_raw = json.loads(data_path(WAYS).read_text())
+    ways_raw = json.loads(config.data_path(WAYS).read_text())
     lines = place_lines(ways_raw)
-    built, _ = load_places(ways_raw, LINK_M, SPLIT_M)
+    built, _ = measure_streets.load_places(ways_raw, LINK_M, SPLIT_M)
 
-    cands = json.loads(data_path("candidates.json").read_text())
-    ctx, _ = load_context()
+    cands = json.loads(config.data_path("candidates.json").read_text())
+    ctx, _ = prompt.load_context()
     per_core = {c: len(ps) for c, ps in built.items()}
     feats, no_geom = [], 0
     for places in built.values():
@@ -187,9 +185,9 @@ def main():
         answers = {k: v for k, v in answers.items() if v.get("confidence") in keep}
 
     feats, no_geom = features(answers)
-    out = pathlib.Path(a.out or ARTIFACTS_DIR / "streets.geojson")
+    out = pathlib.Path(a.out or config.ARTIFACTS_DIR / "streets.geojson")
     out.parent.mkdir(parents=True, exist_ok=True)
-    write_json(out, {"type": "FeatureCollection", "features": feats})
+    config.write_json(out, {"type": "FeatureCollection", "features": feats})
 
     mix = {}
     for f in feats:
@@ -220,5 +218,5 @@ def main():
 
 
 if __name__ == "__main__":
-    log_to_stderr()
+    config.log_to_stderr()
     main()

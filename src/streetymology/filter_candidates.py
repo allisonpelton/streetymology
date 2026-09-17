@@ -23,7 +23,7 @@ import io
 import json
 import time
 
-from streetymology.config import data_path, session, write_json
+from streetymology import config
 
 # P31 values that make an item a bare personal name or Wikimedia plumbing.
 # Add to this rather than writing string rules.
@@ -105,8 +105,8 @@ ENDPOINT = "https://query.wikidata.org/sparql"
 
 @functools.cache
 def _s():
-    """One pooled session, built on first use rather than at import."""
-    return session()
+    """One pooled config.session, built on first use rather than at import."""
+    return config.session()
 
 
 def query(sparql: str, timeout: int = 300) -> list[dict]:
@@ -166,7 +166,7 @@ def main():
     ap.add_argument("--out", default="candidates.json")
     a = ap.parse_args()
 
-    search = json.loads(data_path(a.src).read_text())
+    search = json.loads(config.data_path(a.src).read_text())
     claims = claims_for([h["qid"] for hits in search.values() for h in hits])
 
     out, dropped = {}, 0
@@ -176,13 +176,13 @@ def main():
         dropped += len(hits) - len(keep)
         if keep:
             out[core] = keep
-    write_json(data_path(a.out), out, indent=1)
+    config.write_json(config.data_path(a.out), out, indent=1)
 
     total = sum(len(h) for h in search.values())
     print(f"cores {len(search)} -> {len(out)} with a candidate left")
     print(f"candidates {total} -> {total - dropped}, dropped {dropped}"
           f" ({dropped / total:.1%})")
-    print(f"wrote {data_path(a.out)}")
+    print(f"wrote {config.data_path(a.out)}")
 
 
 if __name__ == "__main__":

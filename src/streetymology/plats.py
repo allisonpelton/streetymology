@@ -22,11 +22,7 @@ import pyproj
 import shapely
 import shapely.ops
 
-from streetymology.grouping import single_linkage
-from streetymology.platnames import ORD_BASE, ORDINAL, base_name, display_name, excluded, judgement
-from streetymology.platparse import ADD_W, AMD_ANY
-
-from .config import data_path
+from streetymology import config, grouping, judgement, platnames, platparse
 
 log = logging.getLogger(__name__)
 
@@ -90,7 +86,7 @@ class Plat:
     def __init__(self, attrs, geom):
         self.oid = attrs["OBJECTID"]
         self.name = (attrs.get("SubdivisionName") or "").strip()
-        self.base = base_name(self.name)
+        self.base = platnames.base_name(self.name)
         # The assessor stores RecordedDate as epoch milliseconds UTC.
         ms = attrs.get("RecordedDate")
         self.recorded = (
@@ -146,7 +142,7 @@ FAMILY_M = 1000.0
 
 def _cluster(plats, gap=FAMILY_M):
     """Single-linkage grouping of plats within `gap`, biggest cluster first."""
-    clusters = single_linkage(
+    clusters = grouping.single_linkage(
         [[p] for p in plats],
         lambda g, o: any(p.geom.distance(q.geom) <= gap for p in g for q in o),
         list.extend)
@@ -161,15 +157,15 @@ def _cluster_suffix(plat):
     already says. Randall Sub and Randall Addition are different filings, which
     is the distinction AP drew on Stein.
     """
-    m = ORD_BASE.match(plat.base)
+    m = platnames.ORD_BASE.match(plat.base)
     out = ""
     if m:
-        out = " " + ORDINAL.sub(lambda x: x.group(1) + x.group(2).lower(),
+        out = " " + platnames.ORDINAL.sub(lambda x: x.group(1) + x.group(2).lower(),
                                  plat.base[len(m.group(1)):].strip())
     for w in ("NORTH", "SOUTH", "EAST", "WEST"):
         if plat.base.endswith(" " + w):
             out += " " + w.title()
-    a = ADD_W.search(plat.name.upper())
+    a = platparse.ADD_W.search(plat.name.upper())
     if a:
         out += " Addition"
         if a.group("city"):
@@ -181,14 +177,14 @@ def _label_clusters(clusters, judged):
     """Label every cluster of a merged group. Warns if two labels collide."""
     if len(clusters) == 1:
         live = [q for q in clusters[0]
-                if not AMD_ANY.search(" " + q.name.upper() + " ")] or clusters[0]
+                if not platparse.AMD_ANY.search(" " + q.name.upper() + " ")] or clusters[0]
         earliest = min(live, key=lambda q: str(q.recorded or "9999"))
-        return [judged or display_name(earliest.name, designated=False)]
+        return [judged or platnames.display_name(earliest.name, designated=False)]
     labels = []
     for c in clusters:
-        live = [q for q in c if not AMD_ANY.search(" " + q.name.upper() + " ")] or c
+        live = [q for q in c if not platparse.AMD_ANY.search(" " + q.name.upper() + " ")] or c
         earliest = min(live, key=lambda q: str(q.recorded or "9999"))
-        labels.append(display_name(earliest.name, scattered=True))
+        labels.append(platnames.display_name(earliest.name, scattered=True))
     dupes = {l for l in labels if labels.count(l) > 1}
     if dupes:
         # Ada County does not permit two plats to share a name, so this is
@@ -219,7 +215,7 @@ class PlatIndex:
     """Every recorded plat, searchable by geometry."""
 
     def __init__(self, path=None):
-        doc = json.loads((data_path(path or FILE)).read_text())
+        doc = json.loads((config.data_path(path or FILE)).read_text())
         self.plats = []
         for f in doc["features"]:
             g = _rings_to_geom(f.get("geometry", {}).get("rings", []))
@@ -227,7 +223,7 @@ class PlatIndex:
                 continue
             g = shapely.ops.transform(_TO_UTM.transform, g)
             plat = Plat(f["attributes"], g)
-            if plat.name.upper() in excluded():
+            if plat.name.upper() in platnames.excluded():
                 continue
             self.plats.append(plat)
         self.tree = shapely.STRtree([p.geom for p in self.plats])
@@ -265,7 +261,7 @@ class PlatIndex:
         # wanted preserved. Distance still splits them afterwards.
         ordinal_stem = collections.defaultdict(set)
         for b in present:
-            m = ORD_BASE.match(b)
+            m = platnames.ORD_BASE.match(b)
             if m:
                 ordinal_stem[m.group(1).strip()].add(b)
         for stem, bs in ordinal_stem.items():
@@ -344,9 +340,9 @@ class PlatIndex:
             if fam in self.merged_label:
                 self.family_label[fam] = self.merged_label[fam]
                 continue
-            live = [q for q in ps if not AMD_ANY.search(" " + q.name.upper() + " ")] or ps
+            live = [q for q in ps if not platparse.AMD_ANY.search(" " + q.name.upper() + " ")] or ps
             first = min(live, key=lambda q: str(q.recorded or "9999"))
-            self.family_label[fam] = display_name(
+            self.family_label[fam] = platnames.display_name(
                 first.name, scattered=True,
                 designated=first.base in self.scattered)
 
@@ -356,7 +352,7 @@ class PlatIndex:
 
     def label(self, plat):
         """A plat as a reader should see it: phase preserved, not collapsed."""
-        return display_name(plat.name, plat.base in self.scattered)
+        return platnames.display_name(plat.name, plat.base in self.scattered)
 
     def __len__(self):
         return len(self.plats)
