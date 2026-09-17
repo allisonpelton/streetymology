@@ -71,11 +71,10 @@ def write_json(path, obj, indent=None):
 
 
 def log_to_stderr(level=logging.WARNING):
-    """Send library warnings to stderr. For entry points only.
+    """Warnings to stderr. Entry points call this; importing configures nothing.
 
-    A stage's own report goes to stdout with `print`, so that redirecting a run
-    to a file captures the numbers and leaves the warnings visible in the
-    terminal. Importing the package configures nothing.
+    A stage's own numbers go to stdout, so redirecting a run to a file still
+    shows the warnings in the terminal.
     """
     logging.basicConfig(level=level, format="%(levelname)s %(name)s: %(message)s")
 
@@ -83,10 +82,8 @@ def log_to_stderr(level=logging.WARNING):
 def session(retries=4, backoff=1.0, timeout=120):
     """A requests Session that retries transport and server errors itself.
 
-    Every fetch stage had its own loop with its own sleep, and two of them used
-    urllib while two used requests. urllib3 does this properly, with exponential
-    backoff, and it honours Retry-After on a 429, which none of the hand-written
-    loops did.
+    urllib3 backs off exponentially and honours Retry-After on a 429. A
+    hand-written sleep loop in each fetch stage does neither.
     """
     s = requests.Session()
     s.headers["User-Agent"] = USER_AGENT

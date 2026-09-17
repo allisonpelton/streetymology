@@ -159,15 +159,9 @@ def load_context():
 
 
 def lettered(cands):
-    """(letter, candidate) pairs, in the order the prompt shows them.
+    """(letter, candidate) pairs. The only place a letter is assigned.
 
-    The one place that decides which letter means which candidate. `answers`
-    inverts this to turn a letter back into a QID, so a second copy of the
-    slice-and-enumerate would have to stay in step with this one by hand.
-
-    Nothing shuffles: the order is `candidates.json` file order, which is
-    Wikidata search rank. Regenerating that file between building a batch and
-    parsing it moves every letter.
+    `answers` inverts this, so the order here is what a paid answer means.
     """
     return list(zip(LETTERS, cands[:len(LETTERS)]))
 

@@ -129,10 +129,9 @@ def _clip(stretches, geom):
 
 
 def _stretches(lines):
-    """The unbroken runs of road surface that `lines` add up to.
+    """The unbroken runs of road surface `lines` add up to.
 
-    OSM cuts a street wherever an editor stopped, so merging first leaves only
-    the genuine gaps.
+    OSM cuts a street wherever an editor stopped; merging leaves the real gaps.
     """
     return list(shapely.get_parts(shapely.ops.linemerge(lines)))
 

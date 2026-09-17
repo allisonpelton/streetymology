@@ -26,11 +26,7 @@ BATCH = 200
 
 @functools.cache
 def _s():
-    """One pooled session, built on first use.
-
-    Not at module level: importing a stage should not open a connection pool,
-    which makes it unimportable wherever the network is not wanted.
-    """
+    """One pooled session, built on first use rather than at import."""
     return session()
 
 
