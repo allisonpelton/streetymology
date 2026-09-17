@@ -55,10 +55,12 @@ fetch:
 	$(RUN).fetch_assessor
 
 # Wikidata search for every core name, then the P31 filter. Hours, not minutes.
+# Needs the OSM extract, because the core names come from it.
+#
 # candidates.json is a dependency of build_context but has no rule that fires
 # automatically: regenerating it between building a batch and parsing one would
 # silently move every candidate letter.
-candidates:
+candidates: $(RAW)/osm_ways_geom.json
 	$(RUN).fetch_candidates
 	$(RUN).filter_candidates
 

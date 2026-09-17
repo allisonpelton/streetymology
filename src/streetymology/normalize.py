@@ -117,12 +117,21 @@ EXCLUDED_HIGHWAYS = {"trunk"}
 
 
 def osm_cores() -> dict[str, str]:
-    """Map core-name key -> a representative original OSM name."""
-    els = json.loads((data_path("osm_named_ways.json")).read_text())["elements"]
+    """Map core-name key -> a representative original OSM name.
+
+    Reads the same extract `measure_streets` builds places from, which is the
+    only one `fetch_osm` writes. It previously read osm_named_ways.json, a
+    separate file no stage produced: a snapshot of this same query taken five
+    days earlier. The two had drifted 34 cores one way and 48 the other, so
+    candidates were searched for names that no longer existed while current
+    names were never searched at all.
+    """
+    els = json.loads((data_path("osm_ways_geom.json")).read_text())["elements"]
     cores: dict[str, str] = {}
     for e in els:
-        if e["tags"].get("highway") in EXCLUDED_HIGHWAYS:
+        tags = e.get("tags", {})
+        if not tags.get("name") or tags.get("highway") in EXCLUDED_HIGHWAYS:
             continue
-        cores.setdefault(key(e["tags"]["name"]), e["tags"]["name"])
+        cores.setdefault(key(tags["name"]), tags["name"])
     cores.pop("", None)
     return cores
