@@ -27,7 +27,7 @@ import pyproj
 import shapely
 import shapely.ops
 
-from streetymology import config
+from streetymology import config, measure_streets, places
 from streetymology.plats import PlatIndex
 
 _VACATED = re.compile(r"\bVACATED\b|\bRESCINDED\b", re.I)
@@ -117,6 +117,28 @@ def feature(geom, props):
                          else {"type": "MultiPolygon", "coordinates": rs})}
 
 
+def street_index():
+    """Place geometry in UTM, so a polygon can be asked what crosses it.
+
+    place_context cannot answer this. Its `plats` list is one row per FAMILY,
+    carrying a single `phase` label for the earliest filing that clips the
+    street. A street crossing phases 2, 3 and 4 of one subdivision appears
+    there once, against phase 1. The phase layer needs every phase, so it is
+    measured here.
+    """
+    ways = json.loads(config.data_path("osm_ways_geom.json").read_text())
+    built, _ = measure_streets.load_places(ways, places.LINK_M, places.SPLIT_M)
+    ids, geoms = [], []
+    for group in built.values():
+        for place in group:
+            lines = [shapely.LineString(w["points"])
+                     for w in place.ways if len(w["points"]) > 1]
+            if lines:
+                ids.append(place.id)
+                geoms.append(shapely.unary_union(lines))
+    return ids, geoms, shapely.STRtree(geoms)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -133,11 +155,12 @@ def main():
                 if row.get("place"):
                     theme_of[row["place"]] = row.get("theme", "")
 
+    ids, geoms, tree = street_index()
+
     # what each family and each phase named
     named_by_family = collections.defaultdict(list)
     named_by_phase = collections.defaultdict(list)
     through_family = collections.defaultdict(set)
-    through_phase = collections.defaultdict(set)
     for pid, r in ctx.items():
         namer = r.get("naming_plat")
         if namer:
@@ -147,13 +170,6 @@ def main():
         for pl in r.get("plats", ()):
             if pl["name"] and pl["name"] != namer:
                 through_family[pl["name"]].add(pid)
-            # Both layers answer "which streets run through this" from the same
-            # measurement. The phase layer used to re-derive it from a fresh
-            # STRtree, where a bare `intersects` counts a street that only
-            # touches the boundary: 5,105 more pairs than measure_streets found,
-            # and never fewer. A street running along a plat edge is not in it.
-            if pl.get("phase"):
-                through_phase[pl["phase"]].add(pid)
 
     # A vacated or rescinded plat is not a subdivision anyone can visit, so it
     # is not drawn. It stays in the naming data: AP confirmed Syringa Park was
@@ -196,7 +212,9 @@ def main():
             pg = shapely.unary_union([q.geom for q in ps])
             pn = named_by_phase.get((label, full), [])
             pyears = sorted(q.recorded.year for q in ps if q.recorded)
-            crossing = through_phase.get(full, set())
+            # Measured here rather than read from place_context; see
+            # street_index for why that file cannot answer it per phase.
+            crossing = {ids[i] for i in tree.query(pg) if geoms[i].intersects(pg)}
             phases.append(feature(to_wgs(pg), {
                 "subdivision": label,
                 "phase": short or full,
