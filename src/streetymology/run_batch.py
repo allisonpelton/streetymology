@@ -25,26 +25,23 @@ is not currently installed.
   python -m streetymology.run_batch parse
 """
 import argparse
-import collections
 import csv
 import datetime as dt
 import hashlib
 import json
 import pathlib
-import re
 import sys
 import time
 
+from streetymology import answers
 from streetymology.build_batch import MODEL_DEFAULT, THINKING_PER_ITEM, estimate
 from streetymology.config import (
     ANTHROPIC_API_KEY,
     ARTIFACTS_DIR,
     atomic_write,
-    data_path,
     session,
     write_json,
 )
-from streetymology.prompt import LETTERS
 
 API = "https://api.anthropic.com/v1/messages/batches"
 MODELS_API = "https://api.anthropic.com/v1/models"
@@ -62,16 +59,8 @@ PENDING = RUNS_DIR / "pending.json"
 # The county is 156; anything larger is a mistake until proven otherwise.
 MAX_REQUESTS = 200
 
-# Answers the prompt offers besides a candidate letter. Anything else is a
-# parse failure, not a new answer class.
-NON_LETTER = {"NONE", "INVENTED", "PERSONAL"}
 
-# The prompt offers exactly these three. Sonnet emitted `medium-high` and
-# `low-medium` on 8 of 50 rows in the 2026-09-10 review, so off-menu values are
-# recorded verbatim and counted rather than coerced into a neighbouring band.
-CONFIDENCES = {"high", "medium", "low"}
 
-_ROW = re.compile(r"^\s*\|")
 
 
 class Refused(Exception):
@@ -373,162 +362,6 @@ def fetch(batch_id=None, force=False):
     return out
 
 
-def parse_table(text):
-    """Rows of the answer table, by item number. Tolerates prose around it.
-
-    Off-menu values are kept as the model wrote them; `parse` counts them.
-    """
-    out = {}
-    for line in text.splitlines():
-        if not _ROW.match(line):
-            continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) < 3 or not cells[0].isdigit():
-            continue
-        choice = cells[2].strip("`* ")
-        upper = choice.upper()
-        if upper not in NON_LETTER and not (len(choice) == 1 and upper in LETTERS):
-            continue
-        out[int(cells[0])] = {
-            "street": cells[1],
-            "choice": upper,
-            "confidence": cells[3].lower() if len(cells) > 3 else "",
-            "theme": cells[4] if len(cells) > 4 else "",
-            "reasoning": cells[5] if len(cells) > 5 else "",
-        }
-    return out
-
-
-def _text(result):
-    """The assistant text of one result line, or None if it did not succeed.
-
-    Thinking blocks are dropped: only the table is wanted, and the reasoning is
-    billed whether or not anything reads it.
-    """
-    if result.get("type") != "succeeded":
-        return None
-    blocks = result.get("message", {}).get("content", [])
-    return "\n".join(b.get("text", "") for b in blocks if b.get("type") == "text")
-
-
-def _letter_qids():
-    """core -> {letter: (qid, label)}, rebuilt the way `build_batch` lettered it.
-
-    Letters mean nothing on their own, so an answer is only as good as this
-    mapping. `candidate_lines` letters `candidates.json` in file order and
-    nothing shuffles it, so re-reading the same file reproduces the rendering.
-    Regenerating candidates between build and parse would silently move them.
-    """
-    cands = json.loads(data_path("candidates.json").read_text())
-    return {core: {LETTERS[i]: (c.get("qid"), c.get("label"))
-                   for i, c in enumerate(cs[:len(LETTERS)])}
-            for core, cs in cands.items()}
-
-
-def parse(batch_id=None, results=None, index=None, out=None):
-    rec = _record(batch_id) if not (results and index) else {}
-    results = pathlib.Path(results or ARTIFACTS_DIR / f"{rec['batch_id']}.results.jsonl")
-    index = pathlib.Path(index or rec["index_file"])
-    if not results.exists():
-        raise Refused(f"no results at {results}. Fetch first.")
-
-    want = collections.defaultdict(list)     # custom_id -> rows of the index
-    for row in csv.DictReader(index.open()):
-        want[row["custom_id"]].append(row)
-
-    letters = _letter_qids()
-    answers, missing, errored = [], [], []
-    truncated, usage = [], collections.Counter()
-
-    for line in results.read_text().splitlines():
-        if not line.strip():
-            continue
-        rl = json.loads(line)
-        cid, result = rl.get("custom_id"), rl.get("result", {})
-        text = _text(result)
-        if text is None:
-            errored.append((cid, result.get("type"),
-                            str(result.get("error"))[:200]))
-            continue
-        msg = result.get("message", {})
-        u = msg.get("usage", {})
-        usage["input"] += u.get("input_tokens", 0)
-        usage["output"] += u.get("output_tokens", 0)
-        usage["thinking"] += u.get("output_tokens_details", {}).get("thinking_tokens", 0)
-        # A request that hit max_tokens is a success by the API's reckoning: the
-        # limit was ours, so honouring it is correct behaviour. Only the caller
-        # knows a truncated table is worthless, so say so here.
-        if msg.get("stop_reason") == "max_tokens":
-            truncated.append((cid, u.get("output_tokens", 0),
-                              u.get("output_tokens_details", {}).get("thinking_tokens", 0)))
-
-        table = parse_table(text)
-        for row in want.get(cid, []):
-            n = int(row["n"])
-            got = table.get(n)
-            if got is None:
-                missing.append((cid, n, row["street"]))
-                continue
-            core = row["place"].split("#")[0]
-            qid = label = ""
-            if got["choice"] not in NON_LETTER:
-                qid, label = letters.get(core, {}).get(got["choice"], ("", ""))
-                if not qid:
-                    missing.append((cid, n, f"{row['street']} letter "
-                                            f"{got['choice']} has no candidate"))
-                    continue
-            answers.append({"place": row["place"], "street": row["street"],
-                            "n": n, "custom_id": cid, "choice": got["choice"],
-                            "qid": qid, "label": label,
-                            "confidence": got["confidence"], "theme": got["theme"],
-                            "reasoning": got["reasoning"]})
-
-    out = pathlib.Path(out or ARTIFACTS_DIR /
-                       f"{results.stem.replace('.results', '')}.answers.csv")
-    with atomic_write(out, "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=["place", "street", "n", "custom_id",
-                                           "choice", "qid", "label",
-                                           "confidence", "theme", "reasoning"])
-        w.writeheader()
-        for a in sorted(answers, key=lambda a: a["n"]):
-            w.writerow(a)
-
-    asked = sum(len(v) for v in want.values())
-    mix = collections.Counter(a["choice"] if a["choice"] in NON_LETTER
-                              else "letter" for a in answers)
-    conf = collections.Counter(a["confidence"] for a in answers)
-    off = {k: v for k, v in conf.items() if k not in CONFIDENCES}
-
-    print(f"asked        : {asked}")
-    print(f"answered     : {len(answers)}")
-    print(f"missing      : {len(missing)}")
-    print(f"failed reqs  : {len(errored)}")
-    print(f"answer mix   : {mix.most_common()}")
-    print(f"confidence   : {conf.most_common()}")
-    if off:
-        print(f"OFF-MENU confidence, kept verbatim: {off}")
-    if usage:
-        print(f"actual tokens: {usage['input']:,} in, {usage['output']:,} out "
-              f"({usage['thinking']:,} of it thinking)")
-    if truncated:
-        print(f"\n*** {len(truncated)} REQUEST(S) HIT max_tokens AND WERE CUT OFF ***")
-        print("    Billed in full, and everything after the cut is lost.")
-        for cid, out_t, think_t in truncated[:5]:
-            print(f"      {cid}: {out_t:,} output tokens, {think_t:,} thinking")
-        print("    Raise --max-tokens above the thinking budget, or lower --thinking.")
-    if errored:
-        print("\nFAILED REQUESTS. These items were paid for and produced nothing:")
-        for cid, kind, err in errored[:5]:
-            print(f"  {cid} {kind} {err}")
-    if missing:
-        print("\nMISSING ITEMS. In the request, absent from the answer table:")
-        for cid, n, street in missing[:5]:
-            print(f"  {cid} n={n} {street}")
-        print("  Re-ask these with build_batch --only rather than re-running the county.")
-    print(f"\nwrote {out}")
-    return out
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -585,7 +418,11 @@ def _dispatch(a):
     elif a.cmd == "fetch":
         fetch(a.id, a.force)
     elif a.cmd == "parse":
-        parse(a.id, a.results, a.index, a.out)
+        rec = None if (a.results and a.index) else _record(a.id)
+        try:
+            answers.parse(rec, a.results, a.index, a.out)
+        except ValueError as e:
+            raise Refused(str(e)) from e
 
 
 if __name__ == "__main__":
