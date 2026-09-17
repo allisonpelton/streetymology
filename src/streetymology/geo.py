@@ -449,20 +449,49 @@ def _stretches(lines):
 FAMILY_M = 1000.0
 
 
+def _absorb_run_group(first, other):
+    """Fold one group of runs into another. `bands` only exists after banding."""
+    first["items"].extend(other["items"])
+    first["pts"].extend(other["pts"])
+    first["members"].extend(other["members"])
+    if "bands" in first:
+        first["bands"].extend(other["bands"])
+
+
+def _single_linkage(groups, joins, absorb):
+    """Fold each group into the earlier groups it joins, transitively.
+
+    Single linkage: a group need only reach ONE member of an earlier group to
+    join it, and a group reaching two earlier groups pulls those two together.
+    That second part is what a pairwise loop misses, and why this is one pass
+    over `groups` rather than a nearest-match assignment.
+
+    `joins(a, b)` decides; `absorb(first, other)` folds `other` into `first` and
+    is what knows the group's shape. Callers hand in singletons and get the
+    components back, in first-seen order.
+    """
+    out = []
+    for g in groups:
+        hits = [o for o in out if joins(g, o)]
+        if not hits:
+            out.append(g)
+            continue
+        # `g` first, then the groups it bridged. The order inside a group
+        # reaches Place.name, which breaks a post-type tie by way order.
+        first = hits[0]
+        absorb(first, g)
+        for other in hits[1:]:
+            absorb(first, other)
+            out.remove(other)
+    return out
+
+
 def _cluster(plats, gap=FAMILY_M):
     """Single-linkage grouping of plats within `gap`, biggest cluster first."""
-    clusters = []
-    for p in plats:
-        hit = [c for c in clusters
-               if any(p.geom.distance(q.geom) <= gap for q in c)]
-        if not hit:
-            clusters.append([p])
-            continue
-        first = hit[0]
-        first.append(p)
-        for other in hit[1:]:
-            first.extend(other)
-            clusters.remove(other)
+    clusters = _single_linkage(
+        [[p] for p in plats],
+        lambda g, o: any(p.geom.distance(q.geom) <= gap for p in g for q in o),
+        list.extend)
     return sorted(clusters, key=lambda c: -len(c))
 
 
@@ -828,23 +857,14 @@ def _components(items, pts_of, gap, test):
     joined: `_same_location` is closest approach, `_same_alignment` also demands
     the two run along one line.
     """
-    groups = []
-    for it in items:
-        pts = pts_of(it)
-        hits = [g for g in groups if test(pts, g["members"], gap)]
-        if not hits:
-            groups.append({"items": [it], "pts": list(pts), "members": [list(pts)]})
-            continue
-        first = hits[0]
-        first["items"].append(it)
-        first["pts"].extend(pts)
-        first["members"].append(list(pts))
-        for other in hits[1:]:
-            first["items"].extend(other["items"])
-            first["pts"].extend(other["pts"])
-            first["members"].extend(other["members"])
-            groups.remove(other)
-    return groups
+    def singleton(it):
+        pts = list(pts_of(it))
+        return {"items": [it], "pts": list(pts), "members": [pts]}
+
+    return _single_linkage(
+        [singleton(it) for it in items],
+        lambda g, o: test(g["pts"], o["members"], gap),
+        _absorb_run_group)
 
 
 def _same_alignment(pts, members, gap):
@@ -943,23 +963,13 @@ def _merge_bands(groups, band_m=GRID_BAND_M):
     twenty kilometres of it has no single band; each of its runs does, and one
     of them matching an isolated piece is enough to say they are one street.
     """
-    out = []
-    for g in groups:
-        bands = [b for b in (_band(m) for m in g["members"]) if b]
-        hits = [o for o in out
-                if any(_overlap(x, y, band_m) for x in bands for y in o["bands"])]
-        if not hits:
-            out.append({**g, "bands": bands})
-            continue
-        first = hits[0]
-        for other in hits[1:] + [g]:
-            first["items"].extend(other["items"])
-            first["pts"].extend(other["pts"])
-            first["members"].extend(other["members"])
-            first["bands"].extend(other.get("bands", bands))
-            if other is not g:
-                out.remove(other)
-    return out
+    banded = [{**g, "bands": [b for b in (_band(m) for m in g["members"]) if b]}
+              for g in groups]
+    return _single_linkage(
+        banded,
+        lambda g, o: any(_overlap(x, y, band_m)
+                         for x in g["bands"] for y in o["bands"]),
+        _absorb_run_group)
 
 
 def _split_axes(places, core):
